@@ -33,7 +33,7 @@ import {
   handleDownloads,
   resolveDownloadPath,
 } from './router.js'
-import { searchYoutube, resolveStreamUrl } from './ytdlp.js'
+import { searchYoutube, resolveStreamUrl, setYtdlBin, getYtdlBin } from './ytdlp.js'
 import Prefs from '../Prefs/Prefs.js'
 import { getAlreadyDownloadedIds } from './library.js'
 import { downloadManager } from './downloadManager.js'
@@ -44,6 +44,7 @@ import type { YouTubeResult } from './ytdlp.js'
 interface MockPrefs {
   paths: { result: number[], entities: Record<number, { path: string }> }
   youtubeDownloadPathId?: number
+  youtubeDlBin?: string
   youtubeDlExtraArgs?: string
 }
 
@@ -88,6 +89,7 @@ function mockedPrefs (overrides: Partial<MockPrefs> = {}) {
 describe('router', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    setYtdlBin(null)
     vi.mocked(Prefs.get).mockReturnValue(mockedPrefs())
   })
 
@@ -222,8 +224,20 @@ describe('router', () => {
       expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({ pathId: 1 }))
     })
 
-    it('rejects when no download folder can be resolved', async () => {
-      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ paths: { result: [1, 2], entities: { 1: { path: '/a' }, 2: { path: '/b' } } }, youtubeDownloadPathId: undefined }))
+    it('applies the configured yt-dlp binary from prefs', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeDlBin: '/prefs/bin/yt-dlp' }))
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await handleDownload(ctx)
+
+      expect(getYtdlBin()).toBe('/prefs/bin/yt-dlp')
+    })
+
+    it('rejects when no media folder exists', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ paths: { result: [], entities: {} }, youtubeDownloadPathId: undefined }))
 
       const ctx = makeCtx({
         request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
@@ -264,8 +278,18 @@ describe('router', () => {
       expect(resolveDownloadPath(makePrefs())).toEqual({ pathId: 1, destDir: '/media/musica' })
     })
 
-    it('returns null when ambiguous and not configured', () => {
+    it('falls back to the first path when not configured', () => {
       const prefs = makePrefs({ paths: { result: [1, 2], entities: { 1: { path: '/a' }, 2: { path: '/b' } } }, youtubeDownloadPathId: undefined })
+      expect(resolveDownloadPath(prefs)).toEqual({ pathId: 1, destDir: '/a' })
+    })
+
+    it('falls back to the first path when the selected path no longer exists', () => {
+      const prefs = makePrefs({ paths: { result: [2, 3], entities: { 2: { path: '/b' }, 3: { path: '/c' } } }, youtubeDownloadPathId: 1 })
+      expect(resolveDownloadPath(prefs)).toEqual({ pathId: 2, destDir: '/b' })
+    })
+
+    it('returns null when there are no paths', () => {
+      const prefs = makePrefs({ paths: { result: [], entities: {} }, youtubeDownloadPathId: undefined })
       expect(resolveDownloadPath(prefs)).toBeNull()
     })
   })

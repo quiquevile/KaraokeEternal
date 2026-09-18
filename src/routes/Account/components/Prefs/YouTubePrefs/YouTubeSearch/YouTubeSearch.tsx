@@ -9,6 +9,7 @@ const YouTubeSearch = () => {
   const query = useAppSelector(state => state.youtube.query)
   const results = useAppSelector(state => state.youtube.results)
   const isSearching = useAppSelector(state => state.youtube.isSearching)
+  const error = useAppSelector(state => state.youtube.error)
   const dispatch = useAppDispatch()
 
   const handleSearch = (e: React.FormEvent) => {
@@ -29,10 +30,13 @@ const YouTubeSearch = () => {
           value={query}
           onChange={e => dispatch(setYoutubeQuery(e.currentTarget.value))}
         />
-        <Button variant='primary' type='submit' disabled={isSearching || !query.trim()}>
+        <Button variant='primary' type='submit' className={styles.button} disabled={isSearching || !query.trim()}>
           {isSearching ? 'Searching...' : 'Search'}
         </Button>
       </form>
+
+      {error
+        && <p className={styles.error}>{error}</p>}
 
       {results.length > 0
         && (

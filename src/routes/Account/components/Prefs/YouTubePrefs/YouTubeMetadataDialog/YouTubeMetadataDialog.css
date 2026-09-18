@@ -5,7 +5,7 @@
 }
 
 .hint {
-  color: var(--text-muted);
+  color: var(--color-gray-5);
 }
 
 .field {

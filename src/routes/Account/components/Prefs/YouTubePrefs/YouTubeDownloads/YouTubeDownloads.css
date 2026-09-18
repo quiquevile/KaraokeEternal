@@ -11,9 +11,9 @@
 .job {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xxs);
+  gap: var(--space-xs);
   padding: var(--space-s) 0;
-  border-top: var(--border);
+  border-top: 1px solid var(--chrome-border-color);
 }
 
 .jobTitle {
@@ -21,11 +21,11 @@
 }
 
 .jobStatus {
-  color: var(--text-muted);
+  color: var(--color-gray-5);
   font-size: var(--font-size-s);
   text-transform: capitalize;
 }
 
 .error {
-  color: var(--text-danger);
+  color: var(--btn-danger-bg-color);
 }

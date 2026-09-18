@@ -35,7 +35,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   return (
     <>
       <p className={styles.hint}>
-        The track is downloaded into your media folder and appears in the library after a rescan.
+        The track is downloaded into your media folder and added to the library automatically.
       </p>
 
       <label className={styles.field}>

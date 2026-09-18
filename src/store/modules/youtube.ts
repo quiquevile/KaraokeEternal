@@ -173,7 +173,13 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     }))
     .addCase(openPreview.fulfilled, (state, { payload }) => ({
       ...state,
+      error: null,
       preview: payload,
+    }))
+    .addCase(openPreview.rejected, (state, action) => ({
+      ...state,
+      error: action.error.message ?? 'could not resolve stream',
+      preview: null,
     }))
     .addCase(downloadVideo.fulfilled, state => ({
       ...state,

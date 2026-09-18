@@ -14,6 +14,7 @@ import {
   searchYoutube,
   resolveStreamUrl,
   runYtdl,
+  setYtdlBin,
 } from './ytdlp.js'
 
 vi.mock('child_process', () => ({ spawn: vi.fn() }))
@@ -58,6 +59,15 @@ describe('getYtdlBin', () => {
 
   it('uses KES_YTDL_BIN when set', () => {
     process.env.KES_YTDL_BIN = '/custom/yt-dlp'
+    expect(getYtdlBin()).toBe('/custom/yt-dlp')
+    delete process.env.KES_YTDL_BIN
+  })
+
+  it('setYtdlBin overrides KES_YTDL_BIN', () => {
+    process.env.KES_YTDL_BIN = '/custom/yt-dlp'
+    setYtdlBin('/prefs/yt-dlp')
+    expect(getYtdlBin()).toBe('/prefs/yt-dlp')
+    setYtdlBin(null)
     expect(getYtdlBin()).toBe('/custom/yt-dlp')
     delete process.env.KES_YTDL_BIN
   })

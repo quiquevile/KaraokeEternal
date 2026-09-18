@@ -44,8 +44,14 @@ export async function resolveStreamUrl (url: string): Promise<string> {
   return streamUrl
 }
 
+let ytdlBinOverride: string | null = null
+
+export function setYtdlBin (bin: string | null): void {
+  ytdlBinOverride = bin
+}
+
 export function getYtdlBin (): string {
-  return process.env.KES_YTDL_BIN || 'yt-dlp'
+  return ytdlBinOverride ?? (process.env.KES_YTDL_BIN || 'yt-dlp')
 }
 
 export function parseVideoId (url: string): string | null {

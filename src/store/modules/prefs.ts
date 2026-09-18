@@ -80,7 +80,6 @@ interface PrefsState {
   isFirstRun?: boolean
   isReplayGainEnabled: boolean
   isScanning: boolean
-  isYouTubeEnabled: boolean
   paths: {
     result: number[]
     entities: Record<number, Path>
@@ -92,13 +91,13 @@ interface PrefsState {
   scannerPct: number
   scannerText: string
   youtubeDownloadPathId?: number
+  youtubeDlBin?: string
   youtubeDlExtraArgs?: string
 }
 
 const initialState: PrefsState = {
   isReplayGainEnabled: false,
   isScanning: false,
-  isYouTubeEnabled: false,
   paths: {
     result: [],
     entities: {},

@@ -83,7 +83,6 @@ export default async function registerDownload (options: { job: DownloadJob, io:
 
   Media.add({
     songId: match.songId,
-    artistId: match.artistId,
     duration,
     pathId: job.pathId,
     relPath,

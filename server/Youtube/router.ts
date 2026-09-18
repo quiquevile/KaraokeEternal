@@ -1,6 +1,6 @@
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
-import { searchYoutube, resolveStreamUrl, parseVideoId } from './ytdlp.js'
+import { searchYoutube, resolveStreamUrl, parseVideoId, setYtdlBin } from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
 import { getAlreadyDownloadedIds } from './library.js'
@@ -17,6 +17,7 @@ export interface RouterContext {
 
 type YoutubePrefs = ReturnType<typeof Prefs.get> & {
   youtubeDownloadPathId?: number
+  youtubeDlBin?: string
   youtubeDlExtraArgs?: string
 }
 
@@ -32,8 +33,18 @@ function str (value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function applyYoutubePrefs (): YoutubePrefs {
+  const prefs = Prefs.get() as YoutubePrefs
+
+  const bin = typeof prefs.youtubeDlBin === 'string' ? prefs.youtubeDlBin.trim() : ''
+  setYtdlBin(bin || null)
+
+  return prefs
+}
+
 export async function handleSearch (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
+  applyYoutubePrefs()
 
   const query = str(bodyOf(ctx).query)
 
@@ -67,6 +78,7 @@ export async function handleIdentify (ctx: RouterContext): Promise<void> {
 
 export async function handleStream (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
+  applyYoutubePrefs()
 
   const url = str(ctx.query.url)
 
@@ -83,8 +95,10 @@ export function resolveDownloadPath (prefs: {
   youtubeDownloadPathId?: number
 }): { pathId: number, destDir: string } | null {
   const paths = prefs.paths ?? { result: [], entities: {} }
-  const pathId = prefs.youtubeDownloadPathId
-    ?? (paths.result?.length === 1 ? paths.result[0] : null)
+  const selectedId = prefs.youtubeDownloadPathId
+  const pathId = (selectedId != null && paths.entities?.[selectedId]?.path)
+    ? selectedId
+    : (paths.result?.length ? paths.result[0] : null)
 
   if (pathId == null || !paths.entities?.[pathId]?.path) return null
 
@@ -103,7 +117,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   if (!artist) ctx.throw(422, 'artist is required')
   if (!title) ctx.throw(422, 'title is required')
 
-  const prefs = Prefs.get() as YoutubePrefs
+  const prefs = applyYoutubePrefs()
   const path = resolveDownloadPath(prefs)
 
   if (!path) ctx.throw(422, 'could not determine download folder')

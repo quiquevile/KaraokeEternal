@@ -1,19 +1,45 @@
 .container {
   display: flex;
   align-items: center;
-  gap: var(--space-s);
+  gap: var(--space-m);
   padding: var(--space-s) 0;
 }
 
+.thumbnailButton {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--border-radius);
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}
+
 .thumbnail {
-  width: 120px;
-  height: 68px;
+  display: block;
+  width: 160px;
+  height: 90px;
   object-fit: cover;
   border-radius: var(--border-radius);
 }
 
+.thumbnailPlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8));
+}
+
 .info {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -25,11 +51,23 @@
 }
 
 .meta {
-  color: var(--text-muted);
+  color: var(--color-gray-5);
   font-size: var(--font-size-s);
 }
 
 .downloaded {
-  color: var(--text-positive);
+  color: var(--link-color);
   margin-left: var(--space-s);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.actions button {
+  width: auto;
+  padding: var(--space-s);
+  border-radius: var(--border-radius);
 }

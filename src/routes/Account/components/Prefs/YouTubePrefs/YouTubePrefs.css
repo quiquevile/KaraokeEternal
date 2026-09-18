@@ -14,9 +14,27 @@
 
 .content {
   padding: var(--container-padding);
+
+  label {
+    cursor: pointer;
+  }
 }
 
-.content label {
-  padding: var(--container-padding);
-  cursor: pointer;
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  margin-bottom: var(--space-l);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fieldLabel {
+  font-size: var(--font-size-s);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-gray-5);
 }

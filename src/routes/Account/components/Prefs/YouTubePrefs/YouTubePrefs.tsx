@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
 import Icon from 'components/Icon/Icon'
@@ -7,12 +7,41 @@ import YouTubeSearch from './YouTubeSearch/YouTubeSearch'
 import YouTubeDownloads from './YouTubeDownloads/YouTubeDownloads'
 import styles from './YouTubePrefs.css'
 
-const YouTubePrefs = () => {
-  const isYouTubeEnabled = useAppSelector(state => state.prefs.isYouTubeEnabled)
+const BinField = ({ value }: { value: string }) => {
+  const [bin, setBin] = useState(value)
   const dispatch = useAppDispatch()
 
-  const toggleCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch(setPref({ key: e.currentTarget.name, data: e.currentTarget.checked }))
+  const handleSave = () => {
+    dispatch(setPref({ key: 'youtubeDlBin', data: bin.trim() || '' }))
+  }
+
+  return (
+    <input
+      type='text'
+      value={bin}
+      placeholder='yt-dlp'
+      onChange={e => setBin(e.currentTarget.value)}
+      onBlur={handleSave}
+    />
+  )
+}
+
+const YouTubePrefs = () => {
+  const youtubeDownloadPathId = useAppSelector(state => state.prefs.youtubeDownloadPathId)
+  const youtubeDlBin = useAppSelector(state => state.prefs.youtubeDlBin)
+  const paths = useAppSelector(state => state.prefs.paths)
+  const dispatch = useAppDispatch()
+
+  const selectedPathId = youtubeDownloadPathId != null && paths.result.includes(youtubeDownloadPathId)
+    ? youtubeDownloadPathId
+    : paths.result[0]
+
+  const handlePathChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const pathId = Number(e.currentTarget.value)
+
+    if (Number.isInteger(pathId)) {
+      dispatch(setPref({ key: 'youtubeDownloadPathId', data: pathId }))
+    }
   }
 
   return (
@@ -26,24 +55,30 @@ const YouTubePrefs = () => {
       )}
     >
       <div className={styles.content}>
-        <label>
-          <input
-            type='checkbox'
-            checked={isYouTubeEnabled}
-            onChange={toggleCheckbox}
-            name='isYouTubeEnabled'
-          />
-          {' '}
-          Enable YouTube downloads
-        </label>
+        <div className={styles.config}>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>yt-dlp path</span>
+            <BinField key={youtubeDlBin ?? ''} value={youtubeDlBin ?? ''} />
+          </label>
 
-        {isYouTubeEnabled
-          && (
-            <>
-              <YouTubeSearch />
-              <YouTubeDownloads />
-            </>
-          )}
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Download folder</span>
+            <select
+              value={selectedPathId != null ? String(selectedPathId) : ''}
+              onChange={handlePathChange}
+              disabled={!paths.result.length}
+            >
+              {!paths.result.length
+                && <option value=''>No media folders</option>}
+              {paths.result.map(pathId => (
+                <option key={pathId} value={String(pathId)}>{paths.entities[pathId].path}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <YouTubeSearch />
+        <YouTubeDownloads />
       </div>
     </Accordion>
   )

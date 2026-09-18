@@ -1,6 +1,6 @@
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
-import { searchYoutube, resolveStreamUrl, parseVideoId, setYtdlBin } from './ytdlp.js'
+import { searchYoutube, resolveVideo, resolveStreamUrl, parseVideoId, setYtdlBin } from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
 import { getAlreadyDownloadedIds } from './library.js'
@@ -50,7 +50,12 @@ export async function handleSearch (ctx: RouterContext): Promise<void> {
 
   if (!query) ctx.throw(422, 'query is required')
 
-  const results = await searchYoutube(query)
+  // a pasted YouTube URL resolves to a single video result
+  const isDirectUrl = !!parseVideoId(query) && !/\s/.test(query)
+  const results = isDirectUrl
+    ? [await resolveVideo(query)]
+    : await searchYoutube(query)
+
   const alreadyDownloaded = getAlreadyDownloadedIds(results.map(result => result.id))
 
   ctx.status = 200

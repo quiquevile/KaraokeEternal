@@ -5,6 +5,7 @@ vi.mock('./ytdlp.js', async (importOriginal) => {
   return {
     ...actual,
     searchYoutube: vi.fn(),
+    resolveVideo: vi.fn(),
     resolveStreamUrl: vi.fn(),
   }
 })
@@ -37,7 +38,7 @@ import {
   handleDownloadsDelete,
   resolveDownloadPath,
 } from './router.js'
-import { searchYoutube, resolveStreamUrl, setYtdlBin, getYtdlBin } from './ytdlp.js'
+import { searchYoutube, resolveVideo, resolveStreamUrl, setYtdlBin, getYtdlBin } from './ytdlp.js'
 import Prefs from '../Prefs/Prefs.js'
 import { getAlreadyDownloadedIds } from './library.js'
 import { downloadManager } from './downloadManager.js'
@@ -136,6 +137,45 @@ describe('router', () => {
     it('rejects an empty query', async () => {
       const ctx = makeCtx({ request: { body: { query: '   ' } } })
       await expect(handleSearch(ctx)).rejects.toSatisfy(throwStatus(422))
+    })
+
+    it('resolves a pasted YouTube URL to a single result', async () => {
+      const video: YouTubeResult = {
+        id: 'dQw4w9WgXcQ',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        title: 'Dancing Queen (Karaoke Version)',
+        artist: 'SingKing Karaoke',
+        duration: 240,
+        durationLabel: '4:00',
+        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+      }
+      vi.mocked(resolveVideo).mockResolvedValue(video)
+      vi.mocked(getAlreadyDownloadedIds).mockReturnValue(new Set())
+
+      const ctx = makeCtx({
+        request: { body: { query: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
+      })
+      await handleSearch(ctx)
+
+      expect(resolveVideo).toHaveBeenCalledWith('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+      expect(searchYoutube).not.toHaveBeenCalled()
+      expect(getAlreadyDownloadedIds).toHaveBeenCalledWith(['dQw4w9WgXcQ'])
+      expect(ctx.body).toEqual({
+        results: [{ ...video, alreadyDownloaded: false }],
+      })
+    })
+
+    it('falls back to search when the query is text even if it prefixes a URL', async () => {
+      vi.mocked(searchYoutube).mockResolvedValue([])
+      vi.mocked(getAlreadyDownloadedIds).mockReturnValue(new Set())
+
+      const ctx = makeCtx({
+        request: { body: { query: 'Dancing Queen https://youtu.be/dQw4w9WgXcQ' } },
+      })
+      await handleSearch(ctx)
+
+      expect(searchYoutube).toHaveBeenCalledWith('Dancing Queen https://youtu.be/dQw4w9WgXcQ')
+      expect(resolveVideo).not.toHaveBeenCalled()
     })
 
     it('requires admin', async () => {

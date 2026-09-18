@@ -7,11 +7,13 @@ import {
   formatDuration,
   buildSearchArgs,
   buildStreamArgs,
+  buildVideoMetadataArgs,
   buildDownloadArgs,
   parseSearchLine,
   parseSearchOutput,
   parseProgressLine,
   searchYoutube,
+  resolveVideo,
   resolveStreamUrl,
   runYtdl,
   setYtdlBin,
@@ -133,6 +135,15 @@ describe('buildStreamArgs', () => {
     expect(args[args.indexOf('--extractor-args') + 1]).toBe('youtube:player_client=android')
     expect(args).toContain('--no-playlist')
     expect(args[args.length - 1]).toBe('https://www.youtube.com/watch?v=abc')
+  })
+})
+
+describe('buildVideoMetadataArgs', () => {
+  it('asks for single-video JSON metadata', () => {
+    const args = buildVideoMetadataArgs('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    expect(args).toContain('--no-playlist')
+    expect(args).toContain('-j')
+    expect(args[args.length - 1]).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
   })
 })
 
@@ -276,6 +287,39 @@ describe('searchYoutube', () => {
     expect(results).toHaveLength(1)
     expect(results[0].id).toBe('dQw4w9WgXcQ')
     expect(results[0].durationLabel).toBe('4:00')
+  })
+})
+
+describe('resolveVideo', () => {
+  it('spawns with no-playlist JSON args and parses a single video result', async () => {
+    const line = JSON.stringify({
+      id: 'dQw4w9WgXcQ',
+      title: 'Dancing Queen (Karaoke Version)',
+      channel: 'SingKing Karaoke',
+      duration: 240,
+    })
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: [`noise\n${line}\n`],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    const result = await resolveVideo('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+
+    expect(spawn).toHaveBeenCalledWith(
+      expect.stringContaining('yt-dlp'),
+      expect.arrayContaining(['--no-playlist', '-j', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ']),
+      expect.anything(),
+    )
+    expect(result.id).toBe('dQw4w9WgXcQ')
+    expect(result.durationLabel).toBe('4:00')
+  })
+
+  it('throws when yt-dlp returns no metadata', async () => {
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['\n'],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(resolveVideo('https://www.youtube.com/watch?v=dQw4w9WgXcQ'))
+      .rejects.toThrow('yt-dlp did not return video metadata')
   })
 })
 

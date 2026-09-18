@@ -35,6 +35,15 @@ export async function searchYoutube (query: string, options: { count?: number } 
   return parseSearchOutput(stdout)
 }
 
+export async function resolveVideo (url: string): Promise<YouTubeResult> {
+  const { stdout } = await runYtdl(buildVideoMetadataArgs(url))
+  const results = parseSearchOutput(stdout)
+
+  if (results.length === 0) throw new Error('yt-dlp did not return video metadata')
+
+  return results[0]
+}
+
 export async function resolveStreamUrl (url: string): Promise<string> {
   const { stdout } = await runYtdl(buildStreamArgs(url))
   const streamUrl = stdout.split('\n').map(line => line.trim()).find(line => line)
@@ -89,6 +98,14 @@ export function buildStreamArgs (url: string): string[] {
     '-f', PREVIEW_FORMAT,
     '--no-playlist',
     '--extractor-args', 'youtube:player_client=android',
+    url,
+  ]
+}
+
+export function buildVideoMetadataArgs (url: string): string[] {
+  return [
+    '--no-playlist',
+    '-j',
     url,
   ]
 }

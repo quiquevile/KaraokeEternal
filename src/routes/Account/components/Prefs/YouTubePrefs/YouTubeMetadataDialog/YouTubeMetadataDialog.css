@@ -1,0 +1,26 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.hint {
+  color: var(--text-muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--font-size-s);
+}
+
+.field input {
+  font-size: var(--font-size-m);
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+}

@@ -78,8 +78,9 @@ export const requestScanStop = createAsyncThunk(
 // ------------------------------------
 interface PrefsState {
   isFirstRun?: boolean
-  isScanning: boolean
   isReplayGainEnabled: boolean
+  isScanning: boolean
+  isYouTubeEnabled: boolean
   paths: {
     result: number[]
     entities: Record<number, Path>
@@ -90,11 +91,14 @@ interface PrefsState {
   }
   scannerPct: number
   scannerText: string
+  youtubeDownloadPathId?: number
+  youtubeDlExtraArgs?: string
 }
 
 const initialState: PrefsState = {
-  isScanning: false,
   isReplayGainEnabled: false,
+  isScanning: false,
+  isYouTubeEnabled: false,
   paths: {
     result: [],
     entities: {},

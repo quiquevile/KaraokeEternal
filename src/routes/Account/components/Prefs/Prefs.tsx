@@ -2,6 +2,9 @@ import React from 'react'
 import Panel from 'components/Panel/Panel'
 import PathPrefs from './PathPrefs/PathPrefs'
 import PlayerPrefs from './PlayerPrefs/PlayerPrefs'
+import YouTubePrefs from './YouTubePrefs/YouTubePrefs'
+import YouTubeMetadataDialog from './YouTubePrefs/YouTubeMetadataDialog/YouTubeMetadataDialog'
+import YouTubePreviewDialog from './YouTubePrefs/YouTubePreviewDialog/YouTubePreviewDialog'
 import styles from './Prefs.css'
 
 const Prefs = () => (
@@ -9,6 +12,9 @@ const Prefs = () => (
     <>
       <PathPrefs />
       <PlayerPrefs />
+      <YouTubePrefs />
+      <YouTubeMetadataDialog />
+      <YouTubePreviewDialog />
     </>
   </Panel>
 )

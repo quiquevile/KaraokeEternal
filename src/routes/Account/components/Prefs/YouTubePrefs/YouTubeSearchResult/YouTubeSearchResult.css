@@ -1,0 +1,35 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  padding: var(--space-s) 0;
+}
+
+.thumbnail {
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+.info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.title {
+  font-size: var(--font-size-m);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-s);
+}
+
+.downloaded {
+  color: var(--text-positive);
+  margin-left: var(--space-s);
+}

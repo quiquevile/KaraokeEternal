@@ -1,0 +1,18 @@
+.container {
+  margin-top: var(--space-l);
+}
+
+.form {
+  display: flex;
+  gap: var(--space-s);
+}
+
+.input {
+  flex: 1;
+}
+
+.results {
+  list-style: none;
+  margin: var(--space-s) 0 0;
+  padding: 0;
+}

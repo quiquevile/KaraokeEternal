@@ -4,8 +4,6 @@ import Accordion from 'components/Accordion/Accordion'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import { setPref } from 'store/modules/prefs'
-import YouTubeSearch from './YouTubeSearch/YouTubeSearch'
-import YouTubeDownloads from './YouTubeDownloads/YouTubeDownloads'
 import YtDlpChooser from './YtDlpChooser/YtDlpChooser'
 import styles from './YouTubePrefs.css'
 
@@ -79,7 +77,7 @@ const YouTubePrefs = () => {
       className={styles.container}
       headingComponent={(
         <div className={styles.heading}>
-          <Icon icon='TELEVISION_PLAY' size={32} className={styles.icon} />
+          <Icon icon='NAV_YOUTUBE' size={32} className={styles.icon} />
           <div className={styles.title}>YouTube</div>
         </div>
       )}
@@ -106,9 +104,6 @@ const YouTubePrefs = () => {
             </select>
           </label>
         </div>
-
-        <YouTubeDownloads />
-        <YouTubeSearch />
       </div>
     </Accordion>
   )

@@ -5,6 +5,7 @@ import { useAppSelector } from 'store/hooks'
 import AccountView from 'routes/Account/views/AccountView'
 import LibraryView from 'routes/Library/views/LibraryView'
 import QueueView from 'routes/Queue/views/QueueView'
+import YoutubeView from 'routes/Youtube/views/YoutubeView/YoutubeView'
 
 const PlayerView = React.lazy(() => import('routes/Player/views/PlayerView'))
 
@@ -24,6 +25,14 @@ const AppRoutes = () => (
       element={(
         <RequireAuth path='/queue' redirectTo='/account'>
           <QueueView />
+        </RequireAuth>
+      )}
+    />
+    <Route
+      path='/youtube'
+      element={(
+        <RequireAuth path='/youtube' redirectTo='/account'>
+          <YoutubeView />
         </RequireAuth>
       )}
     />
@@ -66,7 +75,7 @@ const RequireAuth = ({
   const { isAdmin, userId } = useAppSelector(state => state.user)
   const location = useLocation()
 
-  if (path === '/player' && !isAdmin) {
+  if ((path === '/player' || path === '/youtube') && !isAdmin) {
     return <Navigate to='/' replace />
   }
 

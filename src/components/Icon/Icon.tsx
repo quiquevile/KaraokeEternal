@@ -17,7 +17,7 @@ const Icon = (props: IconProps) => {
       aria-hidden
       {...restProps}
     >
-      <path fill='currentColor' d={icons[icon].d} />
+      <path fill='currentColor' fillRule={icons[icon].fillRule ?? 'nonzero'} d={icons[icon].d} />
     </svg>
   )
 }

@@ -34,17 +34,19 @@ const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
         </div>
       </div>
 
-      <div className={styles.actions}>
-        <Button
-          icon='DOWNLOAD'
-          size={24}
-          variant='primary'
-          className={styles.download}
-          onClick={() => dispatch(selectYoutubeResult(item))}
-          disabled={item.alreadyDownloaded}
-          aria-label='Download'
-        />
-      </div>
+      {!item.alreadyDownloaded
+        && (
+          <div className={styles.actions}>
+            <Button
+              icon='DOWNLOAD'
+              size={24}
+              variant='primary'
+              className={styles.download}
+              onClick={() => dispatch(selectYoutubeResult(item))}
+              aria-label='Download'
+            />
+          </div>
+        )}
     </li>
   )
 }

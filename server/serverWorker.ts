@@ -21,6 +21,8 @@ import mediaRouter from './Media/router.js'
 import prefsRouter from './Prefs/router.js'
 import roomsRouter from './Rooms/router.js'
 import userRouter from './User/router.js'
+import youtubeRouter from './Youtube/router.js'
+import { downloadManager } from './Youtube/downloadManager.js'
 import pushQueuesAndLibrary from './lib/pushQueuesAndLibrary.js'
 import { Server as SocketIO } from 'socket.io'
 import socketActions from './socket.js'
@@ -64,6 +66,7 @@ async function serverWorker ({ env, startScanner, stopScanner, shutdownHandlers 
 
     // attach socket.io handlers
     socketActions(io, jwtKey)
+    downloadManager.bindIo(io)
 
     // attach IPC action handlers
     IPC.use(IPCLibraryActions(io))
@@ -183,6 +186,7 @@ async function serverWorker ({ env, startScanner, stopScanner, shutdownHandlers 
   baseRouter.use(prefsRouter.routes())
   baseRouter.use(roomsRouter.routes())
   baseRouter.use(userRouter.routes())
+  baseRouter.use(youtubeRouter.routes())
   app.use(baseRouter.routes())
 
   // serve index.html with dynamic base tag at the main SPA routes

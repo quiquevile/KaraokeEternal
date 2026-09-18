@@ -22,6 +22,13 @@ describe('cleanKaraokeTitle', () => {
     expect(cleanKaraokeTitle('Bad Guy - Karaoke')).toBe('Bad Guy')
   })
 
+  it('removes trailing "karaoke version from <channel>" attribution', () => {
+    expect(cleanKaraokeTitle('Martika - Toy Soldiers - Karaoke Version from Zoom Karaoke'))
+      .toBe('Martika - Toy Soldiers')
+    expect(cleanKaraokeTitle('ABBA - Dancing Queen - Karaoke from SingKing Karaoke'))
+      .toBe('ABBA - Dancing Queen')
+  })
+
   it('removes leading karaoke prefix', () => {
     expect(cleanKaraokeTitle('Karaoke - Imagine Dragons - Believer')).toBe('Imagine Dragons - Believer')
     expect(cleanKaraokeTitle('Karaoke: Billie Eilish - bad guy')).toBe('Billie Eilish - bad guy')
@@ -67,6 +74,14 @@ describe('deriveMetadata', () => {
     expect(res.title).toBe('Dancing Queen')
     expect(res.artistNorm).toBe('SingKing')
     expect(res.titleNorm).toBe('Dancing Queen')
+  })
+
+  it('parses karaoke videos with channel attribution', () => {
+    const res = deriveMetadata('Martika - Toy Soldiers - Karaoke Version from Zoom Karaoke', 'Zoom Karaoke')
+    expect(res.artist).toBe('Martika')
+    expect(res.title).toBe('Toy Soldiers')
+    expect(res.artistNorm).toBe('Martika')
+    expect(res.titleNorm).toBe('Toy Soldiers')
   })
 
   it('returns empty artist when neither title nor channel yields one', () => {

@@ -15,6 +15,8 @@ function stripKaraokeMarkers (title: string) {
   let out = title
   // remove (…karaoke…), [ …karaoke… ], { …karaoke… } blocks (incl. "vocal"/"with lyrics")
   out = out.replace(/\s*(\(|\[|\{)[^)\]}]*?(karaoke|vocal|with lyrics)[^)\]}]*?(\)|\]|\})/gi, '')
+  // trailing " - karaoke (version) from/by <channel>" attribution
+  out = out.replace(/\s*[-:]\s*karaoke\s+(?:version\s+)?(?:from|by)\s+.+$/i, '')
   // trailing " - karaoke ..." / ": karaoke ..." suffix
   out = out.replace(/\s*[-:]\s*(karaoke|karaoke version|karaoke mix|karaoke instrumental|instrumental)\s*$/i, '')
   // trailing bare karaoke words

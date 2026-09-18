@@ -105,6 +105,22 @@ export const fetchDownloads = createAsyncThunk<DownloadReport, void>(
   },
 )
 
+export const clearYoutube = createAsyncThunk<DownloadReport, void>(
+  'youtube/clear',
+  async () => {
+    const res = await api.post<DownloadReport>('/downloads/clear')
+    return res
+  },
+)
+
+export const removeDownload = createAsyncThunk<DownloadReport, string>(
+  'youtube/removeDownload',
+  async (id) => {
+    const res = await api.delete<DownloadReport>(`/downloads/${encodeURIComponent(id)}`)
+    return res
+  },
+)
+
 // ------------------------------------
 // Reducer
 // ------------------------------------
@@ -187,6 +203,45 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       selected: null,
     }))
     .addCase(fetchDownloads.fulfilled, (state, { payload }) => ({
+      ...state,
+      downloads: payload,
+    }))
+    .addCase(clearYoutube.pending, state => ({
+      ...state,
+      error: null,
+      isSearching: false,
+      metadata: null,
+      preview: null,
+      query: '',
+      results: [],
+      selected: null,
+    }))
+    .addCase(clearYoutube.fulfilled, (state, { payload }) => ({
+      ...state,
+      downloads: payload,
+    }))
+    .addCase(clearYoutube.rejected, state => ({
+      ...state,
+      error: null,
+      isSearching: false,
+      metadata: null,
+      preview: null,
+      query: '',
+      results: [],
+      selected: null,
+    }))
+    .addCase(removeDownload.pending, (state, { meta }) => {
+      if (!state.downloads) return state
+
+      return {
+        ...state,
+        downloads: {
+          ...state.downloads,
+          history: state.downloads.history.filter(job => job.id !== meta.arg),
+        },
+      }
+    })
+    .addCase(removeDownload.fulfilled, (state, { payload }) => ({
       ...state,
       downloads: payload,
     }))

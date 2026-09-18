@@ -35,11 +35,11 @@ const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
       </div>
 
       <div className={styles.actions}>
-        <Button icon='PLAY' size={24} onClick={() => dispatch(openPreview(item))} aria-label='Preview' />
         <Button
           icon='DOWNLOAD'
           size={24}
           variant='primary'
+          className={styles.download}
           onClick={() => dispatch(selectYoutubeResult(item))}
           disabled={item.alreadyDownloaded}
           aria-label='Download'

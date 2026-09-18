@@ -1,28 +1,59 @@
 import React, { useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
+import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import { setPref } from 'store/modules/prefs'
 import YouTubeSearch from './YouTubeSearch/YouTubeSearch'
 import YouTubeDownloads from './YouTubeDownloads/YouTubeDownloads'
+import YtDlpChooser from './YtDlpChooser/YtDlpChooser'
 import styles from './YouTubePrefs.css'
 
 const BinField = ({ value }: { value: string }) => {
   const [bin, setBin] = useState(value)
+  const [isChoosing, setChoosing] = useState(false)
   const dispatch = useAppDispatch()
 
   const handleSave = () => {
     dispatch(setPref({ key: 'youtubeDlBin', data: bin.trim() || '' }))
   }
 
+  const handleChoose = (path: string | null) => {
+    setChoosing(false)
+
+    if (!path) return
+
+    setBin(path)
+    dispatch(setPref({ key: 'youtubeDlBin', data: path }))
+  }
+
   return (
-    <input
-      type='text'
-      value={bin}
-      placeholder='yt-dlp'
-      onChange={e => setBin(e.currentTarget.value)}
-      onBlur={handleSave}
-    />
+    <>
+      <div className={styles.binRow}>
+        <input
+          type='text'
+          value={bin}
+          placeholder='yt-dlp'
+          onChange={e => setBin(e.currentTarget.value)}
+          onBlur={handleSave}
+        />
+        <Button
+          icon='MAGNIFIER'
+          className={styles.browse}
+          onClick={() => setChoosing(true)}
+          aria-label='Browse for yt-dlp executable'
+        >
+          Browse
+        </Button>
+      </div>
+
+      {isChoosing && (
+        <YtDlpChooser
+          onCancel={() => setChoosing(false)}
+          onChoose={handleChoose}
+        />
+      )}
+    </>
   )
 }
 
@@ -77,8 +108,8 @@ const YouTubePrefs = () => {
           </label>
         </div>
 
-        <YouTubeSearch />
         <YouTubeDownloads />
+        <YouTubeSearch />
       </div>
     </Accordion>
   )

@@ -16,8 +16,30 @@
   border-top: 1px solid var(--chrome-border-color);
 }
 
+.jobTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
 .jobTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--font-size-m);
+}
+
+.remove {
+  flex: 0 0 auto;
+  width: auto;
+  padding: var(--space-s);
+}
+
+.remove svg {
+  width: 20px;
+  height: 20px;
 }
 
 .jobStatus {

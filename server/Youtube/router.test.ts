@@ -22,6 +22,8 @@ vi.mock('./downloadManager.js', () => ({
     enqueue: vi.fn(),
     getStatus: vi.fn(),
     bindIo: vi.fn(),
+    clearHistory: vi.fn(),
+    removeHistory: vi.fn(),
   },
 }))
 
@@ -31,6 +33,8 @@ import {
   handleStream,
   handleDownload,
   handleDownloads,
+  handleDownloadsClear,
+  handleDownloadsDelete,
   resolveDownloadPath,
 } from './router.js'
 import { searchYoutube, resolveStreamUrl, setYtdlBin, getYtdlBin } from './ytdlp.js'
@@ -270,6 +274,44 @@ describe('router', () => {
       await handleDownloads(ctx)
 
       expect(ctx.body).toBe(status)
+    })
+  })
+
+  describe('handleDownloadsClear', () => {
+    it('clears the download history and returns the new status', async () => {
+      const status: DownloadReport = { active: null, queue: [], history: [] }
+      vi.mocked(downloadManager.getStatus).mockReturnValue(status)
+
+      const ctx = makeCtx()
+      await handleDownloadsClear(ctx)
+
+      expect(downloadManager.clearHistory).toHaveBeenCalledWith()
+      expect(ctx.body).toBe(status)
+    })
+
+    it('requires admin', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false } })
+      await expect(handleDownloadsClear(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(downloadManager.clearHistory).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('handleDownloadsDelete', () => {
+    it('removes the job from the download history and returns the new status', async () => {
+      const status: DownloadReport = { active: null, queue: [], history: [] }
+      vi.mocked(downloadManager.getStatus).mockReturnValue(status)
+
+      const ctx = makeCtx({ params: { id: 'abc123' } })
+      await handleDownloadsDelete(ctx)
+
+      expect(downloadManager.removeHistory).toHaveBeenCalledWith('abc123')
+      expect(ctx.body).toBe(status)
+    })
+
+    it('requires admin', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false }, params: { id: 'abc123' } })
+      await expect(handleDownloadsDelete(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(downloadManager.removeHistory).not.toHaveBeenCalled()
     })
   })
 

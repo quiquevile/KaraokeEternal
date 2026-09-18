@@ -5,6 +5,7 @@ import store from './store/store'
 import socket from 'lib/socket'
 import AppRouter from 'lib/AppRouter'
 import { connectSocket } from './store/modules/user'
+import { clearYoutube } from './store/modules/youtube'
 import Persistor from 'store/Persistor'
 
 Persistor.init(store, () => {
@@ -12,6 +13,7 @@ Persistor.init(store, () => {
   // if it looks like we have a valid session
   if (store.getState().user.userId !== null) {
     store.dispatch(connectSocket())
+    store.dispatch(clearYoutube())
     socket.open()
   }
 })

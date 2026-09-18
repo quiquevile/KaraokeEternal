@@ -152,6 +152,24 @@ export async function handleDownloads (ctx: RouterContext): Promise<void> {
   ctx.body = downloadManager.getStatus()
 }
 
+export async function handleDownloadsClear (ctx: RouterContext): Promise<void> {
+  requireAdmin(ctx)
+
+  downloadManager.clearHistory()
+
+  ctx.status = 200
+  ctx.body = downloadManager.getStatus()
+}
+
+export async function handleDownloadsDelete (ctx: RouterContext): Promise<void> {
+  requireAdmin(ctx)
+
+  downloadManager.removeHistory(ctx.params.id as string)
+
+  ctx.status = 200
+  ctx.body = downloadManager.getStatus()
+}
+
 const router = new KoaRouter({ prefix: '/api/youtube' })
 
 router.post('/search', ctx => handleSearch(ctx as unknown as RouterContext))
@@ -159,5 +177,7 @@ router.post('/identify', ctx => handleIdentify(ctx as unknown as RouterContext))
 router.get('/stream', ctx => handleStream(ctx as unknown as RouterContext))
 router.post('/download', ctx => handleDownload(ctx as unknown as RouterContext))
 router.get('/downloads', ctx => handleDownloads(ctx as unknown as RouterContext))
+router.post('/downloads/clear', ctx => handleDownloadsClear(ctx as unknown as RouterContext))
+router.delete('/downloads/:id', ctx => handleDownloadsDelete(ctx as unknown as RouterContext))
 
 export default router

@@ -71,6 +71,20 @@ export class DownloadManager {
     }
   }
 
+  clearHistory (): void {
+    this.history.length = 0
+  }
+
+  removeHistory (id: string): boolean {
+    const index = this.history.findIndex(job => job.id === id)
+
+    if (index === -1) return false
+
+    this.history.splice(index, 1)
+
+    return true
+  }
+
   enqueue (input: DownloadJobInput): DownloadJob {
     const job: DownloadJob = {
       ...input,

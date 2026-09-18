@@ -33,6 +33,22 @@
   gap: var(--space-xs);
 }
 
+.binRow {
+  display: flex;
+  gap: var(--space-s);
+}
+
+.binRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.browse {
+  flex: 0 0 auto;
+  width: auto;
+  padding: var(--space-s) var(--space-m);
+}
+
 .fieldLabel {
   font-size: var(--font-size-s);
   font-weight: var(--font-weight-bold);

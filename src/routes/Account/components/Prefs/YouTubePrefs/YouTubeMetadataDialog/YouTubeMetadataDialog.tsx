@@ -32,24 +32,39 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
     }))
   }
 
+  const handleSwap = () => {
+    setArtist(title)
+    setTitle(artist)
+  }
+
   return (
     <>
       <p className={styles.hint}>
         The track is downloaded into your media folder and added to the library automatically.
       </p>
 
-      <label className={styles.field}>
-        Artist
-        <input type='text' value={artist} onChange={e => setArtist(e.currentTarget.value)} />
-      </label>
+      <div className={styles.fields}>
+        <label className={styles.field}>
+          <span className={styles.label}>Artist</span>
+          <input type='text' value={artist} onChange={e => setArtist(e.currentTarget.value)} />
+        </label>
 
-      <label className={styles.field}>
-        Title
-        <input type='text' value={title} onChange={e => setTitle(e.currentTarget.value)} />
-      </label>
+        <Button
+          icon='SWAP_HORIZONTAL'
+          size={24}
+          variant='default'
+          className={styles.swap}
+          onClick={handleSwap}
+          aria-label='Swap artist and title'
+        />
+
+        <label className={styles.field}>
+          <span className={styles.label}>Title</span>
+          <input type='text' value={title} onChange={e => setTitle(e.currentTarget.value)} />
+        </label>
+      </div>
 
       <div className={styles.buttons}>
-        <Button onClick={() => dispatch(closeYoutubeDialog())}>Cancel</Button>
         <Button
           variant='primary'
           onClick={handleDownload}

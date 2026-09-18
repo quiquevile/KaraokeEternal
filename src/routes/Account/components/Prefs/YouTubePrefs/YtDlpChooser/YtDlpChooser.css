@@ -1,0 +1,54 @@
+.modal {
+  width: 90%;
+  height: 95%;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.folderCurrent {
+  padding: 10px;
+  border: 1px solid var(--text-color);
+  border-radius: var(--border-radius);
+  background: var(--panel-bg-color);
+  overflow-wrap: anywhere;
+}
+
+.folderList {
+  flex: 1;
+  margin: var(--space-s) 0;
+  overflow: auto;
+}
+
+.path,
+.pathSelected {
+  display: flex;
+  height: 40px;
+  cursor: pointer;
+  align-items: center;
+}
+
+.path:hover {
+  background: var(--color-gray-2);
+}
+
+.pathSelected {
+  background: var(--mark-bg-color);
+}
+
+.pathLabel {
+  flex: 1;
+  font-size: 16px;
+  margin-left: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btnContainer {
+  display: flex;
+  gap: var(--space-m);
+}

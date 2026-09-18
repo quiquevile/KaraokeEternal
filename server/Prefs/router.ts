@@ -2,6 +2,7 @@ import path from 'path'
 import getLogger from '../lib/Log.js'
 import KoaRouter from '@koa/router'
 import getFolders from '../lib/getFolders.js'
+import getEntries from '../lib/getEntries.js'
 import getWindowsDrives from '../lib/getWindowsDrives.js'
 import Prefs from './Prefs.js'
 import Media from '../Media/Media.js'
@@ -190,6 +191,41 @@ router.get('/path/ls', async (ctx) => {
         path: p,
         label: p.replace(current + path.sep, ''),
       })).filter(c => !(c.label.startsWith('.') || c.label.startsWith('/.'))),
+    }
+  }
+})
+
+// get folder && file listing for the yt-dlp executable browser
+router.get('/file/ls', async (ctx) => {
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401)
+  }
+
+  const dir = decodeURIComponent(ctx.query.dir as string)
+
+  if (dir === '' && process.platform === 'win32') {
+    const drives = getWindowsDrives()
+
+    ctx.body = {
+      current: '',
+      parent: false,
+      children: drives.map(drive => ({ ...drive, isDir: true })),
+    }
+  } else {
+    const current = path.resolve(dir)
+    const parent = path.resolve(dir, '../')
+
+    const list = await getEntries(dir)
+    log.verbose('%s listed files in path: %s', ctx.user.name, current)
+
+    ctx.body = {
+      current,
+      parent: parent === current ? (process.platform === 'win32' ? '' : false) : parent,
+      children: list.filter(entry => !entry.name.startsWith('.')).map(entry => ({
+        path: entry.path,
+        label: entry.name,
+        isDir: entry.isDir,
+      })),
     }
   }
 })

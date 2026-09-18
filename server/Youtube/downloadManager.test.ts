@@ -138,4 +138,29 @@ describe('DownloadManager', () => {
     expect(a.error).toBe('boom')
     await vi.waitFor(() => expect(b.status).toBe('complete'))
   })
+
+  it('clears the download history', async () => {
+    const deps = makeDeps()
+    const manager = new DownloadManager({ deps })
+    manager.enqueue(makeJob())
+
+    await vi.waitFor(() => expect(manager.getStatus().history.length).toBe(1))
+
+    manager.clearHistory()
+
+    expect(manager.getStatus().history).toEqual([])
+  })
+
+  it('removes a single job from the download history', async () => {
+    const deps = makeDeps()
+    const manager = new DownloadManager({ deps })
+    manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=aaaaaaaaaaa' }))
+    manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=bbbbbbbbbbb' }))
+
+    await vi.waitFor(() => expect(manager.getStatus().history.length).toBe(2))
+
+    expect(manager.removeHistory('aaaaaaaaaaa')).toBe(true)
+    expect(manager.getStatus().history.map(job => job.id)).toEqual(['bbbbbbbbbbb'])
+    expect(manager.removeHistory('nope')).toBe(false)
+  })
 })

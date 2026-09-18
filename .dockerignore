@@ -1,0 +1,9 @@
+.git
+.gitignore
+.github
+build
+node_modules
+docker-compose.yml
+*.log
+docs/*
+!docs/assets

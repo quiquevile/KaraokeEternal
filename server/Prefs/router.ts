@@ -221,7 +221,7 @@ router.get('/file/ls', async (ctx) => {
     ctx.body = {
       current,
       parent: parent === current ? (process.platform === 'win32' ? '' : false) : parent,
-      children: list.filter(entry => !entry.name.startsWith('.')).map(entry => ({
+      children: list.map(entry => ({
         path: entry.path,
         label: entry.name,
         isDir: entry.isDir,

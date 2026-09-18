@@ -13,15 +13,19 @@ const YoutubeView = () => {
     <div
       className={styles.container}
       style={{
-        paddingTop: headerHeight,
-        paddingBottom: footerHeight,
         width: innerWidth,
         height: innerHeight,
+        paddingTop: headerHeight,
+        paddingBottom: footerHeight,
       }}
     >
-      <div className={styles.content}>
+      <div className={styles.downloads}>
         <YouTubeDownloads />
-        <YouTubeSearch />
+      </div>
+      <div className={styles.scroll}>
+        <div className={styles.content}>
+          <YouTubeSearch />
+        </div>
       </div>
 
       <YouTubeMetadataDialog />

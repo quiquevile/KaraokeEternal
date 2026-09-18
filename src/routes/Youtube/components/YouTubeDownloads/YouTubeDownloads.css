@@ -1,5 +1,6 @@
 .container {
-  margin-top: var(--space-l);
+  max-height: 30vh;
+  overflow-y: auto;
 }
 
 .list {

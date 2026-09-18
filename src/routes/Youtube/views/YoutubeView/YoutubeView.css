@@ -1,9 +1,26 @@
 .container {
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.downloads {
+  flex: 0 0 auto;
+  padding: var(--space-s) var(--container-padding) 0;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
 .content {
-  padding: var(--container-padding);
+  padding: var(--space-s) var(--container-padding);
+}
+
+.content .error {
+  margin-top: 0;
 }

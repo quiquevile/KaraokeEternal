@@ -59,6 +59,7 @@ export const selectYoutubeResult = createAction<YouTubeResult>('youtube/selectRe
 export const closeYoutubeDialog = createAction('youtube/closeDialog')
 export const closeYoutubePreview = createAction('youtube/closePreview')
 export const setYoutubeQuery = createAction<string>('youtube/query')
+export const clearYoutubeResults = createAction('youtube/clearResults')
 
 export const searchYoutubeVideos = createAsyncThunk<YouTubeResult[], string>(
   'youtube/search',
@@ -166,6 +167,15 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(setYoutubeQuery, (state, { payload }) => ({
       ...state,
       query: payload,
+    }))
+    .addCase(clearYoutubeResults, state => ({
+      ...state,
+      error: null,
+      metadata: null,
+      preview: null,
+      query: '',
+      results: [],
+      selected: null,
     }))
     .addCase(searchYoutubeVideos.pending, state => ({
       ...state,

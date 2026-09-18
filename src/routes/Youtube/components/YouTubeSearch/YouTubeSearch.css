@@ -1,24 +1,3 @@
-.container {
-  margin-top: var(--space-l);
-}
-
-.form {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-}
-
-.input {
-  flex: 1;
-  min-width: 0;
-}
-
-.button {
-  flex: 0 0 auto;
-  width: auto;
-  padding: var(--space-s) var(--space-m);
-}
-
 .error {
   color: var(--btn-danger-bg-color);
   font-size: var(--font-size-s);
@@ -27,6 +6,6 @@
 
 .results {
   list-style: none;
-  margin: var(--space-s) 0 0;
+  margin: 0;
   padding: 0;
 }

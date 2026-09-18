@@ -34,12 +34,46 @@ describe('cleanKaraokeTitle', () => {
     expect(cleanKaraokeTitle('Karaoke: Billie Eilish - bad guy')).toBe('Billie Eilish - bad guy')
   })
 
+  it('removes a leading bare karaoke prefix', () => {
+    expect(cleanKaraokeTitle('KARAOKE Me Muero - La Quinta Estación')).toBe('Me Muero - La Quinta Estación')
+  })
+
   it('removes trailing "with lyrics" markers', () => {
     expect(cleanKaraokeTitle('Dancing Queen (Karaoke Version) with lyrics')).toBe('Dancing Queen')
   })
 
   it('normalizes excessive whitespace', () => {
     expect(cleanKaraokeTitle('  ABBA    -   Dancing Queen  ')).toBe('ABBA - Dancing Queen')
+  })
+
+  it('strips "with lyrics on screen" annotations', () => {
+    expect(cleanKaraokeTitle('Sam Cooke - Having A Party (Karaoke Version) with Lyrics On Screen'))
+      .toBe('Sam Cooke - Having A Party')
+  })
+
+  it('strips backing-vocals annotation blocks', () => {
+    expect(cleanKaraokeTitle('Elvis Presley - Don\'t Be Cruel (Joe\'s Version) (No BVs) (Karaoke Version)'))
+      .toBe('Elvis Presley - Don\'t Be Cruel (Joe\'s Version)')
+  })
+
+  it('strips instrumental annotation blocks', () => {
+    expect(cleanKaraokeTitle('Beyoncé - CAN I WATCH YOU (feat. Pharrell Williams) (Instrumental Visualizer)'))
+      .toBe('Beyoncé - CAN I WATCH YOU (feat. Pharrell Williams)')
+  })
+
+  it('strips Spanish instrumental and letra markers', () => {
+    expect(cleanKaraokeTitle('ABBA - Chiquitita LETRA (INSTRUMENTAL KARAOKE)')).toBe('ABBA - Chiquitita')
+    expect(cleanKaraokeTitle('Ana Mena, Emilia - Carita triste (Karaoke) [Instrumental con coros]'))
+      .toBe('Ana Mena, Emilia - Carita triste')
+  })
+
+  it('keeps a trailing "made popular by" attribution for later parsing', () => {
+    expect(cleanKaraokeTitle('Dilemma (Made Popular By Nelly ft. Kelly Rowland) [Vocal Version]'))
+      .toBe('Dilemma (Made Popular By Nelly ft. Kelly Rowland)')
+  })
+
+  it('strips a trailing karaoke-brand attribution', () => {
+    expect(cleanKaraokeTitle('Jueves La Oreja de Van Gogh KARAOKE KARAOKEMEDIA')).toBe('Jueves La Oreja de Van Gogh')
   })
 
   it('leaves titles without karaoke markers untouched', () => {
@@ -82,6 +116,34 @@ describe('deriveMetadata', () => {
     expect(res.title).toBe('Toy Soldiers')
     expect(res.artistNorm).toBe('Martika')
     expect(res.titleNorm).toBe('Toy Soldiers')
+  })
+
+  it('parses "with lyrics on screen" zoom titles', () => {
+    const res = deriveMetadata('Sam Cooke - Having A Party (Karaoke Version) with Lyrics On Screen', 'Zoom Karaoke Official')
+    expect(res.artist).toBe('Sam Cooke')
+    expect(res.title).toBe('Having A Party')
+    expect(res.artistNorm).toBe('Sam Cooke')
+    expect(res.titleNorm).toBe('Having A Party')
+  })
+
+  it('extracts the artist from a "made popular by" attribution', () => {
+    const res = deriveMetadata('Dilemma (Made Popular By Nelly ft. Kelly Rowland) [Vocal Version]', 'Party Tyme')
+    expect(res.artist).toBe('Nelly ft. Kelly Rowland')
+    expect(res.title).toBe('Dilemma')
+  })
+
+  it('drops a "made popular by" block when a real artist is present', () => {
+    const res = deriveMetadata('Ariana Grande - One Last Time (Made Popular By Someone) [Karaoke Version]', 'Party Tyme')
+    expect(res.artist).toBe('Ariana Grande')
+    expect(res.title).toBe('One Last Time')
+  })
+
+  it('swaps artist/title on flipped KaraFun titles', () => {
+    const res = deriveMetadata('Can\'t Take My Eyes Off You - Frankie Valli & The Four Seasons | Karaoke Version | KaraFun')
+    expect(res.artist).toBe('Frankie Valli & The Four Seasons')
+    expect(res.title).toBe('Can\'t Take My Eyes Off You')
+    expect(res.artistNorm).toBe('Frankie Valli and The Four Seasons')
+    expect(res.titleNorm).toBe('Cant Take My Eyes Off You')
   })
 
   it('returns empty artist when neither title nor channel yields one', () => {

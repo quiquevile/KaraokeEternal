@@ -46,7 +46,12 @@
 .browse {
   flex: 0 0 auto;
   width: auto;
-  padding: var(--space-s) var(--space-m);
+  padding: var(--space-s);
+}
+
+.browse svg {
+  width: 20px;
+  height: 20px;
 }
 
 .fieldLabel {

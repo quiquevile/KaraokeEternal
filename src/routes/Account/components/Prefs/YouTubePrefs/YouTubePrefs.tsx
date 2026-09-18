@@ -39,12 +39,11 @@ const BinField = ({ value }: { value: string }) => {
         />
         <Button
           icon='MAGNIFIER'
+          size={20}
           className={styles.browse}
           onClick={() => setChoosing(true)}
           aria-label='Browse for yt-dlp executable'
-        >
-          Browse
-        </Button>
+        />
       </div>
 
       {isChoosing && (

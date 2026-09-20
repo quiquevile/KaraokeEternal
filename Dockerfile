@@ -15,9 +15,8 @@ FROM node:24-alpine
 RUN apk add --no-cache \
     ffmpeg \
     python3 \
-    py3-pip \
-    tini \
-  && pip3 install --break-system-packages --no-cache-dir yt-dlp
+    curl \
+    tini
 
 WORKDIR /app
 
@@ -26,6 +25,8 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/build ./build
 COPY --from=build /app/assets ./assets
+COPY --from=build /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV NODE_ENV=production \
     KES_PORT=8080 \
@@ -36,4 +37,4 @@ EXPOSE 8080
 VOLUME ["/config", "/mnt/karaoke"]
 
 ENTRYPOINT ["tini", "--"]
-CMD ["node", "build/server/main.js"]
+CMD ["/usr/local/bin/entrypoint.sh"]

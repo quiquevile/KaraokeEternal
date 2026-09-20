@@ -63,6 +63,70 @@ export function getYtdlBin (): string {
   return ytdlBinOverride ?? (process.env.KES_YTDL_BIN || 'yt-dlp')
 }
 
+export async function getYtdlVersion (): Promise<string | null> {
+  try {
+    const { stdout } = await runYtdl(['--version'])
+
+    return stdout.trim() || null
+  } catch {
+    return null
+  }
+}
+
+function getUpdateCommand (): string[] {
+  const cmd = process.env.KES_YTDL_UPDATE_CMD
+
+  return cmd ? cmd.trim().split(/\s+/).filter(Boolean) : [getYtdlBin(), '-U']
+}
+
+/**
+ * Runs the configured yt-dlp update command and captures its combined output.
+ * The default self-updates a standalone yt-dlp binary; KES_YTDL_UPDATE_CMD can
+ * override it (e.g. a pip-installed binary) without a code change.
+ */
+export async function updateYtdl (): Promise<{ ok: boolean, output: string, version: string | null }> {
+  const [bin, ...args] = getUpdateCommand()
+
+  return new Promise((resolve, reject) => {
+    let output = ''
+    let child: ReturnType<typeof spawn>
+
+    try {
+      child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    } catch (err) {
+      reject(err)
+
+      return
+    }
+
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+
+    const collect = (chunk: string) => {
+      output += chunk
+    }
+
+    child.stdout.on('data', collect)
+    child.stderr.on('data', collect)
+
+    child.on('error', err => reject(err))
+
+    child.on('close', async (code) => {
+      const trimmed = output.trim()
+
+      let version: string | null = null
+
+      try {
+        version = await getYtdlVersion()
+      } catch {
+        version = null
+      }
+
+      resolve({ ok: code === 0, output: trimmed, version })
+    })
+  })
+}
+
 export function parseVideoId (url: string): string | null {
   const match = url.match(
     /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/,

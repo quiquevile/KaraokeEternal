@@ -17,6 +17,8 @@ import {
   resolveStreamUrl,
   runYtdl,
   setYtdlBin,
+  getYtdlVersion,
+  updateYtdl,
 } from './ytdlp.js'
 
 vi.mock('child_process', () => ({ spawn: vi.fn() }))
@@ -262,6 +264,80 @@ describe('runYtdl', () => {
     }) as unknown as ReturnType<typeof spawn>)
 
     await expect(runYtdl(['-V'])).rejects.toThrow(/exited with code 1/)
+  })
+})
+
+describe('getYtdlVersion', () => {
+  it('returns the trimmed --version output', async () => {
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(getYtdlVersion()).resolves.toBe('2025.12.17')
+  })
+
+  it('returns null when yt-dlp is missing or fails', async () => {
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stderrLines: ['yt-dlp: not found\n'],
+      code: 2,
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(getYtdlVersion()).resolves.toBe(null)
+  })
+})
+
+describe('updateYtdl', () => {
+  it('runs the default [bin, -U] command and returns the new version', async () => {
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['Latest version: 2025.12.17, Current version: 2025.10.1, Update is required!\n'],
+      }) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['2025.12.17\n'],
+      }) as unknown as ReturnType<typeof spawn>)
+
+    const res = await updateYtdl()
+
+    expect(spawn).toHaveBeenNthCalledWith(1, 'yt-dlp', ['-U'], expect.anything())
+    expect(res).toEqual({
+      ok: true,
+      output: 'Latest version: 2025.12.17, Current version: 2025.10.1, Update is required!',
+      version: '2025.12.17',
+    })
+  })
+
+  it('honours KES_YTDL_UPDATE_CMD for pip-managed installs', async () => {
+    process.env.KES_YTDL_UPDATE_CMD = 'pip3 install -U yt-dlp'
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn)
+      .mockImplementationOnce(() => fakeChild({}) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['2025.12.17\n'],
+      }) as unknown as ReturnType<typeof spawn>)
+
+    await updateYtdl()
+
+    expect(spawn).toHaveBeenNthCalledWith(1, 'pip3', ['install', '-U', 'yt-dlp'], expect.anything())
+    delete process.env.KES_YTDL_UPDATE_CMD
+  })
+
+  it('reports ok:false when the update exits non-zero', async () => {
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn)
+      .mockImplementationOnce(() => fakeChild({
+        stderrLines: ['ERROR: failed to update\n'],
+        code: 1,
+      }) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['2025.10.1\n'],
+      }) as unknown as ReturnType<typeof spawn>)
+
+    const res = await updateYtdl()
+
+    expect(res.ok).toBe(false)
+    expect(res.output).toContain('ERROR: failed to update')
+    expect(res.version).toBe('2025.10.1')
   })
 })
 

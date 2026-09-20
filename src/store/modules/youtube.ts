@@ -122,6 +122,28 @@ export const removeDownload = createAsyncThunk<DownloadReport, string>(
   },
 )
 
+export interface YtdlUpdateResult {
+  ok: boolean
+  version: string | null
+  output: string
+}
+
+export const fetchYtdlVersion = createAsyncThunk<string | null, void>(
+  'youtube/fetchYtdlVersion',
+  async () => {
+    const res = await api.get<{ version: string | null }>('/ytdlp/version')
+    return res.version
+  },
+)
+
+export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
+  'youtube/updateYtdl',
+  async () => {
+    const res = await api.post<YtdlUpdateResult>('/ytdlp/update')
+    return res
+  },
+)
+
 // ------------------------------------
 // Reducer
 // ------------------------------------
@@ -134,6 +156,10 @@ interface YouTubeState {
   query: string
   results: YouTubeResult[]
   selected: YouTubeResult | null
+  ytdlpVersion: string | null
+  ytdlpUpdating: boolean
+  ytdlpOutput: string | null
+  ytdlpError: string | null
 }
 
 const initialState: YouTubeState = {
@@ -145,6 +171,10 @@ const initialState: YouTubeState = {
   query: '',
   results: [],
   selected: null,
+  ytdlpVersion: null,
+  ytdlpUpdating: false,
+  ytdlpOutput: null,
+  ytdlpError: null,
 }
 
 const youtubeReducer = createReducer(initialState, (builder) => {
@@ -254,6 +284,28 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(removeDownload.fulfilled, (state, { payload }) => ({
       ...state,
       downloads: payload,
+    }))
+    .addCase(fetchYtdlVersion.fulfilled, (state, { payload }) => ({
+      ...state,
+      ytdlpVersion: payload,
+    }))
+    .addCase(updateYtdl.pending, state => ({
+      ...state,
+      ytdlpOutput: null,
+      ytdlpError: null,
+      ytdlpUpdating: true,
+    }))
+    .addCase(updateYtdl.fulfilled, (state, { payload }) => ({
+      ...state,
+      ytdlpUpdating: false,
+      ytdlpVersion: payload.version,
+      ytdlpOutput: payload.output,
+      ytdlpError: payload.ok ? null : 'yt-dlp update failed',
+    }))
+    .addCase(updateYtdl.rejected, (state, action) => ({
+      ...state,
+      ytdlpUpdating: false,
+      ytdlpError: action.error.message ?? 'yt-dlp update failed',
     }))
 })
 

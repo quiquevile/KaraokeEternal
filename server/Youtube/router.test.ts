@@ -7,6 +7,8 @@ vi.mock('./ytdlp.js', async (importOriginal) => {
     searchYoutube: vi.fn(),
     resolveVideo: vi.fn(),
     resolveStreamUrl: vi.fn(),
+    getYtdlVersion: vi.fn(),
+    updateYtdl: vi.fn(),
   }
 })
 
@@ -36,9 +38,19 @@ import {
   handleDownloads,
   handleDownloadsClear,
   handleDownloadsDelete,
+  handleYtdlVersion,
+  handleYtdlUpdate,
   resolveDownloadPath,
 } from './router.js'
-import { searchYoutube, resolveVideo, resolveStreamUrl, setYtdlBin, getYtdlBin } from './ytdlp.js'
+import {
+  searchYoutube,
+  resolveVideo,
+  resolveStreamUrl,
+  setYtdlBin,
+  getYtdlBin,
+  getYtdlVersion,
+  updateYtdl,
+} from './ytdlp.js'
 import Prefs from '../Prefs/Prefs.js'
 import { getAlreadyDownloadedIds } from './library.js'
 import { downloadManager } from './downloadManager.js'
@@ -352,6 +364,50 @@ describe('router', () => {
       const ctx = makeCtx({ user: { isAdmin: false }, params: { id: 'abc123' } })
       await expect(handleDownloadsDelete(ctx)).rejects.toSatisfy(throwStatus(401))
       expect(downloadManager.removeHistory).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('handleYtdlVersion', () => {
+    it('returns the installed yt-dlp version', async () => {
+      vi.mocked(getYtdlVersion).mockResolvedValue('2025.12.17')
+
+      const ctx = makeCtx()
+      await handleYtdlVersion(ctx)
+
+      expect(getYtdlVersion).toHaveBeenCalled()
+      expect(ctx.body).toEqual({ version: '2025.12.17' })
+    })
+
+    it('requires admin', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false } })
+      await expect(handleYtdlVersion(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(getYtdlVersion).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('handleYtdlUpdate', () => {
+    it('updates yt-dlp and returns ok/version/output', async () => {
+      vi.mocked(updateYtdl).mockResolvedValue({
+        ok: true,
+        version: '2025.12.17',
+        output: 'Updated to 2025.12.17',
+      })
+
+      const ctx = makeCtx()
+      await handleYtdlUpdate(ctx)
+
+      expect(updateYtdl).toHaveBeenCalled()
+      expect(ctx.body).toEqual({
+        ok: true,
+        version: '2025.12.17',
+        output: 'Updated to 2025.12.17',
+      })
+    })
+
+    it('requires admin', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false } })
+      await expect(handleYtdlUpdate(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(updateYtdl).not.toHaveBeenCalled()
     })
   })
 

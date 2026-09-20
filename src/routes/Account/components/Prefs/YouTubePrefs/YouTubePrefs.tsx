@@ -5,6 +5,7 @@ import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import { setPref } from 'store/modules/prefs'
 import YtDlpChooser from './YtDlpChooser/YtDlpChooser'
+import YtdlUpdater from './YtdlUpdater/YtdlUpdater'
 import styles from './YouTubePrefs.css'
 
 const BinField = ({ value }: { value: string }) => {
@@ -88,6 +89,8 @@ const YouTubePrefs = () => {
             <span className={styles.fieldLabel}>yt-dlp path</span>
             <BinField key={youtubeDlBin ?? ''} value={youtubeDlBin ?? ''} />
           </label>
+
+          <YtdlUpdater />
 
           <label className={styles.field}>
             <span className={styles.fieldLabel}>Download folder</span>

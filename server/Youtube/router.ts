@@ -1,6 +1,14 @@
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
-import { searchYoutube, resolveVideo, resolveStreamUrl, parseVideoId, setYtdlBin } from './ytdlp.js'
+import {
+  searchYoutube,
+  resolveVideo,
+  resolveStreamUrl,
+  parseVideoId,
+  setYtdlBin,
+  getYtdlVersion,
+  updateYtdl,
+} from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
 import { getAlreadyDownloadedIds } from './library.js'
@@ -175,6 +183,22 @@ export async function handleDownloadsDelete (ctx: RouterContext): Promise<void> 
   ctx.body = downloadManager.getStatus()
 }
 
+export async function handleYtdlVersion (ctx: RouterContext): Promise<void> {
+  requireAdmin(ctx)
+  applyYoutubePrefs()
+
+  ctx.status = 200
+  ctx.body = { version: await getYtdlVersion() }
+}
+
+export async function handleYtdlUpdate (ctx: RouterContext): Promise<void> {
+  requireAdmin(ctx)
+  applyYoutubePrefs()
+
+  ctx.status = 200
+  ctx.body = await updateYtdl()
+}
+
 const router = new KoaRouter({ prefix: '/api/youtube' })
 
 router.post('/search', ctx => handleSearch(ctx as unknown as RouterContext))
@@ -184,5 +208,7 @@ router.post('/download', ctx => handleDownload(ctx as unknown as RouterContext))
 router.get('/downloads', ctx => handleDownloads(ctx as unknown as RouterContext))
 router.post('/downloads/clear', ctx => handleDownloadsClear(ctx as unknown as RouterContext))
 router.delete('/downloads/:id', ctx => handleDownloadsDelete(ctx as unknown as RouterContext))
+router.get('/ytdlp/version', ctx => handleYtdlVersion(ctx as unknown as RouterContext))
+router.post('/ytdlp/update', ctx => handleYtdlUpdate(ctx as unknown as RouterContext))
 
 export default router

@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { useLocation } from 'react-router'
 import clsx from 'clsx'
 import screenfull from 'screenfull'
-import { requestOptions, requestPause, requestPlay, requestPlayNext, requestVolume } from 'store/modules/status'
+import { requestOptions, requestPause, requestPlay, requestPlayNext, requestReplay, requestVolume } from 'store/modules/status'
 import Button from 'components/Button/Button'
 import VolumeSlider from './VolumeSlider/VolumeSlider'
 import NoPlayer from './NoPlayer/NoPlayer'
@@ -32,6 +32,13 @@ const PlaybackCtrl = () => {
   const handlePause = () => dispatch(requestPause())
   const handlePlay = () => dispatch(requestPlay())
   const handlePlayNext = () => dispatch(requestPlayNext())
+  const handleReplay = () => {
+    if (status.queueId !== -1) {
+      dispatch(requestReplay(status.queueId))
+    } else {
+      dispatch(requestPlay())
+    }
+  }
   const handleVolume = (val: number) => dispatch(requestVolume(val))
 
   const toggleDisplayCtrl = () => {
@@ -59,6 +66,16 @@ const PlaybackCtrl = () => {
         onClick={handlePlayNext}
         aria-label='Play Next'
       />
+
+      {isAdmin && (
+        <Button
+          animateClassName={styles.btnAnimate}
+          className={clsx(styles.btn, styles.next)}
+          icon='REPLAY_SMALL'
+          onClick={handleReplay}
+          aria-label='Replay'
+        />
+      )}
 
       <VolumeSlider
         volume={status.volume}

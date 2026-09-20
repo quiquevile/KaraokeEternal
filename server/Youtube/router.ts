@@ -6,9 +6,9 @@ import {
   resolveStreamUrl,
   parseVideoId,
   setYtdlDir,
-  getYtdlVersion,
-  updateYtdl,
+  getYtdlStatus,
   getYtdlMode,
+  updateYtdl,
 } from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
@@ -189,7 +189,7 @@ export async function handleYtdlVersion (ctx: RouterContext): Promise<void> {
   applyYoutubePrefs()
 
   ctx.status = 200
-  ctx.body = { version: await getYtdlVersion(), mode: getYtdlMode() }
+  ctx.body = await getYtdlStatus()
 }
 
 export async function handleYtdlUpdate (ctx: RouterContext): Promise<void> {

@@ -1,5 +1,5 @@
 import React from 'react'
-import icons from './icons'
+import icons, { type IconPath } from './icons'
 
 interface IconProps {
   className?: string
@@ -9,15 +9,27 @@ interface IconProps {
 
 const Icon = (props: IconProps) => {
   const { size, icon, ...restProps } = props
+  const def = icons[icon]
+  const paths: IconPath[] = def.paths
+    ? def.paths
+    : [{ d: def.d || '', fillRule: def.fillRule }]
 
   return (
     <svg
       height={size ? `${size}px` : undefined}
-      viewBox={icons[icon].viewBox}
+      viewBox={def.viewBox}
       aria-hidden
       {...restProps}
     >
-      <path fill='currentColor' fillRule={icons[icon].fillRule ?? 'nonzero'} d={icons[icon].d} />
+      {paths.map((path, index) => (
+        <path
+          key={index}
+          fill={path.fill ?? 'currentColor'}
+          fillRule={path.fillRule ?? 'nonzero'}
+          d={path.d}
+          transform={path.transform}
+        />
+      ))}
     </svg>
   )
 }

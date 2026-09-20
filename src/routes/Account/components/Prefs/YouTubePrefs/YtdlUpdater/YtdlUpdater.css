@@ -20,6 +20,11 @@
   font-weight: var(--font-weight-bold);
 }
 
+.updatedAt {
+  font-size: var(--font-size-s);
+  color: var(--color-gray-4);
+}
+
 .updateButton {
   align-self: flex-start;
   width: auto;
@@ -41,7 +46,23 @@
   color: var(--color-danger);
 }
 
+.emptyHint,
 .systemHint {
   font-size: var(--font-size-s);
   color: var(--color-gray-4);
+}
+
+.modal {
+  max-width: 480px;
+}
+
+.emptyText {
+  font-size: var(--font-size-m);
+}
+
+.btnContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+  width: 100%;
 }

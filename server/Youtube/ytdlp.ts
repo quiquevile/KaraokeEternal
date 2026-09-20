@@ -141,7 +141,9 @@ async function isExecutable (file: string): Promise<boolean> {
 export function ensureYtdlBinary (): Promise<void> {
   if (getYtdlMode() !== 'managed') return Promise.resolve()
 
-  ensurePromise = ensurePromise ?? doEnsure()
+  ensurePromise = ensurePromise ?? doEnsure().finally(() => {
+    ensurePromise = null
+  })
 
   return ensurePromise
 }
@@ -171,6 +173,7 @@ async function doEnsure (): Promise<void> {
     await fsPromises.writeFile(tmp, Buffer.from(await res.arrayBuffer()), { mode: 0o755 })
     await fsPromises.rename(tmp, target)
     await fsPromises.chmod(target, 0o755)
+    await writeYtdlUpdatedAt(dir)
   } catch (err) {
     ensurePromise = null
 
@@ -185,6 +188,66 @@ export async function getYtdlVersion (): Promise<string | null> {
     return stdout.trim() || null
   } catch {
     return null
+  }
+}
+
+const YTDL_UPDATED_MARKER = '.youtubeYtdlUpdatedAt'
+
+async function writeYtdlUpdatedAt (dir: string | null): Promise<void> {
+  if (!dir) return
+
+  try {
+    await fsPromises.writeFile(path.join(dir, YTDL_UPDATED_MARKER), String(Date.now()))
+  } catch {
+    // best-effort metadata; a read-only folder must not break the binary lifecycle
+  }
+}
+
+async function readYtdlUpdatedAt (dir: string, fallbackMtime: number | null): Promise<number | null> {
+  try {
+    const raw = (await fsPromises.readFile(path.join(dir, YTDL_UPDATED_MARKER), 'utf8')).trim()
+    const value = Number(raw)
+
+    if (Number.isFinite(value) && value > 0) return value
+  } catch {
+    // no marker (e.g. binary installed before this feature) — fall back
+  }
+
+  return fallbackMtime
+}
+
+export type YtdlMode = 'managed' | 'system'
+
+export type YtdlStatus = 'ready' | 'empty' | 'system'
+
+export interface YtdlStatusReport {
+  version: string | null
+  mode: YtdlMode
+  status: YtdlStatus
+  updatedAt: number | null
+  dir: string | null
+}
+
+/**
+ * Reports the yt-dlp state without provisioning it: the managed folder's
+ * binary version/date when present, 'empty' when configured but missing, or
+ * the system yt-dlp otherwise.
+ */
+export async function getYtdlStatus (): Promise<YtdlStatusReport> {
+  const mode = getYtdlMode()
+  const dir = getYtdlDir()
+
+  if (mode !== 'managed' || !dir) {
+    return { version: await getYtdlVersion(), mode, status: 'system', updatedAt: null, dir: null }
+  }
+
+  try {
+    const binStat = await fsPromises.stat(getYtdlBin())
+    const updatedAt = await readYtdlUpdatedAt(dir, binStat.mtimeMs)
+
+    return { version: await getYtdlVersion(), mode, status: 'ready', updatedAt, dir }
+  } catch {
+    return { version: null, mode, status: 'empty', updatedAt: null, dir }
   }
 }
 
@@ -238,6 +301,8 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
       } catch {
         version = null
       }
+
+      if (code === 0) await writeYtdlUpdatedAt(getYtdlDir())
 
       resolve({ ok: code === 0, output: trimmed, version })
     })

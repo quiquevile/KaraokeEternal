@@ -9,6 +9,7 @@ import {
   getYtdlDir,
   getYtdlMode,
   ensureYtdlBinary,
+  getYtdlStatus,
   parseVideoId,
   formatDuration,
   buildSearchArgs,
@@ -136,6 +137,7 @@ describe('managed yt-dlp folder', () => {
 
     const target = path.join(dir, 'yt-dlp')
     await expect(fsPromises.access(target, fsPromises.constants.X_OK)).resolves.toBeUndefined()
+    await expect(fsPromises.access(path.join(dir, '.youtubeYtdlUpdatedAt'))).resolves.toBeUndefined()
 
     vi.unstubAllGlobals()
     setYtdlDir(null)
@@ -154,6 +156,52 @@ describe('managed yt-dlp folder', () => {
     await ensureYtdlBinary()
 
     expect(fetchMock).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('re-downloads the binary after it is removed from the folder', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await ensureYtdlBinary()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await fsPromises.rm(target)
+    await ensureYtdlBinary()
+
+    expect(fetchMock).toHaveBeenCalledWith(ytdlReleaseUrl())
+    await expect(fsPromises.access(target, fsPromises.constants.X_OK)).resolves.toBeUndefined()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('deduplicates concurrent ensure calls', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await Promise.all([ensureYtdlBinary(), ensureYtdlBinary(), ensureYtdlBinary()])
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await expect(fsPromises.access(path.join(dir, 'yt-dlp'), fsPromises.constants.X_OK)).resolves.toBeUndefined()
 
     vi.unstubAllGlobals()
     setYtdlDir(null)
@@ -381,7 +429,143 @@ describe('getYtdlVersion', () => {
   })
 })
 
+describe('getYtdlStatus', () => {
+  beforeEach(() => {
+    setYtdlDir(null)
+    setYtdlBin(null)
+    delete process.env.KES_YTDL_DIR
+    delete process.env.KES_YTDL_BIN
+    delete process.env.KES_YTDL_UPDATE_CMD
+  })
+
+  it('reports the system yt-dlp', async () => {
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(getYtdlStatus()).resolves.toEqual({
+      version: '2025.12.17',
+      mode: 'system',
+      status: 'system',
+      updatedAt: null,
+      dir: null,
+    })
+  })
+
+  it('reports a ready managed binary with its marker date', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-status-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
+    await fsPromises.writeFile(path.join(dir, '.youtubeYtdlUpdatedAt'), '1700000000123')
+    setYtdlDir(dir)
+
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(getYtdlStatus()).resolves.toEqual({
+      version: '2025.12.17',
+      mode: 'managed',
+      status: 'ready',
+      updatedAt: 1700000000123,
+      dir,
+    })
+
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('falls back to the binary mtime when no marker exists', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-status-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
+    setYtdlDir(dir)
+
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    const status = await getYtdlStatus()
+
+    expect(status.status).toBe('ready')
+    expect(typeof status.updatedAt).toBe('number')
+    expect(status.updatedAt).toBeGreaterThan(Date.now() - 60_000)
+
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('detects an empty managed folder without downloading or spawning', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-status-'))
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+
+    await expect(getYtdlStatus()).resolves.toEqual({
+      version: null,
+      mode: 'managed',
+      status: 'empty',
+      updatedAt: null,
+      dir,
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(spawn).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+})
+
 describe('updateYtdl', () => {
+  it('writes the updated-at marker into the managed folder on success', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-update-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
+    setYtdlDir(dir)
+
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['Latest version: 2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
+
+    const res = await updateYtdl()
+
+    expect(res.ok).toBe(true)
+    const marker = Number((await fsPromises.readFile(path.join(dir, '.youtubeYtdlUpdatedAt'), 'utf8')).trim())
+    expect(Number.isFinite(marker)).toBe(true)
+    expect(marker).toBeGreaterThan(Date.now() - 60_000)
+
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('does not write the marker when the update fails', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-update-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
+    setYtdlDir(dir)
+
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stderrLines: ['ERROR: failed to update\n'],
+      code: 1,
+    }) as unknown as ReturnType<typeof spawn>)
+
+    const res = await updateYtdl()
+
+    expect(res.ok).toBe(false)
+    await expect(fsPromises.access(path.join(dir, '.youtubeYtdlUpdatedAt'))).rejects.toThrow()
+
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
   it('runs the default [bin, -U] command and returns the new version', async () => {
     vi.mocked(spawn).mockClear()
     vi.mocked(spawn)

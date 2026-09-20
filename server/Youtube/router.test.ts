@@ -7,7 +7,7 @@ vi.mock('./ytdlp.js', async (importOriginal) => {
     searchYoutube: vi.fn(),
     resolveVideo: vi.fn(),
     resolveStreamUrl: vi.fn(),
-    getYtdlVersion: vi.fn(),
+    getYtdlStatus: vi.fn(),
     updateYtdl: vi.fn(),
     getYtdlMode: vi.fn(),
   }
@@ -50,7 +50,7 @@ import {
   setYtdlBin,
   setYtdlDir,
   getYtdlBin,
-  getYtdlVersion,
+  getYtdlStatus,
   updateYtdl,
   getYtdlMode,
 } from './ytdlp.js'
@@ -373,21 +373,32 @@ describe('router', () => {
   })
 
   describe('handleYtdlVersion', () => {
-    it('returns the installed yt-dlp version and mode', async () => {
-      vi.mocked(getYtdlVersion).mockResolvedValue('2025.12.17')
-      vi.mocked(getYtdlMode).mockReturnValue('managed')
+    it('returns the yt-dlp status and mode', async () => {
+      vi.mocked(getYtdlStatus).mockResolvedValue({
+        version: '2025.12.17',
+        mode: 'managed',
+        status: 'ready',
+        updatedAt: 1789729305000,
+        dir: '/config/bin',
+      })
 
       const ctx = makeCtx()
       await handleYtdlVersion(ctx)
 
-      expect(getYtdlVersion).toHaveBeenCalled()
-      expect(ctx.body).toEqual({ version: '2025.12.17', mode: 'managed' })
+      expect(getYtdlStatus).toHaveBeenCalled()
+      expect(ctx.body).toEqual({
+        version: '2025.12.17',
+        mode: 'managed',
+        status: 'ready',
+        updatedAt: 1789729305000,
+        dir: '/config/bin',
+      })
     })
 
     it('requires admin', async () => {
       const ctx = makeCtx({ user: { isAdmin: false } })
       await expect(handleYtdlVersion(ctx)).rejects.toSatisfy(throwStatus(401))
-      expect(getYtdlVersion).not.toHaveBeenCalled()
+      expect(getYtdlStatus).not.toHaveBeenCalled()
     })
   })
 

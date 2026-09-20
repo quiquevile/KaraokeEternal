@@ -131,9 +131,14 @@ export interface YtdlUpdateResult {
 
 export type YtdlMode = 'managed' | 'system'
 
+export type YtdlStatus = 'ready' | 'empty' | 'system'
+
 export interface YtdlVersionResult {
   version: string | null
   mode: YtdlMode
+  status: YtdlStatus
+  updatedAt: number | null
+  dir: string | null
 }
 
 export const fetchYtdlVersion = createAsyncThunk<YtdlVersionResult, void>(
@@ -166,6 +171,9 @@ interface YouTubeState {
   selected: YouTubeResult | null
   ytdlpVersion: string | null
   ytdlpMode: YtdlMode | null
+  ytdlpStatus: YtdlStatus | null
+  ytdlpUpdatedAt: number | null
+  ytdlpDir: string | null
   ytdlpUpdating: boolean
   ytdlpOutput: string | null
   ytdlpError: string | null
@@ -182,6 +190,9 @@ const initialState: YouTubeState = {
   selected: null,
   ytdlpVersion: null,
   ytdlpMode: null,
+  ytdlpStatus: null,
+  ytdlpUpdatedAt: null,
+  ytdlpDir: null,
   ytdlpUpdating: false,
   ytdlpOutput: null,
   ytdlpError: null,
@@ -299,6 +310,9 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       ...state,
       ytdlpVersion: payload.version,
       ytdlpMode: payload.mode,
+      ytdlpStatus: payload.status,
+      ytdlpUpdatedAt: payload.updatedAt,
+      ytdlpDir: payload.dir,
     }))
     .addCase(updateYtdl.pending, state => ({
       ...state,

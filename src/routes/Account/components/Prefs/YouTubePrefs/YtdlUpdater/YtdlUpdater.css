@@ -40,3 +40,8 @@
   composes: output;
   color: var(--color-danger);
 }
+
+.systemHint {
+  font-size: var(--font-size-s);
+  color: var(--color-gray-4);
+}

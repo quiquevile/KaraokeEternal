@@ -91,7 +91,7 @@ interface PrefsState {
   scannerPct: number
   scannerText: string
   youtubeDownloadPathId?: number
-  youtubeDlBin?: string
+  youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
 }
 

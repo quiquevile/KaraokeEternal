@@ -5,9 +5,10 @@ import {
   resolveVideo,
   resolveStreamUrl,
   parseVideoId,
-  setYtdlBin,
+  setYtdlDir,
   getYtdlVersion,
   updateYtdl,
+  getYtdlMode,
 } from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
@@ -25,7 +26,7 @@ export interface RouterContext {
 
 type YoutubePrefs = ReturnType<typeof Prefs.get> & {
   youtubeDownloadPathId?: number
-  youtubeDlBin?: string
+  youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
 }
 
@@ -44,8 +45,8 @@ function str (value: unknown): string {
 function applyYoutubePrefs (): YoutubePrefs {
   const prefs = Prefs.get() as YoutubePrefs
 
-  const bin = typeof prefs.youtubeDlBin === 'string' ? prefs.youtubeDlBin.trim() : ''
-  setYtdlBin(bin || null)
+  const dir = typeof prefs.youtubeYtdlDir === 'string' ? prefs.youtubeYtdlDir.trim() : ''
+  setYtdlDir(dir || null)
 
   return prefs
 }
@@ -188,7 +189,7 @@ export async function handleYtdlVersion (ctx: RouterContext): Promise<void> {
   applyYoutubePrefs()
 
   ctx.status = 200
-  ctx.body = { version: await getYtdlVersion() }
+  ctx.body = { version: await getYtdlVersion(), mode: getYtdlMode() }
 }
 
 export async function handleYtdlUpdate (ctx: RouterContext): Promise<void> {
@@ -196,7 +197,7 @@ export async function handleYtdlUpdate (ctx: RouterContext): Promise<void> {
   applyYoutubePrefs()
 
   ctx.status = 200
-  ctx.body = await updateYtdl()
+  ctx.body = { ...(await updateYtdl()), mode: getYtdlMode() }
 }
 
 const router = new KoaRouter({ prefix: '/api/youtube' })

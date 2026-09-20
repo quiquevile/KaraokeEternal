@@ -9,6 +9,7 @@ vi.mock('./ytdlp.js', async (importOriginal) => {
     resolveStreamUrl: vi.fn(),
     getYtdlVersion: vi.fn(),
     updateYtdl: vi.fn(),
+    getYtdlMode: vi.fn(),
   }
 })
 
@@ -47,9 +48,11 @@ import {
   resolveVideo,
   resolveStreamUrl,
   setYtdlBin,
+  setYtdlDir,
   getYtdlBin,
   getYtdlVersion,
   updateYtdl,
+  getYtdlMode,
 } from './ytdlp.js'
 import Prefs from '../Prefs/Prefs.js'
 import { getAlreadyDownloadedIds } from './library.js'
@@ -61,7 +64,7 @@ import type { YouTubeResult } from './ytdlp.js'
 interface MockPrefs {
   paths: { result: number[], entities: Record<number, { path: string }> }
   youtubeDownloadPathId?: number
-  youtubeDlBin?: string
+  youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
 }
 
@@ -107,7 +110,9 @@ describe('router', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setYtdlBin(null)
+    setYtdlDir(null)
     vi.mocked(Prefs.get).mockReturnValue(mockedPrefs())
+    vi.mocked(getYtdlMode).mockReturnValue('system')
   })
 
   describe('handleSearch', () => {
@@ -280,8 +285,8 @@ describe('router', () => {
       expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({ pathId: 1 }))
     })
 
-    it('applies the configured yt-dlp binary from prefs', async () => {
-      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeDlBin: '/prefs/bin/yt-dlp' }))
+    it('applies the configured yt-dlp folder from prefs', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeYtdlDir: '/prefs/bin' }))
       vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
 
       const ctx = makeCtx({
@@ -368,14 +373,15 @@ describe('router', () => {
   })
 
   describe('handleYtdlVersion', () => {
-    it('returns the installed yt-dlp version', async () => {
+    it('returns the installed yt-dlp version and mode', async () => {
       vi.mocked(getYtdlVersion).mockResolvedValue('2025.12.17')
+      vi.mocked(getYtdlMode).mockReturnValue('managed')
 
       const ctx = makeCtx()
       await handleYtdlVersion(ctx)
 
       expect(getYtdlVersion).toHaveBeenCalled()
-      expect(ctx.body).toEqual({ version: '2025.12.17' })
+      expect(ctx.body).toEqual({ version: '2025.12.17', mode: 'managed' })
     })
 
     it('requires admin', async () => {
@@ -386,12 +392,13 @@ describe('router', () => {
   })
 
   describe('handleYtdlUpdate', () => {
-    it('updates yt-dlp and returns ok/version/output', async () => {
+    it('updates yt-dlp and returns ok/version/output/mode', async () => {
       vi.mocked(updateYtdl).mockResolvedValue({
         ok: true,
         version: '2025.12.17',
         output: 'Updated to 2025.12.17',
       })
+      vi.mocked(getYtdlMode).mockReturnValue('managed')
 
       const ctx = makeCtx()
       await handleYtdlUpdate(ctx)
@@ -401,6 +408,7 @@ describe('router', () => {
         ok: true,
         version: '2025.12.17',
         output: 'Updated to 2025.12.17',
+        mode: 'managed',
       })
     })
 

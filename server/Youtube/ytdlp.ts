@@ -1,4 +1,7 @@
 import { spawn } from 'child_process'
+import fs from 'node:fs'
+import fsPromises from 'node:fs/promises'
+import path from 'path'
 import getLogger from '../lib/Log.js'
 
 const log = getLogger('YoutubeYtDlp')
@@ -53,14 +56,126 @@ export async function resolveStreamUrl (url: string): Promise<string> {
   return streamUrl
 }
 
+let ytdlDirOverride: string | null = null
 let ytdlBinOverride: string | null = null
+let ensurePromise: Promise<void> | null = null
+
+export function setYtdlDir (dir: string | null): void {
+  const normalized = dir ? dir.trim() : null
+
+  if (normalized !== ytdlDirOverride) ensurePromise = null
+
+  ytdlDirOverride = normalized
+}
 
 export function setYtdlBin (bin: string | null): void {
   ytdlBinOverride = bin
 }
 
+/** Folder holding the self-contained yt-dlp binary, if configured. */
+export function getYtdlDir (): string | null {
+  return ytdlDirOverride ?? (process.env.KES_YTDL_DIR || null)
+}
+
+/**
+ * Resolves the yt-dlp executable:
+ * an explicit binary (prefs/override or KES_YTDL_BIN) wins; otherwise a
+ * managed folder yields `<dir>/yt-dlp`; without that, the system PATH.
+ */
 export function getYtdlBin (): string {
-  return ytdlBinOverride ?? (process.env.KES_YTDL_BIN || 'yt-dlp')
+  if (ytdlBinOverride) return ytdlBinOverride
+
+  if (process.env.KES_YTDL_BIN) return process.env.KES_YTDL_BIN
+
+  const dir = getYtdlDir()
+
+  return dir ? path.join(dir, 'yt-dlp') : 'yt-dlp'
+}
+
+/** 'managed' when the self-contained folder owns the binary; 'system' otherwise. */
+export function getYtdlMode (): 'managed' | 'system' {
+  return !ytdlBinOverride && !process.env.KES_YTDL_BIN && getYtdlDir() ? 'managed' : 'system'
+}
+
+const YTDL_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/'
+
+function musl (): boolean {
+  const loader = process.arch === 'arm64'
+    ? '/lib/ld-musl-aarch64.so.1'
+    : '/lib/ld-musl-x86_64.so.1'
+
+  try {
+    return fs.existsSync(loader)
+  } catch {
+    return false
+  }
+}
+
+function ytdlAsset (): string {
+  switch (process.arch) {
+    case 'x64': return musl() ? 'yt-dlp_musllinux' : 'yt-dlp'
+    case 'arm64': return musl() ? 'yt-dlp_musllinux_aarch64' : 'yt-dlp'
+    default: throw new Error(`No self-contained yt-dlp for architecture ${process.arch}`)
+  }
+}
+
+export function ytdlReleaseUrl (): string {
+  return `${YTDL_RELEASE_BASE}${ytdlAsset()}`
+}
+
+async function isExecutable (file: string): Promise<boolean> {
+  try {
+    await fsPromises.access(file, fsPromises.constants.X_OK)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Guarantees the managed yt-dlp binary exists, downloading it the first time
+ * (arch-aware, atomically) — identical behaviour inside and outside the
+ * container. No-op when the system yt-dlp is in use.
+ */
+export function ensureYtdlBinary (): Promise<void> {
+  if (getYtdlMode() !== 'managed') return Promise.resolve()
+
+  ensurePromise = ensurePromise ?? doEnsure()
+
+  return ensurePromise
+}
+
+async function doEnsure (): Promise<void> {
+  const dir = getYtdlDir()
+
+  if (!dir) return
+
+  const target = path.join(dir, 'yt-dlp')
+
+  if (await isExecutable(target)) return
+
+  const asset = ytdlAsset()
+  const url = ytdlReleaseUrl()
+
+  log.info('Downloading %s to %s', asset, target)
+
+  try {
+    await fsPromises.mkdir(dir, { recursive: true })
+
+    const res = await fetch(url)
+
+    if (!res.ok) throw new Error(`Failed to download yt-dlp: HTTP ${res.status}`)
+
+    const tmp = `${target}.tmp-${process.pid}-${Date.now()}`
+    await fsPromises.writeFile(tmp, Buffer.from(await res.arrayBuffer()), { mode: 0o755 })
+    await fsPromises.rename(tmp, target)
+    await fsPromises.chmod(target, 0o755)
+  } catch (err) {
+    ensurePromise = null
+
+    throw err
+  }
 }
 
 export async function getYtdlVersion (): Promise<string | null> {
@@ -85,6 +200,8 @@ function getUpdateCommand (): string[] {
  * override it (e.g. a pip-installed binary) without a code change.
  */
 export async function updateYtdl (): Promise<{ ok: boolean, output: string, version: string | null }> {
+  await ensureYtdlBinary()
+
   const [bin, ...args] = getUpdateCommand()
 
   return new Promise((resolve, reject) => {
@@ -280,6 +397,8 @@ export interface RunYtdlResult {
  * to onLine (for progress) and resolving once the process exits cleanly.
  */
 export async function runYtdl (args: string[], { onLine }: RunYtdlOptions = {}): Promise<RunYtdlResult> {
+  await ensureYtdlBinary()
+
   const bin = getYtdlBin()
 
   return new Promise((resolve, reject) => {

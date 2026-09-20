@@ -195,7 +195,7 @@ router.get('/path/ls', async (ctx) => {
   }
 })
 
-// get folder && file listing for the yt-dlp executable browser
+// get folder && file listing for the yt-dlp folder browser
 router.get('/file/ls', async (ctx) => {
   if (!ctx.user.isAdmin) {
     ctx.throw(401)

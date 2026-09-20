@@ -8,13 +8,13 @@ import YtDlpChooser from './YtDlpChooser/YtDlpChooser'
 import YtdlUpdater from './YtdlUpdater/YtdlUpdater'
 import styles from './YouTubePrefs.css'
 
-const BinField = ({ value }: { value: string }) => {
-  const [bin, setBin] = useState(value)
+const DirField = ({ value }: { value: string }) => {
+  const [dir, setDir] = useState(value)
   const [isChoosing, setChoosing] = useState(false)
   const dispatch = useAppDispatch()
 
   const handleSave = () => {
-    dispatch(setPref({ key: 'youtubeDlBin', data: bin.trim() || '' }))
+    dispatch(setPref({ key: 'youtubeYtdlDir', data: dir.trim() || '' }))
   }
 
   const handleChoose = (path: string | null) => {
@@ -22,8 +22,8 @@ const BinField = ({ value }: { value: string }) => {
 
     if (!path) return
 
-    setBin(path)
-    dispatch(setPref({ key: 'youtubeDlBin', data: path }))
+    setDir(path)
+    dispatch(setPref({ key: 'youtubeYtdlDir', data: path }))
   }
 
   return (
@@ -31,9 +31,9 @@ const BinField = ({ value }: { value: string }) => {
       <div className={styles.binRow}>
         <input
           type='text'
-          value={bin}
-          placeholder='yt-dlp'
-          onChange={e => setBin(e.currentTarget.value)}
+          value={dir}
+          placeholder='/data/bin'
+          onChange={e => setDir(e.currentTarget.value)}
           onBlur={handleSave}
         />
         <Button
@@ -41,7 +41,7 @@ const BinField = ({ value }: { value: string }) => {
           size={20}
           className={styles.browse}
           onClick={() => setChoosing(true)}
-          aria-label='Browse for yt-dlp executable'
+          aria-label='Browse for yt-dlp folder'
         />
       </div>
 
@@ -57,7 +57,7 @@ const BinField = ({ value }: { value: string }) => {
 
 const YouTubePrefs = () => {
   const youtubeDownloadPathId = useAppSelector(state => state.prefs.youtubeDownloadPathId)
-  const youtubeDlBin = useAppSelector(state => state.prefs.youtubeDlBin)
+  const youtubeYtdlDir = useAppSelector(state => state.prefs.youtubeYtdlDir)
   const paths = useAppSelector(state => state.prefs.paths)
   const dispatch = useAppDispatch()
 
@@ -86,8 +86,8 @@ const YouTubePrefs = () => {
       <div className={styles.content}>
         <div className={styles.config}>
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>yt-dlp path</span>
-            <BinField key={youtubeDlBin ?? ''} value={youtubeDlBin ?? ''} />
+            <span className={styles.fieldLabel}>yt-dlp folder</span>
+            <DirField key={youtubeYtdlDir ?? ''} value={youtubeYtdlDir ?? ''} />
           </label>
 
           <YtdlUpdater />

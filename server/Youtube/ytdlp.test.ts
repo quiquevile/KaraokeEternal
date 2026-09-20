@@ -1,8 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
+import fsPromises from 'node:fs/promises'
+import os from 'os'
+import path from 'path'
 import {
   getYtdlBin,
+  getYtdlDir,
+  getYtdlMode,
+  ensureYtdlBinary,
   parseVideoId,
   formatDuration,
   buildSearchArgs,
@@ -17,8 +23,10 @@ import {
   resolveStreamUrl,
   runYtdl,
   setYtdlBin,
+  setYtdlDir,
   getYtdlVersion,
   updateYtdl,
+  ytdlReleaseUrl,
 } from './ytdlp.js'
 
 vi.mock('child_process', () => ({ spawn: vi.fn() }))
@@ -74,6 +82,93 @@ describe('getYtdlBin', () => {
     setYtdlBin(null)
     expect(getYtdlBin()).toBe('/custom/yt-dlp')
     delete process.env.KES_YTDL_BIN
+  })
+})
+
+describe('managed yt-dlp folder', () => {
+  beforeEach(() => {
+    setYtdlDir(null)
+    setYtdlBin(null)
+    delete process.env.KES_YTDL_DIR
+    delete process.env.KES_YTDL_BIN
+  })
+
+  it('resolves the binary inside the configured folder', () => {
+    setYtdlDir('/data/bin')
+    expect(getYtdlBin()).toBe('/data/bin/yt-dlp')
+    expect(getYtdlMode()).toBe('managed')
+  })
+
+  it('reads the folder from KES_YTDL_DIR', () => {
+    process.env.KES_YTDL_DIR = '/env/bin'
+    expect(getYtdlDir()).toBe('/env/bin')
+    expect(getYtdlBin()).toBe('/env/bin/yt-dlp')
+    expect(getYtdlMode()).toBe('managed')
+  })
+
+  it('an explicit binary wins over the folder', () => {
+    process.env.KES_YTDL_BIN = '/system/yt-dlp'
+    setYtdlDir('/data/bin')
+    expect(getYtdlBin()).toBe('/system/yt-dlp')
+    expect(getYtdlMode()).toBe('system')
+    setYtdlBin('/force/yt-dlp')
+    expect(getYtdlBin()).toBe('/force/yt-dlp')
+  })
+
+  it('falls back to the system yt-dlp when no folder is configured', () => {
+    expect(getYtdlBin()).toBe('yt-dlp')
+    expect(getYtdlMode()).toBe('system')
+  })
+
+  it('provisions the binary into the folder when missing', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await ensureYtdlBinary()
+
+    expect(fetchMock).toHaveBeenCalledWith(ytdlReleaseUrl())
+
+    const target = path.join(dir, 'yt-dlp')
+    await expect(fsPromises.access(target, fsPromises.constants.X_OK)).resolves.toBeUndefined()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('skips the download when the managed binary already exists', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await ensureYtdlBinary()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('does nothing in system mode', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await ensureYtdlBinary()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
   })
 })
 

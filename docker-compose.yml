@@ -13,7 +13,7 @@ services:
       - TZ=Europe/Madrid
       - KES_PORT=8080
       - KES_PATH_DATA=/config
-      - KES_YTDL_BIN=/config/bin/yt-dlp
+      - KES_YTDL_DIR=/config/bin
     volumes:
       - ./config:/config
       - ./karaoke:/mnt/karaoke

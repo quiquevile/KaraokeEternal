@@ -31,13 +31,11 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
     parent: null,
     children: [],
   })
-  const [selected, setSelected] = useState<EntryItemType | null>(null)
 
   const ls = async (dir: string) => {
     try {
       const result = await api.get<ListInfoType>(`/file/ls?dir=${encodeURIComponent(dir)}`)
       setPathInfo(result)
-      setSelected(null)
     } catch (err) {
       alert(err)
     }
@@ -54,32 +52,20 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
     if (listRef.current) listRef.current.scrollTop = 0
   }, [])
 
-  const handleSelect = (item: EntryItemType) => {
-    if (item.isDir) {
-      ls(item.path)
-    } else {
-      setSelected(item)
-    }
-  }
-
-  const handleDoubleClick = (item: EntryItemType) => {
-    if (!item.isDir) onChoose(item.path)
-  }
-
   const handleChoose = () => {
-    onChoose(selected?.path ?? null)
+    onChoose(pathInfo.current)
   }
 
   return (
     <Modal
-      title='Select yt-dlp executable'
+      title='Select yt-dlp folder'
       className={styles.modal}
       onClose={onCancel}
       scrollable
       buttons={(
         <div className={styles.btnContainer}>
           <Button onClick={onCancel} variant='default'>Cancel</Button>
-          <Button onClick={handleChoose} variant='primary' disabled={!selected}>
+          <Button onClick={handleChoose} variant='primary' disabled={!pathInfo.current}>
             Select
           </Button>
         </div>
@@ -99,9 +85,7 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
               key={item.path}
               label={item.label}
               isDir={item.isDir}
-              isSelected={!!selected && selected.path === item.path}
-              onSelect={() => handleSelect(item)}
-              onDoubleClick={() => handleDoubleClick(item)}
+              onSelect={() => item.isDir && ls(item.path)}
             />
           ))}
         </div>
@@ -110,16 +94,13 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
   )
 }
 
-const PathButton = ({ label, isDir, isSelected, onSelect, onDoubleClick }: {
+const PathButton = ({ label, isDir, onSelect }: {
   label: string
   isDir: boolean
-  isSelected?: boolean
   onSelect(): void
-  onDoubleClick?(): void
 }) => (
   <div
-    className={isSelected ? styles.pathSelected : styles.path}
-    onDoubleClick={onDoubleClick}
+    className={styles.path}
     onClick={onSelect}
   >
     <div>

@@ -10,6 +10,7 @@ const YtdlUpdater = () => {
   const isUpdating = useAppSelector(state => state.youtube.ytdlpUpdating)
   const output = useAppSelector(state => state.youtube.ytdlpOutput)
   const error = useAppSelector(state => state.youtube.ytdlpError)
+  const mode = useAppSelector(state => state.youtube.ytdlpMode)
 
   useEffect(() => {
     dispatch(fetchYtdlVersion())
@@ -18,6 +19,8 @@ const YtdlUpdater = () => {
   const handleUpdate = () => {
     dispatch(updateYtdl())
   }
+
+  const canUpdate = !isUpdating && mode === 'managed'
 
   return (
     <div className={styles.container}>
@@ -31,12 +34,18 @@ const YtdlUpdater = () => {
       <Button
         icon='REFRESH'
         onClick={handleUpdate}
-        disabled={isUpdating}
+        disabled={!canUpdate}
         className={styles.updateButton}
         title='Update yt-dlp'
       >
         {isUpdating ? 'Updating…' : 'Update'}
       </Button>
+
+      {mode === 'system' && (
+        <div className={styles.systemHint}>
+          A yt-dlp folder is not configured; the system yt-dlp is used and cannot be updated here.
+        </div>
+      )}
 
       {output && <pre className={error ? styles.outputError : styles.output}>{output}</pre>}
     </div>

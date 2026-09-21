@@ -81,6 +81,7 @@ export interface User {
   name: string
   isAdmin: boolean // todo: client and server ctx only
   isGuest: boolean // todo: client and server ctx only
+  isRoomAdmin: boolean // todo: client and server ctx only
   dateCreated: number
   dateUpdated: number
 }

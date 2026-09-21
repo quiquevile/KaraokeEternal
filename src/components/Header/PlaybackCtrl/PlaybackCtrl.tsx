@@ -24,6 +24,7 @@ const PlaybackCtrl = () => {
   const isPlayer = location.pathname.replace(/\/$/, '').endsWith('/player')
 
   const isAdmin = useAppSelector(state => state.user.isAdmin)
+  const isRoomAdmin = useAppSelector(state => state.user.isRoomAdmin)
   const isInRoom = useAppSelector(state => state.user.roomId !== null)
   const status = useAppSelector(state => state.status)
 
@@ -46,7 +47,7 @@ const PlaybackCtrl = () => {
   }
 
   if (!status.isPlayerPresent) {
-    return (isAdmin && isInRoom && screenfull.isEnabled) ? <NoPlayer /> : null
+    return (isAdmin || isRoomAdmin) && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
   }
 
   return (
@@ -67,7 +68,7 @@ const PlaybackCtrl = () => {
         aria-label='Play Next'
       />
 
-      {isAdmin && (
+      {(isAdmin || isRoomAdmin) && (
         <Button
           animateClassName={styles.btnAnimate}
           className={clsx(styles.btn, styles.next)}

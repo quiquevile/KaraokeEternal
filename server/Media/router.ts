@@ -12,6 +12,7 @@ import Media from './Media.js'
 import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
+import isStaff from '../lib/permissions.js'
 import fileTypes from './fileTypes.js'
 import { LIBRARY_PUSH_SONG, QUEUE_PUSH } from '../../shared/actionTypes.js'
 const log = getLogger('Media')
@@ -23,7 +24,7 @@ const audioExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].mimeType.s
 router.get('/:mediaId', async (ctx) => {
   const { type } = ctx.query
 
-  if (!ctx.user.isAdmin) {
+  if (!isStaff(ctx.user)) {
     ctx.throw(401)
   }
 

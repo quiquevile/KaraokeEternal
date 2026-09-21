@@ -50,6 +50,9 @@ const QueueList = () => {
     const isUpcoming = qId !== queueId && !playerHistory.includes(qId)
     const isOwner = item.userId === user.userId
 
+    const isInfoable = user.isAdmin
+    const isStaff = user.isAdmin || user.isRoomAdmin
+
     return (
       <QueueItem
         {...item}
@@ -58,14 +61,14 @@ const QueueList = () => {
         isCurrent={isCurrent}
         key={qId}
         isErrored={isCurrent && isErrored}
-        isInfoable={user.isAdmin}
-        isMovable={isUpcoming && (isOwner || user.isAdmin)}
+        isInfoable={isInfoable}
+        isMovable={isUpcoming && (isOwner || isStaff)}
         isOwner={isOwner}
         isPlayed={!isUpcoming && !isCurrent}
         isPlaying={isCurrent && isPlaying}
-        isRemovable={isUpcoming && (isOwner || user.isAdmin)}
-        isReplayable={(!isUpcoming || isCurrent) && user.isAdmin}
-        isSkippable={isCurrent && (isOwner || user.isAdmin)}
+        isRemovable={isUpcoming && (isOwner || isStaff)}
+        isReplayable={(!isUpcoming || isCurrent) && isStaff}
+        isSkippable={isCurrent && (isOwner || isStaff)}
         isStarred={starredSongs.includes(item.songId)}
         isUpcoming={isUpcoming}
         pctPlayed={isCurrent ? position / duration * 100 : 0}

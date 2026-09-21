@@ -43,6 +43,7 @@ const createUserCtx = (user, roomId) => {
     dateUpdated: user.dateUpdated,
     isAdmin: user.role === 'admin',
     isGuest: user.role === 'guest',
+    isRoomAdmin: user.role === 'roomadmin',
     name: user.name,
     roomId: parseInt(roomId, 10) || null,
     userId: user.userId,

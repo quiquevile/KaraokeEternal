@@ -50,6 +50,7 @@ const getStatusProps = createSelector(
 // component
 const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
   const isAdmin = useAppSelector(state => state.user.isAdmin)
+  const isRoomAdmin = useAppSelector(state => state.user.isRoomAdmin)
   const isPlayerPresent = useAppSelector(state => state.status.isPlayerPresent)
   const isScanning = useAppSelector(state => state.prefs.isScanning)
   const scannerText = useAppSelector(state => state.prefs.scannerText)
@@ -68,7 +69,7 @@ const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
       {!isPlayer && isPlayerPresent
         && <UpNext isUpNext={isUpNext} isUpNow={isUpNow} wait={wait} />}
 
-      {(isUpNow || isAdmin)
+      {(isUpNow || isAdmin || isRoomAdmin)
         && <PlaybackCtrl />}
 
       {isAdmin && !isPlayer

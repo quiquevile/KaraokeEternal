@@ -24,4 +24,47 @@ describe('pitchShift', () => {
   it('reports AudioWorklet support as unavailable without a window', () => {
     expect(isPitchShiftSupported()).toBe(false)
   })
+
+  it('detects support without invoking the audioWorklet getter (Firefox)', () => {
+    const prototype = {}
+    Object.defineProperty(prototype, 'audioWorklet', {
+      configurable: true,
+      get () {
+        throw new TypeError('requires a BaseAudioContext instance')
+      },
+    })
+
+    const FakeAudioContext = function () {}
+    FakeAudioContext.prototype = prototype
+
+    const globalWindow = globalThis as { window?: unknown }
+    const previousWindow = globalWindow.window
+    globalWindow.window = { AudioContext: FakeAudioContext }
+
+    try {
+      expect(isPitchShiftSupported()).toBe(true)
+    } finally {
+      if (typeof previousWindow === 'undefined') {
+        delete globalWindow.window
+      } else {
+        globalWindow.window = previousWindow
+      }
+    }
+  })
+
+  it('reports support as unavailable when the prototype has no audioWorklet', () => {
+    const globalWindow = globalThis as { window?: unknown }
+    const previousWindow = globalWindow.window
+    globalWindow.window = { AudioContext: function () {} }
+
+    try {
+      expect(isPitchShiftSupported()).toBe(false)
+    } finally {
+      if (typeof previousWindow === 'undefined') {
+        delete globalWindow.window
+      } else {
+        globalWindow.window = previousWindow
+      }
+    }
+  })
 })

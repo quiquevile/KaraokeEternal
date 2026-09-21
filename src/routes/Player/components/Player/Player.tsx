@@ -121,7 +121,11 @@ class Player extends React.Component<PlayerProps> {
     }
 
     if (!this.pitchNode) {
-      this.pitchNode = await createPitchNode(audioCtx)
+      try {
+        this.pitchNode = await createPitchNode(audioCtx)
+      } catch {
+        this.pitchNode = null
+      }
 
       if (requestId !== this.pitchRequestId) return
     }

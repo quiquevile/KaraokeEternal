@@ -10,9 +10,16 @@ export function clampPitchSemitones (value: number): number {
 }
 
 export function isPitchShiftSupported (): boolean {
-  return typeof window !== 'undefined'
-    && !!window.AudioContext
-    && !!(window.AudioContext.prototype as AudioContext | undefined)?.audioWorklet
+  if (typeof window === 'undefined' || !window.AudioContext) return false
+
+  try {
+    // NOTE: use `in` instead of reading the property: on some browsers
+    // (Firefox) the audioWorklet getter throws unless called on a real
+    // BaseAudioContext instance.
+    return 'audioWorklet' in window.AudioContext.prototype
+  } catch {
+    return false
+  }
 }
 
 let processorRegistration: Promise<boolean> | null = null

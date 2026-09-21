@@ -317,6 +317,18 @@ describe('buildDownloadArgs', () => {
     expect(args[args.length - 1]).toBe('https://www.youtube.com/watch?v=abc')
     expect(args[args.length - 2]).toBe('ffmpeg:-threads 1')
   })
+
+  it('requests the node JS runtime before user extra args', () => {
+    const args = buildDownloadArgs(
+      'https://www.youtube.com/watch?v=abc',
+      '/media/out.%(ext)s',
+      ['--postprocessor-args', 'ffmpeg:-threads 1'],
+    )
+    const runtimeIndex = args.indexOf('--js-runtimes')
+    expect(runtimeIndex).toBeGreaterThanOrEqual(0)
+    expect(args[runtimeIndex + 1]).toBe(`node:${process.execPath}`)
+    expect(runtimeIndex).toBeLessThan(args.indexOf('--postprocessor-args'))
+  })
 })
 
 describe('parseSearchLine', () => {

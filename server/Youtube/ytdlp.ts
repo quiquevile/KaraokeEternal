@@ -356,6 +356,17 @@ export function buildVideoMetadataArgs (url: string): string[] {
   ]
 }
 
+/**
+ * JavaScript runtime for YouTube's JS challenge (signature deciphering).
+ *
+ * Only deno is enabled in yt-dlp by default, so request node explicitly.
+ * The server always runs on node, therefore process.execPath is guaranteed
+ * to exist in every deployment (host, Docker, Pi) with no new dependency.
+ */
+export function jsRuntimeArgs (): string[] {
+  return ['--js-runtimes', `node:${process.execPath}`]
+}
+
 export function buildDownloadArgs (url: string, output: string, extraArgs: string[] = []): string[] {
   return [
     '-f', DOWNLOAD_FORMAT,
@@ -364,6 +375,7 @@ export function buildDownloadArgs (url: string, output: string, extraArgs: strin
     '--newline',
     '--progress-template', DOWNLOAD_PROGRESS_TEMPLATE,
     '--progress-template', POSTPROCESS_PROGRESS_TEMPLATE,
+    ...jsRuntimeArgs(),
     ...extraArgs,
     url,
   ]

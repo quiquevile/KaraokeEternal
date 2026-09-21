@@ -49,12 +49,14 @@ const PlayerController = (props: PlayerControllerProps) => {
       isPlaying: true,
       isVideoKeyingEnabled: nextItem.isVideoKeyingEnabled,
       mediaType: nextItem.mediaType,
+      // pitch only applies to the current song: keep it on restart, reset on change
+      pitchSemitones: queueId !== player.queueId ? 0 : player.pitchSemitones,
       position: 0,
       queueId: nextItem.queueId,
       nextUserId: null,
       _isReplayingQueueId: null,
     })
-  }, [handleStatus, player.historyJSON, player.queueId, queue.entities])
+  }, [handleStatus, player.historyJSON, player.pitchSemitones, player.queueId, queue.entities])
 
   const handleLoadNext = useCallback(() => {
     const history = JSON.parse(player.historyJSON)
@@ -70,6 +72,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         historyJSON: JSON.stringify(history),
         isAtQueueEnd: true,
         mediaType: null,
+        pitchSemitones: 0,
         _isPlayingNext: false,
       })
 
@@ -83,6 +86,7 @@ const PlayerController = (props: PlayerControllerProps) => {
       isPlaying: true,
       isVideoKeyingEnabled: nextQueueItem.isVideoKeyingEnabled,
       mediaType: nextQueueItem.mediaType,
+      pitchSemitones: 0,
       position: 0,
       queueId: nextQueueItem.queueId,
       nextUserId: null,

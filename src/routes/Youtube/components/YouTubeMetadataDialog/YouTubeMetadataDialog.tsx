@@ -4,11 +4,31 @@ import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
 import { closeYoutubeDialog, downloadVideo, identifyVideo } from 'store/modules/youtube'
 import type { ConvertedMetadata, YouTubeResult } from 'store/modules/youtube'
+import { applyCaseStep, CASE_STEP_COUNT } from './caseCycle'
 import styles from './YouTubeMetadataDialog.css'
 
+const useCaseField = (initial: string) => {
+  const [value, setValue] = useState(initial)
+  const [cycle, setCycle] = useState({ base: initial, step: 0 })
+
+  // manual edits (and swaps) reset the cycle with the new text as base
+  const set = (nextValue: string) => {
+    setValue(nextValue)
+    setCycle({ base: nextValue, step: 0 })
+  }
+
+  const cycleCase = () => {
+    const step = (cycle.step + 1) % CASE_STEP_COUNT
+    setCycle({ base: cycle.base, step })
+    setValue(applyCaseStep(cycle.base, step))
+  }
+
+  return { value, set, cycleCase }
+}
+
 const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadata: ConvertedMetadata | null }) => {
-  const [artist, setArtist] = useState(metadata?.artist ?? selected.artist)
-  const [title, setTitle] = useState(metadata?.title ?? selected.title)
+  const artist = useCaseField(metadata?.artist ?? selected.artist)
+  const title = useCaseField(metadata?.title ?? selected.title)
   const [savedMetadata, setSavedMetadata] = useState<ConvertedMetadata | null>(metadata)
   const dispatch = useAppDispatch()
 
@@ -16,25 +36,26 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
     setSavedMetadata(metadata)
 
     if (metadata) {
-      setArtist(metadata.artist)
-      setTitle(metadata.title)
+      artist.set(metadata.artist)
+      title.set(metadata.title)
     }
   }
 
   const handleDownload = () => {
-    if (!artist.trim() || !title.trim()) return
+    if (!artist.value.trim() || !title.value.trim()) return
 
     dispatch(downloadVideo({
       url: selected.url,
-      artist: artist.trim(),
-      title: title.trim(),
+      artist: artist.value.trim(),
+      title: title.value.trim(),
       thumbnail: selected.thumbnail,
     }))
   }
 
   const handleSwap = () => {
-    setArtist(title)
-    setTitle(artist)
+    const prevArtist = artist.value
+    artist.set(title.value)
+    title.set(prevArtist)
   }
 
   return (
@@ -45,8 +66,17 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
 
       <div className={styles.fields}>
         <label className={styles.field}>
-          <span className={styles.label}>Artist</span>
-          <input type='text' value={artist} onChange={e => setArtist(e.currentTarget.value)} />
+          <span className={styles.labelRow}>
+            <span className={styles.label}>Artist</span>
+            <Button
+              className={styles.caseBtn}
+              onClick={artist.cycleCase}
+              aria-label='Change artist case'
+            >
+              Aa
+            </Button>
+          </span>
+          <input type='text' value={artist.value} onChange={e => artist.set(e.currentTarget.value)} />
         </label>
 
         <Button
@@ -59,8 +89,17 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
         />
 
         <label className={styles.field}>
-          <span className={styles.label}>Title</span>
-          <input type='text' value={title} onChange={e => setTitle(e.currentTarget.value)} />
+          <span className={styles.labelRow}>
+            <span className={styles.label}>Title</span>
+            <Button
+              className={styles.caseBtn}
+              onClick={title.cycleCase}
+              aria-label='Change title case'
+            >
+              Aa
+            </Button>
+          </span>
+          <input type='text' value={title.value} onChange={e => title.set(e.currentTarget.value)} />
         </label>
       </div>
 
@@ -68,7 +107,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
         <Button
           variant='primary'
           onClick={handleDownload}
-          disabled={!artist.trim() || !title.trim()}
+          disabled={!artist.value.trim() || !title.value.trim()}
         >
           Download
         </Button>

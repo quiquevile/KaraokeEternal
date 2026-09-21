@@ -29,6 +29,18 @@
   font-weight: var(--font-weight-bold);
 }
 
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.caseBtn {
+  width: auto;
+  padding: 0 var(--space-s);
+  font-size: var(--font-size-s);
+}
+
 .field input {
   font-size: var(--font-size-m);
 }

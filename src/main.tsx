@@ -13,7 +13,12 @@ Persistor.init(store, () => {
   // if it looks like we have a valid session
   if (store.getState().user.userId !== null) {
     store.dispatch(connectSocket())
-    store.dispatch(clearYoutube())
+
+    // Download history is admin-only; don't request it for other roles.
+    if (store.getState().user.isAdmin) {
+      store.dispatch(clearYoutube())
+    }
+
     socket.open()
   }
 })

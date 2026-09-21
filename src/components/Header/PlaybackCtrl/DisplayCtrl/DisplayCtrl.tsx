@@ -5,17 +5,20 @@ import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
+import { PITCH_SEMITONE_MAX, PITCH_SEMITONE_MIN, clampPitchSemitones } from 'routes/Player/lib/pitchShift'
 import styles from './DisplayCtrl.css'
 import { MediaType, PlaybackOptions } from 'shared/types'
 
 interface DisplayCtrlProps {
   cdgAlpha: number
   cdgSize: number
+  isPitchAdjustable: boolean
   isVideoKeyingEnabled: boolean
   isVisualizerEnabled: boolean
   isWebGLSupported: boolean
   mediaType?: MediaType
   mp4Alpha: number
+  pitchSemitones: number
   sensitivity: number
   visualizerPresetName: string
   // actions
@@ -26,11 +29,13 @@ interface DisplayCtrlProps {
 const DisplayCtrl = ({
   cdgAlpha,
   cdgSize,
+  isPitchAdjustable,
   isVideoKeyingEnabled,
   isVisualizerEnabled,
   isWebGLSupported,
   mediaType = '',
   mp4Alpha,
+  pitchSemitones,
   sensitivity,
   visualizerPresetName,
   onRequestOptions,
@@ -48,6 +53,18 @@ const DisplayCtrl = ({
   const handleSize = (val: number) => {
     onRequestOptions({ cdgSize: val })
   }
+
+  const handlePitchDown = () => onRequestOptions({
+    pitchSemitones: clampPitchSemitones(pitchSemitones - 1),
+  })
+
+  const handlePitchUp = () => onRequestOptions({
+    pitchSemitones: clampPitchSemitones(pitchSemitones + 1),
+  })
+
+  const handlePitchReset = () => onRequestOptions({ pitchSemitones: 0 })
+
+  const formattedPitch = `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
 
   const handleToggleVisualizer = () => onRequestOptions({
     visualizer: { isEnabled: !isVisualizerEnabled },
@@ -142,6 +159,46 @@ const DisplayCtrl = ({
               && <p className={styles.unsupported}>WebGL not supported</p>}
           </fieldset>
         </div>
+
+        {isPitchAdjustable && (
+          <div className={clsx(styles.section, styles.pitch)}>
+            <fieldset>
+              <legend>
+                <label>Pitch</label>
+              </legend>
+
+              <div className={styles.pitchButtons}>
+                <Button
+                  onClick={handlePitchDown}
+                  disabled={pitchSemitones <= PITCH_SEMITONE_MIN}
+                  aria-label='Lower pitch by one semitone'
+                >
+                  <Icon icon='CHEVRON_LEFT' />
+                </Button>
+                <p
+                  className={styles.pitchValue}
+                  aria-live='polite'
+                >
+                  {formattedPitch}
+                </p>
+                <Button
+                  onClick={handlePitchUp}
+                  disabled={pitchSemitones >= PITCH_SEMITONE_MAX}
+                  aria-label='Raise pitch by one semitone'
+                >
+                  <Icon icon='CHEVRON_RIGHT' />
+                </Button>
+                <Button
+                  onClick={handlePitchReset}
+                  disabled={pitchSemitones === 0}
+                  aria-label='Reset pitch'
+                >
+                  Reset
+                </Button>
+              </div>
+            </fieldset>
+          </div>
+        )}
 
         <div className={clsx(styles.section, styles.lyrics)}>
           <fieldset>

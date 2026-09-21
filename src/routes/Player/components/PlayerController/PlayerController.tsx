@@ -109,6 +109,7 @@ const PlayerController = (props: PlayerControllerProps) => {
     player.cdgSize,
     player.isPlaying,
     player.mp4Alpha,
+    player.pitchSemitones,
     player.volume,
     playerVisualizer,
     queueItem?.isVideoKeyingEnabled,
@@ -165,6 +166,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         onLoad={handleLoad}
         onPlay={handlePlay}
         onStatus={handleStatus}
+        pitchSemitones={player.pitchSemitones}
         rgTrackGain={queueItem ? queueItem.rgTrackGain : null}
         rgTrackPeak={queueItem ? queueItem.rgTrackPeak : null}
         visualizer={playerVisualizer}

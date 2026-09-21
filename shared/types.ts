@@ -94,6 +94,7 @@ export interface PlaybackOptions {
   cdgAlpha?: number
   cdgSize?: number
   mp4Alpha?: number
+  pitchSemitones?: number
   visualizer?: {
     sensitivity?: number
     isEnabled?: boolean

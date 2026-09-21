@@ -36,6 +36,7 @@ const playerCmdOptions = createAction<{
   cdgAlpha: number
   cdgSize: number
   mp4Alpha: number
+  pitchSemitones: number
 }>(PLAYER_CMD_OPTIONS)
 
 // ------------------------------------
@@ -107,6 +108,7 @@ export interface PlayerState {
   mediaType: string | null
   mp4Alpha: number
   nextUserId: number | null
+  pitchSemitones: number
   position: number
   queueId: number
   rgTrackGain: number | null
@@ -131,6 +133,7 @@ const initialState: PlayerState = {
   mediaType: null,
   mp4Alpha: 0.5,
   nextUserId: null,
+  pitchSemitones: 0,
   position: 0,
   queueId: -1,
   rgTrackGain: null,

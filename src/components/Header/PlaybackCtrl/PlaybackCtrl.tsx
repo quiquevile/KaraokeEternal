@@ -104,6 +104,7 @@ const PlaybackCtrl = () => {
         <DisplayCtrl
           cdgAlpha={status.cdgAlpha}
           cdgSize={status.cdgSize}
+          isPitchAdjustable={isAdmin || isRoomAdmin}
           isVideoKeyingEnabled={status.isVideoKeyingEnabled}
           isVisualizerEnabled={status.visualizer.isEnabled}
           isWebGLSupported={status.isWebGLSupported}
@@ -111,6 +112,7 @@ const PlaybackCtrl = () => {
           mp4Alpha={status.mp4Alpha}
           onClose={toggleDisplayCtrl}
           onRequestOptions={handleOptions}
+          pitchSemitones={status.pitchSemitones}
           sensitivity={status.visualizer.sensitivity}
           visualizerPresetName={status.visualizer.presetName}
         />

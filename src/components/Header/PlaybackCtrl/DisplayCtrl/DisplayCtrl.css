@@ -83,3 +83,20 @@
 .slider {
   margin: 0 1.25rem;
 }
+
+.pitchButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.pitchButtons button {
+  flex: 1;
+}
+
+.pitchValue {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

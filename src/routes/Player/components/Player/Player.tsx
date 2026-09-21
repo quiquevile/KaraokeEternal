@@ -2,6 +2,8 @@ import React from 'react'
 import CDGPlayer from './CDGPlayer/CDGPlayer'
 import MP4Player from './MP4Player/MP4Player'
 import MP4AlphaPlayer from './MP4Player/MP4AlphaPlayer'
+import { clampPitchSemitones, createPitchNode, setPitchNodeSemitones } from '../../lib/pitchShift'
+import type { SoundTouchNode } from '@soundtouchjs/audio-worklet'
 import { type PlayerState } from '../../modules/player'
 import { type PlayerVisualizerState } from '../../modules/playerVisualizer'
 
@@ -20,6 +22,7 @@ interface PlayerProps {
   mediaReplayKey?: number
   mediaType?: string
   mp4Alpha: number
+  pitchSemitones: number
   rgTrackGain?: number
   rgTrackPeak?: number
   visualizer: PlayerVisualizerState
@@ -42,6 +45,8 @@ class Player extends React.Component<PlayerProps> {
   audioCtx: AudioContext | null = null
   audioGainNode: GainNode | null = null
   audioSourceNode: MediaElementAudioSourceNode | null = null
+  pitchNode: SoundTouchNode | null = null
+  pitchRequestId = 0
   isFetching = false // internal
 
   state: State = {
@@ -55,6 +60,13 @@ class Player extends React.Component<PlayerProps> {
     }
 
     this.updateVolume()
+    void this.refreshPitchGraph()
+  }
+
+  componentWillUnmount () {
+    this.audioSourceNode?.disconnect()
+    this.pitchNode?.disconnect()
+    this.audioGainNode?.disconnect()
   }
 
   componentDidUpdate (prevProps: PlayerProps) {
@@ -75,6 +87,10 @@ class Player extends React.Component<PlayerProps> {
       || prevProps.isReplayGainEnabled !== this.props.isReplayGainEnabled)) {
       this.updateVolume()
     }
+
+    if (prevProps.pitchSemitones !== this.props.pitchSemitones) {
+      void this.refreshPitchGraph()
+    }
   }
 
   handleAudioElement = (el: HTMLVideoElement | HTMLAudioElement) => {
@@ -82,13 +98,54 @@ class Player extends React.Component<PlayerProps> {
       return
     }
 
+    this.audioSourceNode?.disconnect()
     this.audioSourceNode = this.audioCtx.createMediaElementSource(el)
-    this.audioSourceNode.connect(this.audioGainNode)
-    this.audioGainNode.connect(this.audioCtx.destination)
+    void this.refreshPitchGraph()
 
     // hand back copy of original audio source
     const sourceNodeCopy = this.audioSourceNode
     this.setState({ visualizerAudioSourceNode: sourceNodeCopy })
+  }
+
+  refreshPitchGraph = async () => {
+    const requestId = ++this.pitchRequestId
+    const { audioCtx, audioGainNode, audioSourceNode } = this
+    const pitchSemitones = clampPitchSemitones(this.props.pitchSemitones)
+
+    if (!audioCtx || !audioGainNode || !audioSourceNode) return
+
+    if (pitchSemitones === 0) {
+      this.connectAudioGraph(false)
+      return
+    }
+
+    if (!this.pitchNode) {
+      this.pitchNode = await createPitchNode(audioCtx)
+
+      if (!this.pitchNode || requestId !== this.pitchRequestId) return
+    }
+
+    this.connectAudioGraph(true)
+  }
+
+  connectAudioGraph = (usePitch: boolean) => {
+    const { audioCtx, audioGainNode, audioSourceNode, pitchNode } = this
+
+    if (!audioCtx || !audioGainNode || !audioSourceNode) return
+
+    audioSourceNode.disconnect()
+    pitchNode?.disconnect()
+    audioGainNode.disconnect()
+
+    if (usePitch && pitchNode) {
+      setPitchNodeSemitones(pitchNode, this.props.pitchSemitones)
+      audioSourceNode.connect(pitchNode)
+      pitchNode.connect(audioGainNode)
+    } else {
+      audioSourceNode.connect(audioGainNode)
+    }
+
+    audioGainNode.connect(audioCtx.destination)
   }
 
   handlePlay = () => {
@@ -117,7 +174,7 @@ class Player extends React.Component<PlayerProps> {
   render () {
     if (!this.props.isVisible || typeof this.props.mediaId !== 'number') return null
 
-    let PlayerComponent
+    let PlayerComponent: React.ElementType | undefined
 
     if (this.props.mediaType === 'cdg') PlayerComponent = CDGPlayer
     else if (this.props.mediaType === 'mp4') PlayerComponent = this.props.isVideoKeyingEnabled ? MP4AlphaPlayer : MP4Player

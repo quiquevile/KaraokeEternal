@@ -130,6 +130,13 @@ config.module.rules.push({
 // Files
 config.module.rules.push(
   {
+    test: /soundtouch-processor\.js$/,
+    type: 'asset/resource',
+    generator: {
+      filename: __DEV__ ? '[name].js' : '[name].[contenthash].js',
+    },
+  },
+  {
     test: /\.woff2(\?.*)?$/,
     type: 'asset/resource',
   },

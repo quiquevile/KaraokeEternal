@@ -109,6 +109,7 @@ export interface PlayerState {
   mp4Alpha: number
   nextUserId: number | null
   pitchSemitones: number
+  pitchSupported: boolean | null
   position: number
   queueId: number
   rgTrackGain: number | null
@@ -134,6 +135,7 @@ const initialState: PlayerState = {
   mp4Alpha: 0.5,
   nextUserId: null,
   pitchSemitones: 0,
+  pitchSupported: null,
   position: 0,
   queueId: -1,
   rgTrackGain: null,

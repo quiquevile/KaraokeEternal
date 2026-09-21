@@ -47,6 +47,7 @@ class Player extends React.Component<PlayerProps> {
   audioSourceNode: MediaElementAudioSourceNode | null = null
   pitchNode: SoundTouchNode | null = null
   pitchRequestId = 0
+  lastReportedPitchSupport: boolean | null = null
   isFetching = false // internal
 
   state: State = {
@@ -122,10 +123,23 @@ class Player extends React.Component<PlayerProps> {
     if (!this.pitchNode) {
       this.pitchNode = await createPitchNode(audioCtx)
 
-      if (!this.pitchNode || requestId !== this.pitchRequestId) return
+      if (requestId !== this.pitchRequestId) return
     }
 
-    this.connectAudioGraph(true)
+    if (this.pitchNode) {
+      this.reportPitchSupport(true)
+      this.connectAudioGraph(true)
+    } else {
+      this.reportPitchSupport(false)
+      this.connectAudioGraph(false)
+    }
+  }
+
+  reportPitchSupport = (supported: boolean) => {
+    if (this.lastReportedPitchSupport === supported) return
+
+    this.lastReportedPitchSupport = supported
+    this.props.onStatus({ pitchSupported: supported })
   }
 
   connectAudioGraph = (usePitch: boolean) => {

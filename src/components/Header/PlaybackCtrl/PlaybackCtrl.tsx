@@ -105,6 +105,7 @@ const PlaybackCtrl = () => {
           cdgAlpha={status.cdgAlpha}
           cdgSize={status.cdgSize}
           isPitchAdjustable={isAdmin || isRoomAdmin}
+          isPitchSupported={status.pitchSupported}
           isVideoKeyingEnabled={status.isVideoKeyingEnabled}
           isVisualizerEnabled={status.visualizer.isEnabled}
           isWebGLSupported={status.isWebGLSupported}

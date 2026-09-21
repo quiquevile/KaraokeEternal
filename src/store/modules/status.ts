@@ -63,6 +63,7 @@ interface StatusState {
   mp4Alpha: number
   nextUserId: number | null
   pitchSemitones: number
+  pitchSupported: boolean | null
   position: number
   queueId: number
   visualizer: PlayerVisualizerState | Record<string, never>
@@ -84,6 +85,7 @@ const initialState: StatusState = {
   mp4Alpha: 1,
   nextUserId: null,
   pitchSemitones: 0,
+  pitchSupported: null,
   position: 0,
   queueId: -1,
   visualizer: {},

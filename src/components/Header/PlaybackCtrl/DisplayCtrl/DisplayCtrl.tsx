@@ -13,6 +13,7 @@ interface DisplayCtrlProps {
   cdgAlpha: number
   cdgSize: number
   isPitchAdjustable: boolean
+  isPitchSupported: boolean | null
   isVideoKeyingEnabled: boolean
   isVisualizerEnabled: boolean
   isWebGLSupported: boolean
@@ -30,6 +31,7 @@ const DisplayCtrl = ({
   cdgAlpha,
   cdgSize,
   isPitchAdjustable,
+  isPitchSupported,
   isVideoKeyingEnabled,
   isVisualizerEnabled,
   isWebGLSupported,
@@ -170,7 +172,7 @@ const DisplayCtrl = ({
               <div className={styles.pitchButtons}>
                 <Button
                   onClick={handlePitchDown}
-                  disabled={pitchSemitones <= PITCH_SEMITONE_MIN}
+                  disabled={isPitchSupported === false || pitchSemitones <= PITCH_SEMITONE_MIN}
                   aria-label='Lower pitch by one semitone'
                 >
                   <Icon icon='CHEVRON_LEFT' />
@@ -183,19 +185,22 @@ const DisplayCtrl = ({
                 </p>
                 <Button
                   onClick={handlePitchUp}
-                  disabled={pitchSemitones >= PITCH_SEMITONE_MAX}
+                  disabled={isPitchSupported === false || pitchSemitones >= PITCH_SEMITONE_MAX}
                   aria-label='Raise pitch by one semitone'
                 >
                   <Icon icon='CHEVRON_RIGHT' />
                 </Button>
                 <Button
                   onClick={handlePitchReset}
-                  disabled={pitchSemitones === 0}
+                  disabled={isPitchSupported === false || pitchSemitones === 0}
                   aria-label='Reset pitch'
                 >
                   Reset
                 </Button>
               </div>
+              {isPitchSupported === false && (
+                <p className={styles.unsupported}>Pitch engine unavailable in this browser</p>
+              )}
             </fieldset>
           </div>
         )}

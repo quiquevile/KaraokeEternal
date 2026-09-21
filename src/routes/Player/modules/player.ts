@@ -156,6 +156,7 @@ const playerReducer = createReducer(initialState, (builder) => {
       cdgAlpha: typeof payload.cdgAlpha === 'number' ? payload.cdgAlpha : state.cdgAlpha,
       cdgSize: typeof payload.cdgSize === 'number' ? payload.cdgSize : state.cdgSize,
       mp4Alpha: typeof payload.mp4Alpha === 'number' ? payload.mp4Alpha : state.mp4Alpha,
+      pitchSemitones: typeof payload.pitchSemitones === 'number' ? payload.pitchSemitones : state.pitchSemitones,
     }))
     .addCase(playerCmdPause, (state) => {
       state.isPlaying = false

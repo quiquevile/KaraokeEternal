@@ -73,7 +73,7 @@ const QueueList = () => {
         isOwner={isOwner}
         isPlayed={isPlayed}
         isPlaying={isCurrent && isPlaying}
-        isRemovable={(isUpcoming || isPlayed || isCurrent) && (isOwner || isStaff)}
+        isRemovable={(isOwner || isStaff)}
         isReplayable={(!isUpcoming || isCurrent) && isStaff}
         isSkippable={isCurrent && (isOwner || isStaff)}
         isStarred={starredSongs.includes(item.songId)}

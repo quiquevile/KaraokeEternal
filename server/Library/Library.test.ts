@@ -245,3 +245,59 @@ describe('Library.deleteSong', () => {
     expect(() => Library.deleteSong(Number.NaN)).toThrowError(ValidationError)
   })
 })
+
+describe('Library.deleteMedia', () => {
+  const songIdOf = () => Number(db.get<{ songId: number }>(
+    'SELECT songId FROM songs WHERE titleNorm = ?', ['Two Ways'],
+  )?.songId)
+
+  beforeAll(() => {
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['Multiversion', 'Multiversion'])
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES ((SELECT artistId FROM artists WHERE nameNorm = ?), ?, ?)',
+      ['Multiversion', 'Two Ways', 'Two Ways'])
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+      [songIdOf(), 1, ['set1', 'Multiversion - Two Ways.mp3'].join(sep), 200,
+        songIdOf(), 1, ['set2', 'Multiversion - Two Ways.mp4'].join(sep), 210])
+    writeFileSync(abs('set1', 'Multiversion - Two Ways.mp3'), 'audio')
+    writeFileSync(abs('set1', 'Multiversion - Two Ways.cdg'), 'graphics')
+    writeFileSync(abs('set2', 'Multiversion - Two Ways.mp4'), 'video')
+  })
+
+  it('deletes a single version keeping the song', () => {
+    const mediaId = Number(db.get<{ mediaId: number }>(
+      'SELECT mediaId FROM media WHERE songId = ? AND relPath LIKE ?', [songIdOf(), '%.mp3'],
+    )?.mediaId)
+
+    const res = Library.deleteMedia(mediaId)
+
+    expect(res).toEqual({ songId: songIdOf() })
+    expect(existsSync(abs('set1', 'Multiversion - Two Ways.mp3'))).toBe(false)
+    expect(existsSync(abs('set1', 'Multiversion - Two Ways.cdg'))).toBe(false)
+    expect(existsSync(abs('set2', 'Multiversion - Two Ways.mp4'))).toBe(true)
+    expect(db.get('SELECT songId FROM songs WHERE songId = ?', [songIdOf()])).not.toBeUndefined()
+    expect(relPaths(songIdOf()).map(p => p.split(sep).join('/'))).toEqual([
+      'set2/Multiversion - Two Ways.mp4',
+    ])
+  })
+
+  it('purges the whole song when deleting the last version', () => {
+    db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)',
+      [1, songIdOf(), 1, null])
+    db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?)', [1, songIdOf()])
+    const mediaId = Number(db.get<{ mediaId: number }>(
+      'SELECT mediaId FROM media WHERE songId = ?', [songIdOf()],
+    )?.mediaId)
+
+    Library.deleteMedia(mediaId)
+
+    expect(existsSync(abs('set2', 'Multiversion - Two Ways.mp4'))).toBe(false)
+    expect(db.get('SELECT songId FROM songs WHERE songId = ?', [songIdOf()])).toBeUndefined()
+    expect(db.get('SELECT * FROM queue WHERE songId = ?', [songIdOf()])).toBeUndefined()
+    expect(db.get('SELECT artistId FROM artists WHERE nameNorm = ?', ['Multiversion'])).toBeUndefined()
+  })
+
+  it('throws NotFoundError for unknown mediaIds and ValidationError for NaN', () => {
+    expect(() => Library.deleteMedia(999)).toThrowError(NotFoundError)
+    expect(() => Library.deleteMedia(Number.NaN)).toThrowError(ValidationError)
+  })
+})

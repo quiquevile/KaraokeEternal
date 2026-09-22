@@ -33,6 +33,17 @@ vi.mock('../Queue/Queue.js', () => ({
   },
 }))
 
+vi.mock('../Library/Library.js', () => ({
+  default: {
+    deleteMedia: vi.fn(),
+    getSong: vi.fn(),
+  },
+}))
+
+vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
+  default: vi.fn(),
+}))
+
 vi.mock('../Rooms/Rooms.js', () => ({
   default: {
     getActive: vi.fn(() => []),
@@ -42,6 +53,9 @@ vi.mock('../Rooms/Rooms.js', () => ({
 import router from './router.js'
 import Media from '../Media/Media.js'
 import Prefs from '../Prefs/Prefs.js'
+import Library from '../Library/Library.js'
+import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
+import { NotFoundError } from '../lib/Errors.js'
 
 const mockSong = {
   result: [123],
@@ -97,5 +111,43 @@ describe('Media media streaming permissions', () => {
     const ctx = makeCtx({ isAdmin: false, isRoomAdmin: false })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+  })
+})
+
+describe('Media version deletion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const deleteCtx = (user: object) => ({
+    ...makeCtx(user),
+    method: 'DELETE',
+    path: '/api/media/123',
+  })
+
+  it('deletes one version and pushes library + queues (admin)', async () => {
+    const ctx = deleteCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(Library.deleteMedia).toHaveBeenCalledWith(123)
+    expect(ctx.status).toBe(200)
+    expect(ctx.body).toEqual({ mediaId: 123 })
+    expect(pushQueuesAndLibrary).toHaveBeenCalled()
+  })
+
+  it('rejects deletion for a standard user', async () => {
+    const ctx = deleteCtx({ isAdmin: false, isRoomAdmin: false })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+    expect(Library.deleteMedia).not.toHaveBeenCalled()
+  })
+
+  it('maps NotFoundError to 404', async () => {
+    vi.mocked(Library.deleteMedia).mockImplementationOnce(() => {
+      throw new NotFoundError('mediaId 123 not found')
+    })
+    const ctx = deleteCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
   })
 })

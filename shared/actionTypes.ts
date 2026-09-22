@@ -110,6 +110,8 @@ export const SONG_INFO_UPDATE = 'songInfo/UPDATE'
 export const SONG_INFO_SHOW_DELETE = 'songInfo/SHOW_DELETE'
 export const SONG_INFO_CLOSE_DELETE = 'songInfo/CLOSE_DELETE'
 export const SONG_INFO_DELETE = 'songInfo/DELETE'
+export const SONG_INFO_FETCH_MEDIA = 'songInfo/FETCH_MEDIA'
+export const SONG_INFO_DELETE_MEDIA = 'songInfo/DELETE_MEDIA'
 
 // IPC Messages
 export const REQUEST_SCAN = 'scannerWorker/REQUEST_SCAN'

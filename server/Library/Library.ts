@@ -376,16 +376,7 @@ class Library {
 
       // drop the previous artist if it has no songs left (its stars go with it)
       if (song.oldArtistId !== resolved.artistId) {
-        const remainingQuery = sql`SELECT songId FROM songs WHERE artistId = ${song.oldArtistId} LIMIT 1`
-        const remaining = db.get<{ songId: number }>(String(remainingQuery), remainingQuery.parameters)
-
-        if (!remaining) {
-          const deleteStars = sql`DELETE FROM artistStars WHERE artistId = ${song.oldArtistId}`
-          db.run(String(deleteStars), deleteStars.parameters)
-
-          const deleteArtist = sql`DELETE FROM artists WHERE artistId = ${song.oldArtistId}`
-          db.run(String(deleteArtist), deleteArtist.parameters)
-        }
+        Library.dropOrphanArtist(song.oldArtistId)
       }
 
       db.exec('COMMIT')
@@ -399,6 +390,98 @@ class Library {
     Library.cache.version = null
 
     log.debug('updated song %s: %s - %s', songId, artist, title)
+  }
+
+  /**
+  * Drops an artist left without songs (its stars are lost with it).
+  * Runs inside the caller's transaction.
+  */
+  static dropOrphanArtist (artistId: number): void {
+    const remainingQuery = sql`SELECT songId FROM songs WHERE artistId = ${artistId} LIMIT 1`
+    const remaining = db.get<{ songId: number }>(String(remainingQuery), remainingQuery.parameters)
+
+    if (!remaining) {
+      const deleteStars = sql`DELETE FROM artistStars WHERE artistId = ${artistId}`
+      db.run(String(deleteStars), deleteStars.parameters)
+
+      const deleteArtist = sql`DELETE FROM artists WHERE artistId = ${artistId}`
+      db.run(String(deleteArtist), deleteArtist.parameters)
+    }
+  }
+
+  /**
+  * Removes every row belonging to a song: queue items in all rooms
+  * (closing each linked-list gap, as in Queue.remove), media, song and
+  * song stars, plus the artist when orphaned. Runs inside the caller's
+  * transaction.
+  */
+  static purgeSongRows (songId: number, artistId: number): void {
+    const queueQuery = sql`SELECT queueId, prevQueueId FROM queue WHERE songId = ${songId}`
+    const queueRows = db.all<{ queueId: number, prevQueueId: number | null }>(
+      String(queueQuery), queueQuery.parameters,
+    )
+
+    for (const { queueId, prevQueueId } of queueRows) {
+      const deleteQuery = sql`
+        DELETE FROM queue
+        WHERE queueId = ${queueId}
+      `
+      db.run(String(deleteQuery), deleteQuery.parameters)
+
+      const updateQuery = sql`
+        UPDATE queue
+        SET prevQueueId = ${prevQueueId}
+        WHERE prevQueueId = ${queueId}
+      `
+      db.run(String(updateQuery), updateQuery.parameters)
+    }
+
+    const { result } = Media.search({ songId })
+    Media.remove([...result])
+
+    const deleteSongStars = sql`DELETE FROM songStars WHERE songId = ${songId}`
+    db.run(String(deleteSongStars), deleteSongStars.parameters)
+
+    const deleteSong = sql`DELETE FROM songs WHERE songId = ${songId}`
+    db.run(String(deleteSong), deleteSong.parameters)
+
+    Library.dropOrphanArtist(artistId)
+  }
+
+  /**
+  * Resolves a song's media files on disk (mp3+g sidecars travel with
+  * their audio file).
+  */
+  static songFiles (songId: number): string[] {
+    const { result, entities } = Media.search({ songId })
+    const files: string[] = []
+
+    for (const mediaId of result) {
+      const media = entities[mediaId]
+      const file = path.join(media.path, ...media.relPath.split('/'))
+      files.push(file)
+
+      const cdg = getCdgName(file)
+
+      if (cdg) files.push(cdg)
+    }
+
+    return files
+  }
+
+  /**
+  * Deletes files from disk, skipping the ones that are already gone.
+  */
+  static deleteFiles (files: string[]): void {
+    for (const file of files) {
+      try {
+        fs.unlinkSync(file)
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') throw err
+
+        log.debug('file already gone: %s', file)
+      }
+    }
   }
 
   /**
@@ -419,76 +502,14 @@ class Library {
       throw new NotFoundError(`songId ${songId} not found`)
     }
 
-    // resolve media files (mp3+g sidecars travel with their audio file)
-    const { result, entities } = Media.search({ songId })
-    const files: string[] = []
-
-    for (const mediaId of result) {
-      const media = entities[mediaId]
-      const file = path.join(media.path, ...media.relPath.split('/'))
-      files.push(file)
-
-      const cdg = getCdgName(file)
-
-      if (cdg) files.push(cdg)
-    }
-
-    // queue items referencing the song, in every room
-    const queueQuery = sql`SELECT queueId, prevQueueId FROM queue WHERE songId = ${songId}`
-    const queueRows = db.all<{ queueId: number, prevQueueId: number | null }>(
-      String(queueQuery), queueQuery.parameters,
-    )
-
     // delete files first; missing files are already gone, so skip them
-    for (const file of files) {
-      try {
-        fs.unlinkSync(file)
-      } catch (err) {
-        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') throw err
-
-        log.debug('file already gone: %s', file)
-      }
-    }
+    Library.deleteFiles(Library.songFiles(songId))
 
     // everything else in a single transaction
     db.exec('BEGIN')
 
     try {
-      // remove queue items, closing each linked-list gap (as in Queue.remove)
-      for (const { queueId, prevQueueId } of queueRows) {
-        const deleteQuery = sql`
-          DELETE FROM queue
-          WHERE queueId = ${queueId}
-        `
-        db.run(String(deleteQuery), deleteQuery.parameters)
-
-        const updateQuery = sql`
-          UPDATE queue
-          SET prevQueueId = ${prevQueueId}
-          WHERE prevQueueId = ${queueId}
-        `
-        db.run(String(updateQuery), updateQuery.parameters)
-      }
-
-      Media.remove([...result])
-
-      const deleteSongStars = sql`DELETE FROM songStars WHERE songId = ${songId}`
-      db.run(String(deleteSongStars), deleteSongStars.parameters)
-
-      const deleteSong = sql`DELETE FROM songs WHERE songId = ${songId}`
-      db.run(String(deleteSong), deleteSong.parameters)
-
-      // drop the artist if it has no songs left (its stars go with it)
-      const remainingQuery = sql`SELECT songId FROM songs WHERE artistId = ${song.artistId} LIMIT 1`
-      const remaining = db.get<{ songId: number }>(String(remainingQuery), remainingQuery.parameters)
-
-      if (!remaining) {
-        const deleteStars = sql`DELETE FROM artistStars WHERE artistId = ${song.artistId}`
-        db.run(String(deleteStars), deleteStars.parameters)
-
-        const deleteArtist = sql`DELETE FROM artists WHERE artistId = ${song.artistId}`
-        db.run(String(deleteArtist), deleteArtist.parameters)
-      }
+      Library.purgeSongRows(songId, song.artistId)
 
       db.exec('COMMIT')
     } catch (err) {
@@ -500,6 +521,65 @@ class Library {
     Library.cache.version = null
 
     log.debug('deleted song %s', songId)
+  }
+
+  /**
+  * Deletes a single media version (admin only): removes its file from
+  * disk and its media row. When it was the song's last version, the
+  * whole song is purged as in deleteSong.
+  */
+  static deleteMedia (mediaId: number): { songId: number } {
+    if (!Number.isInteger(mediaId)) {
+      throw new ValidationError('Invalid mediaId')
+    }
+
+    const found = Media.search({ mediaId })
+
+    if (!found.result.length) {
+      throw new NotFoundError(`mediaId ${mediaId} not found`)
+    }
+
+    const media = found.entities[mediaId]
+    const file = path.join(media.path, ...media.relPath.split('/'))
+    const files = [file]
+    const cdg = getCdgName(file)
+
+    if (cdg) files.push(cdg)
+
+    const songQuery = sql`SELECT artistId FROM songs WHERE songId = ${media.songId}`
+    const song = db.get<{ artistId: number }>(String(songQuery), songQuery.parameters)
+
+    if (!song) {
+      throw new NotFoundError(`songId ${media.songId} not found`)
+    }
+
+    Library.deleteFiles(files)
+
+    db.exec('BEGIN')
+
+    try {
+      const deleteQuery = sql`DELETE FROM media WHERE mediaId = ${mediaId}`
+      db.run(String(deleteQuery), deleteQuery.parameters)
+
+      const remainingQuery = sql`SELECT mediaId FROM media WHERE songId = ${media.songId} LIMIT 1`
+      const remaining = db.get<{ mediaId: number }>(String(remainingQuery), remainingQuery.parameters)
+
+      if (!remaining) {
+        Library.purgeSongRows(media.songId, song.artistId)
+      }
+
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw err
+    }
+
+    // library cache holds song/artist entities: force a rebuild
+    Library.cache.version = null
+
+    log.debug('deleted media %s (song %s)', mediaId, media.songId)
+
+    return { songId: media.songId }
   }
 
   /**

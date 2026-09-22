@@ -121,7 +121,7 @@ const SongItem = ({
           </Button>
         )}
         {isAdmin && (
-          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.info)} data-hide aria-label='Delete song'>
+          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.danger)} data-hide aria-label='Delete song'>
             <Icon icon='DELETE' />
           </Button>
         )}

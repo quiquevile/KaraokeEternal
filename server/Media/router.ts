@@ -13,7 +13,9 @@ import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
 import isStaff from '../lib/permissions.js'
+import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import fileTypes from './fileTypes.js'
+import { NotFoundError, ValidationError } from '../lib/Errors.js'
 import { LIBRARY_PUSH_SONG, QUEUE_PUSH } from '../../shared/actionTypes.js'
 const log = getLogger('Media')
 const router = new KoaRouter({ prefix: '/api/media' })
@@ -81,6 +83,36 @@ router.get('/:mediaId', async (ctx) => {
   log.verbose('streaming %s (%sMB): %s', ctx.type, (ctx.length / 1000000).toFixed(2), file)
   ctx.body = buffer ? Readable.from(buffer) : fs.createReadStream(file)
 })
+
+// delete a single media version (admin only); purges the whole song
+// when it was the last version left
+export async function handleDeleteMedia (ctx) {
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401)
+  }
+
+  const mediaId = parseInt(ctx.params.mediaId, 10)
+
+  if (Number.isNaN(mediaId)) {
+    ctx.throw(422, 'Invalid mediaId')
+  }
+
+  try {
+    Library.deleteMedia(mediaId)
+  } catch (err) {
+    if (err instanceof NotFoundError) ctx.throw(404, err.message)
+    if (err instanceof ValidationError) ctx.throw(422, err.message)
+    throw err
+  }
+
+  ctx.status = 200
+  ctx.body = { mediaId }
+
+  // push the full library and queues so every client (and player) updates
+  pushQueuesAndLibrary(ctx.io)
+}
+
+router.delete('/:mediaId', handleDeleteMedia)
 
 // set isPreferred flag
 router.all('/:mediaId/prefer', (ctx) => {

@@ -10,6 +10,8 @@ import {
   SONG_INFO_SHOW_DELETE,
   SONG_INFO_CLOSE_DELETE,
   SONG_INFO_DELETE,
+  SONG_INFO_FETCH_MEDIA,
+  SONG_INFO_DELETE_MEDIA,
 } from 'shared/actionTypes'
 import { Media } from 'shared/types'
 
@@ -36,6 +38,27 @@ export const deleteSong = createAsyncThunk(
   async (songId: number, thunkAPI) => {
     await api.delete(`song/${songId}`)
     thunkAPI.dispatch(closeDeleteSong())
+  },
+)
+
+export const fetchSongMedia = createAsyncThunk(
+  SONG_INFO_FETCH_MEDIA,
+  async (songId: number) => await api.get<{ result: number[], entities: Record<number, Media> }>(`song/${songId}`),
+)
+
+export const deleteMedia = createAsyncThunk(
+  SONG_INFO_DELETE_MEDIA,
+  async ({ songId, mediaIds }: { songId: number, mediaIds: number[] }, thunkAPI) => {
+    for (const mediaId of mediaIds) {
+      await api.delete(`media/${mediaId}`)
+    }
+
+    try {
+      await thunkAPI.dispatch(fetchSongMedia(songId)).unwrap()
+    } catch {
+      // the last version is gone with the whole song: close the dialog
+      thunkAPI.dispatch(closeDeleteSong())
+    }
   },
 )
 
@@ -119,6 +142,9 @@ const songInfoReducer = createReducer(initialState, (builder) => {
     })
     .addCase(closeDeleteSong, (state) => {
       state.deleteSongId = null
+    })
+    .addCase(fetchSongMedia.fulfilled, (state, { payload }) => {
+      state.media = payload
     })
 })
 

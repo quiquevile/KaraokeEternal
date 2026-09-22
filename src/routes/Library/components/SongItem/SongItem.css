@@ -87,3 +87,8 @@
   color: var(--song-item-btn-active-bg-color);
   filter: var(--song-item-btn-active-filter);
 }
+
+.danger {
+  color: var(--btn-danger-bg-color);
+  filter: var(--btn-danger-filter);
+}

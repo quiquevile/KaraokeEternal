@@ -24,7 +24,7 @@ const PlaybackCtrl = () => {
   const isPlayer = location.pathname.replace(/\/$/, '').endsWith('/player')
 
   const isAdmin = useAppSelector(state => state.user.isAdmin)
-  const isRoomAdmin = useAppSelector(state => state.user.isRoomAdmin)
+  const { permissions } = useAppSelector(state => state.user)
   const isInRoom = useAppSelector(state => state.user.roomId !== null)
   const status = useAppSelector(state => state.status)
 
@@ -46,8 +46,10 @@ const PlaybackCtrl = () => {
     setDisplayCtrlVisible(!isDisplayCtrlVisible)
   }
 
+  const hasPerm = (perm: string): boolean => isAdmin || (permissions?.[perm] ?? false)
+
   if (!status.isPlayerPresent) {
-    return (isAdmin || isRoomAdmin) && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
+    return (isAdmin || hasPerm('playerControls')) && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
   }
 
   return (
@@ -68,7 +70,7 @@ const PlaybackCtrl = () => {
         aria-label='Play Next'
       />
 
-      {(isAdmin || isRoomAdmin) && (
+      {(hasPerm('queueReplay')) && (
         <Button
           animateClassName={styles.btnAnimate}
           className={clsx(styles.btn, styles.next)}
@@ -104,7 +106,7 @@ const PlaybackCtrl = () => {
         <DisplayCtrl
           cdgAlpha={status.cdgAlpha}
           cdgSize={status.cdgSize}
-          isPitchAdjustable={isAdmin || isRoomAdmin}
+          isPitchAdjustable={hasPerm('playerControls')}
           isPitchSupported={status.pitchSupported}
           isVideoKeyingEnabled={status.isVideoKeyingEnabled}
           isVisualizerEnabled={status.visualizer.isEnabled}

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router'
 import { useAppSelector } from 'store/hooks'
+import { hasPermission } from 'store/modules/user'
 
 import AccountView from 'routes/Account/views/AccountView'
 import LibraryView from 'routes/Library/views/LibraryView'
@@ -72,18 +73,18 @@ const RequireAuth = ({
   path,
   redirectTo,
 }: RequireAuthProps) => {
-  const { isAdmin, isRoomAdmin, userId, permissions } = useAppSelector(state => state.user)
+  const user = useAppSelector(state => state.user)
   const location = useLocation()
 
-  if (path === '/player' && !isAdmin && !isRoomAdmin) {
+  if (path === '/player' && !user.isAdmin && !hasPermission(user, 'playerAccess')) {
     return <Navigate to='/' replace />
   }
 
-  if (path === '/youtube' && !isAdmin && !permissions?.youtubeDownload) {
+  if (path === '/youtube' && !user.isAdmin && !user.permissions?.youtubeDownload) {
     return <Navigate to='/' replace />
   }
 
-  if (userId === null) {
+  if (user.userId === null) {
     // set their originally-desired location in query parameter
     const params = new URLSearchParams(location.search)
     params.set('redirect', path)

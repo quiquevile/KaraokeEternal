@@ -1,4 +1,5 @@
 import Rooms from '../Rooms/Rooms.js'
+import { can } from '../lib/permissions.js'
 
 import {
   PLAYER_CMD_NEXT,
@@ -50,6 +51,9 @@ const ACTION_HANDLERS = {
   },
   [PLAYER_REQ_REPLAY]: (sock, { payload }) => {
     // @todo: emit to players only
+    if (!can(sock.user, 'queueReplay')) {
+      return
+    }
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {
       type: PLAYER_CMD_REPLAY,
       payload,

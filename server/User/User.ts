@@ -77,6 +77,7 @@ class User {
     newPasswordConfirm,
     name,
     image,
+    permissions,
   }, role = 'standard') {
     username = username?.trim()
     name = name?.trim()
@@ -143,6 +144,20 @@ class User {
     fields.set('name', name)
     fields.set('dateCreated', Math.floor(Date.now() / 1000))
     fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${role})`)
+
+    if (permissions) {
+      let perms = permissions
+      if (typeof perms === 'string') {
+        try {
+          perms = JSON.parse(perms)
+        } catch {
+          perms = null
+        }
+      }
+      if (typeof perms === 'object' && perms !== null) {
+        fields.set('permissions', JSON.stringify(perms))
+      }
+    }
 
     // user image?
     if (image) {

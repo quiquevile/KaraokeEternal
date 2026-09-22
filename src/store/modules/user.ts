@@ -201,3 +201,6 @@ export default persistReducer({
   key: 'user',
   storage,
 }, userReducer)
+
+export const hasPermission = (state: UserState, permission: string): boolean =>
+  state.isAdmin || (state.permissions?.[permission] ?? false)

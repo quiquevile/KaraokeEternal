@@ -57,7 +57,8 @@ const QueueList = () => {
     const isOwner = item.userId === user.userId
 
     const isInfoable = user.isAdmin
-    const isStaff = user.isAdmin || user.isRoomAdmin
+
+    const hasPerm = (perm: string): boolean => user.isAdmin || (user.permissions?.[perm] ?? false)
 
     return (
       <QueueItem
@@ -69,13 +70,13 @@ const QueueList = () => {
         isErrored={isCurrent && isErrored}
         isInfoable={isInfoable}
         isEditable={user.isAdmin}
-        isMovable={isUpcoming && (isOwner || isStaff)}
+        isMovable={isUpcoming && (isOwner || hasPerm('queueMove'))}
         isOwner={isOwner}
         isPlayed={isPlayed}
         isPlaying={isCurrent && isPlaying}
-        isRemovable={(isOwner || isStaff)}
-        isReplayable={(!isUpcoming || isCurrent) && isStaff}
-        isSkippable={isCurrent && (isOwner || isStaff)}
+        isRemovable={(isOwner || hasPerm('queueDelete'))}
+        isReplayable={(!isUpcoming || isCurrent) && hasPerm('queueReplay')}
+        isSkippable={isCurrent && (isOwner || hasPerm('playerControls'))}
         isStarred={starredSongs.includes(item.songId)}
         isUpcoming={isUpcoming}
         pctPlayed={isCurrent ? position / duration * 100 : 0}

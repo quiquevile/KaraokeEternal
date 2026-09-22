@@ -282,6 +282,21 @@ router.put('/user/:userId', async (ctx) => {
     fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${req.body.role})`)
   }
 
+  // changing permissions?
+  if (req.body.permissions) {
+    let perms = req.body.permissions
+    if (typeof perms === 'string') {
+      try {
+        perms = JSON.parse(perms)
+      } catch {
+        perms = null
+      }
+    }
+    if (typeof perms === 'object' && perms !== null) {
+      fields.set('permissions', JSON.stringify(perms))
+    }
+  }
+
   fields.set('dateUpdated', Math.floor(Date.now() / 1000))
 
   const query = sql`

@@ -1,10 +1,14 @@
 import sql from 'sqlate'
+import fs from 'fs'
+import path from 'path'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
+import getCdgName from '../lib/getCdgName.js'
 import { ConflictError, ValidationError } from '../lib/Errors.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
+import { toFilename } from '../Youtube/metadata.js'
 
 const log = getLogger('Library')
 
@@ -227,48 +231,164 @@ class Library {
 
   /**
   * Retags a song (admin only): updates its artist/title, matching or
-  * creating the artist as needed. Throws ConflictError if another song
-  * already has the resulting artist + title.
+  * creating the artist as needed, and renames its media files to match
+  * (`Artist - Title.ext`, same format as downloads). Throws ConflictError
+  * if another song already has the resulting artist + title, or if any
+  * destination file already exists (nothing is changed in that case).
+  * Artists left without songs are removed (their stars are lost with them).
   */
   static updateSong (songId: number, parsed: { artist: string, artistNorm: string, title: string, titleNorm: string }): void {
     if (!Number.isInteger(songId)) {
       throw new ValidationError('Invalid songId')
     }
 
-    if (!parsed.artist?.trim() || !parsed.title?.trim()) {
+    const artist = parsed.artist?.trim()
+    const title = parsed.title?.trim()
+
+    if (!artist || !title) {
       throw new ValidationError('Artist and title are required')
     }
 
-    const existing = sql`SELECT songId FROM songs WHERE songId = ${songId}`
-    const song = db.get<{ songId: number }>(String(existing), existing.parameters)
+    const existingQuery = sql`SELECT artistId AS oldArtistId FROM songs WHERE songId = ${songId}`
+    const song = db.get<{ oldArtistId: number }>(String(existingQuery), existingQuery.parameters)
 
     if (!song) {
       throw new ValidationError(`songId ${songId} not found`)
     }
 
-    const artist = Library.matchArtist({
-      artist: parsed.artist.trim(),
-      artistNorm: parsed.artistNorm,
-    })
+    // resolve the target artist without creating it yet, so that a
+    // conflict doesn't leave an orphaned artist row behind
+    const artistLookup = sql`SELECT artistId, name FROM artists WHERE nameNorm = ${parsed.artistNorm}`
+    const matched = db.get<{ artistId: number, name: string }>(String(artistLookup), artistLookup.parameters)
 
-    const clashQuery = sql`SELECT songId FROM songs WHERE artistId = ${artist.artistId} AND titleNorm = ${parsed.titleNorm} AND songId != ${songId}`
-    const clash = db.get<{ songId: number }>(String(clashQuery), clashQuery.parameters)
+    if (matched) {
+      const clashQuery = sql`SELECT songId FROM songs WHERE artistId = ${matched.artistId} AND titleNorm = ${parsed.titleNorm} AND songId != ${songId}`
+      const clash = db.get<{ songId: number }>(String(clashQuery), clashQuery.parameters)
 
-    if (clash) {
-      throw new ConflictError('Another song already has that artist and title')
+      if (clash) {
+        throw new ConflictError('Another song already has that artist and title')
+      }
     }
 
-    const query = sql`
-      UPDATE songs
-      SET artistId = ${artist.artistId}, title = ${parsed.title.trim()}, titleNorm = ${parsed.titleNorm}
-      WHERE songId = ${songId}
-    `
-    db.run(String(query), query.parameters)
+    const resolved = Library.matchArtist({ artist, artistNorm: parsed.artistNorm })
+
+    // resolve media files and their new names
+    const { result, entities } = Media.search({ songId })
+    const renames: Array<{ mediaId: number, from: string, to: string, newRelPath: string }> = []
+
+    for (const mediaId of result) {
+      const media = entities[mediaId]
+      const from = path.join(media.path, ...media.relPath.split('/'))
+      const dir = path.posix.dirname(media.relPath)
+      const newRelPath = (dir === '.' ? '' : `${dir}/`)
+        + toFilename(resolved.artist, title)
+        + path.posix.extname(media.relPath)
+      const to = path.join(media.path, ...newRelPath.split('/'))
+
+      if (!fs.existsSync(from)) {
+        throw new Error(`media file not found: ${from}`)
+      }
+
+      renames.push({ mediaId, from, to, newRelPath })
+
+      // mp3+g sidecar travels with its audio file
+      const cdg = getCdgName(from)
+
+      if (cdg) {
+        const cdgTo = to.substring(0, to.lastIndexOf('.') + 1) + cdg.substring(cdg.lastIndexOf('.') + 1)
+        renames.push({ mediaId, from: cdg, to: cdgTo, newRelPath: '' })
+      }
+    }
+
+    // pre-check: no destination may exist (and no two sources may target
+    // the same destination); otherwise nothing is changed at all
+    const destinations = new Set<string>()
+
+    for (const { from, to } of renames) {
+      if (to === from) continue
+
+      if (destinations.has(to)) {
+        throw new ConflictError(`Rename target already exists: ${to}`)
+      }
+
+      destinations.add(to)
+
+      if (fs.existsSync(to)) {
+        throw new ConflictError(`File already exists: ${to}`)
+      }
+    }
+
+    // rename files, rolling back on failure
+    const done: Array<{ from: string, to: string }> = []
+
+    const rollbackFiles = () => {
+      for (const { from, to } of done.reverse()) {
+        try {
+          fs.renameSync(to, from)
+        } catch {
+          // best effort: the original error is more relevant
+        }
+      }
+    }
+
+    try {
+      for (const { from, to } of renames) {
+        if (to === from) continue
+        fs.renameSync(from, to)
+        done.push({ from, to })
+      }
+    } catch (err) {
+      rollbackFiles()
+      throw err
+    }
+
+    // update db in a single transaction
+    db.exec('BEGIN')
+
+    try {
+      const query = sql`
+        UPDATE songs
+        SET artistId = ${resolved.artistId}, title = ${title}, titleNorm = ${parsed.titleNorm}
+        WHERE songId = ${songId}
+      `
+      db.run(String(query), query.parameters)
+
+      for (const { mediaId, newRelPath } of renames) {
+        if (!newRelPath) continue // sidecar: no db row
+
+        const mediaQuery = sql`
+          UPDATE media
+          SET relPath = ${newRelPath}
+          WHERE mediaId = ${mediaId}
+        `
+        db.run(String(mediaQuery), mediaQuery.parameters)
+      }
+
+      // drop the previous artist if it has no songs left (its stars go with it)
+      if (song.oldArtistId !== resolved.artistId) {
+        const remainingQuery = sql`SELECT songId FROM songs WHERE artistId = ${song.oldArtistId} LIMIT 1`
+        const remaining = db.get<{ songId: number }>(String(remainingQuery), remainingQuery.parameters)
+
+        if (!remaining) {
+          const deleteStars = sql`DELETE FROM artistStars WHERE artistId = ${song.oldArtistId}`
+          db.run(String(deleteStars), deleteStars.parameters)
+
+          const deleteArtist = sql`DELETE FROM artists WHERE artistId = ${song.oldArtistId}`
+          db.run(String(deleteArtist), deleteArtist.parameters)
+        }
+      }
+
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      rollbackFiles()
+      throw err
+    }
 
     // library cache holds song/artist entities: force a rebuild
     Library.cache.version = null
 
-    log.debug('updated song %s: %s - %s', songId, parsed.artist, parsed.title)
+    log.debug('updated song %s: %s - %s', songId, artist, title)
   }
 
   /**

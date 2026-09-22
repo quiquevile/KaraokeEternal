@@ -1,11 +1,9 @@
 import KoaRouter from '@koa/router'
 import Media from '../Media/Media.js'
 import Library from './Library.js'
-import Queue from '../Queue/Queue.js'
-import Rooms from '../Rooms/Rooms.js'
+import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import { ConflictError, ValidationError } from '../lib/Errors.js'
 import { deriveNorms } from '../Youtube/metadata.js'
-import { LIBRARY_PUSH_SONG, QUEUE_PUSH } from '../../shared/actionTypes.js'
 const router = new KoaRouter({ prefix: '/api' })
 
 // lists underlying media for a given song
@@ -56,19 +54,9 @@ export async function handleUpdateSong (ctx) {
   ctx.status = 200
   ctx.body = Library.getSong(songId)
 
-  // emit updated song to everyone
-  ctx.io.emit('action', {
-    type: LIBRARY_PUSH_SONG,
-    payload: Library.getSong(songId),
-  })
-
-  // emit (potentially) updated queues to each room
-  for (const { room, roomId } of Rooms.getActive(ctx.io)) {
-    ctx.io.to(room).emit('action', {
-      type: QUEUE_PUSH,
-      payload: Queue.get(roomId),
-    })
-  }
+  // push the full library (artists, ordering and songIds per artist may
+  // all have changed) and queues to every client
+  pushQueuesAndLibrary(ctx.io)
 }
 
 router.put('/song/:songId', handleUpdateSong)

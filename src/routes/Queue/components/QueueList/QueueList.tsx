@@ -53,6 +53,7 @@ const QueueList = () => {
     const duration = songs.entities[item.songId].duration
     const isCurrent = (qId === queueId) && !isAtQueueEnd
     const isUpcoming = qId !== queueId && !playerHistory.includes(qId)
+    const isPlayed = !isUpcoming && !isCurrent
     const isOwner = item.userId === user.userId
 
     const isInfoable = user.isAdmin
@@ -70,9 +71,9 @@ const QueueList = () => {
         isEditable={user.isAdmin}
         isMovable={isUpcoming && (isOwner || isStaff)}
         isOwner={isOwner}
-        isPlayed={!isUpcoming && !isCurrent}
+        isPlayed={isPlayed}
         isPlaying={isCurrent && isPlaying}
-        isRemovable={isUpcoming && (isOwner || isStaff)}
+        isRemovable={(isUpcoming || isPlayed || isCurrent) && (isOwner || isStaff)}
         isReplayable={(!isUpcoming || isCurrent) && isStaff}
         isSkippable={isCurrent && (isOwner || isStaff)}
         isStarred={starredSongs.includes(item.songId)}

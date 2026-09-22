@@ -11,6 +11,20 @@ const log = getLogger('YoutubeRegister')
 
 const VIDEO_EXTENSIONS = /\.(?:mp4|mkv|webm|mov|avi|flv)$/i
 
+/**
+ * Locates a previously downloaded video file for the given base name
+ * (`Base Name.ext`) inside a directory. Returns the absolute path, if any.
+ */
+export async function findDownloadedFile (destDir: string, baseName: string): Promise<string | null> {
+  for (const filename of await readdir(destDir)) {
+    if (filename.startsWith(`${baseName}.`) && VIDEO_EXTENSIONS.test(filename)) {
+      return path.join(destDir, filename)
+    }
+  }
+
+  return null
+}
+
 function getDuration (filePath: string): Promise<number> {
   const bin = process.env.KES_FFPROBE_BIN || 'ffprobe'
 
@@ -47,20 +61,13 @@ function getDuration (filePath: string): Promise<number> {
 export default async function registerDownload (options: { job: DownloadJob, io: unknown }): Promise<void> {
   const { job, io } = options
 
-  let filePath: string | null = null
-  let relPath: string | null = null
+  const filePath = await findDownloadedFile(job.destDir, job.baseName)
 
-  for (const filename of await readdir(job.destDir)) {
-    if (filename.startsWith(`${job.baseName}.`) && VIDEO_EXTENSIONS.test(filename)) {
-      filePath = path.join(job.destDir, filename)
-      relPath = path.join(job.destDir, filename).substring(job.pathRoot.length).replace(/\\/g, '/').replace(/^\//, '')
-      break
-    }
-  }
-
-  if (!filePath || !relPath) {
+  if (!filePath) {
     throw new Error(`could not locate downloaded file for ${job.baseName}`)
   }
+
+  const relPath = filePath.substring(job.pathRoot.length).replace(/\\/g, '/').replace(/^\//, '')
 
   let duration = 0
 
@@ -79,6 +86,13 @@ export default async function registerDownload (options: { job: DownloadJob, io:
 
   if (!match.songId || !match.artistId) {
     throw new Error(`could not match song for ${job.artist} - ${job.title}`)
+  }
+
+  // the file may have been registered concurrently after enqueue checks ran
+  const alreadyRegistered = Media.search({ pathId: job.pathId, relPath })
+
+  if (alreadyRegistered.result.length) {
+    throw new Error(`file already registered: ${relPath}`)
   }
 
   Media.add({

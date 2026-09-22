@@ -31,6 +31,16 @@ vi.mock('./downloadManager.js', () => ({
   },
 }))
 
+vi.mock('./registerDownload.js', () => ({
+  findDownloadedFile: vi.fn(async () => null),
+}))
+
+vi.mock('../Library/Library.js', () => ({
+  default: {
+    findSong: vi.fn(() => null),
+  },
+}))
+
 import {
   handleSearch,
   handleIdentify,
@@ -57,6 +67,8 @@ import {
 import Prefs from '../Prefs/Prefs.js'
 import { getAlreadyDownloadedIds } from './library.js'
 import { downloadManager } from './downloadManager.js'
+import { findDownloadedFile } from './registerDownload.js'
+import Library from '../Library/Library.js'
 import type { DownloadJob, DownloadReport } from './downloadManager.js'
 import type { RouterContext } from './router.js'
 import type { YouTubeResult } from './ytdlp.js'
@@ -319,6 +331,33 @@ describe('router', () => {
         request: { body: { url: 'https://evil.example/x', artist: 'ABBA', title: 'Dancing Queen' } },
       })
       await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
+    })
+
+    it('rejects 409 when the song already exists without enqueueing', async () => {
+      vi.mocked(Library.findSong).mockReturnValueOnce(7)
+
+      const ctx = makeCtx({
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      const err = await handleDownload(ctx).then(() => null, (e: Error) => e)
+
+      expect(err).toMatchObject({ status: 409 })
+      expect(String((err as Error)?.message)).toContain('already has that artist and title')
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('rejects 409 when the destination file exists without enqueueing', async () => {
+      vi.mocked(findDownloadedFile).mockResolvedValueOnce('/media/musica/ABBA - Dancing Queen.mp4')
+
+      const ctx = makeCtx({
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      const err = await handleDownload(ctx).then(() => null, (e: Error) => e)
+
+      expect(err).toMatchObject({ status: 409 })
+      expect(String((err as Error)?.message)).toContain('File already exists')
+      expect(findDownloadedFile).toHaveBeenCalledWith('/media/musica', 'ABBA - Dancing Queen')
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
   })
 

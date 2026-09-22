@@ -230,6 +230,22 @@ class Library {
   }
 
   /**
+  * Finds a song by normalized artist + title without creating anything.
+  * Returns the songId, or null when there is no match.
+  */
+  static findSong (artistNorm: string, titleNorm: string): number | null {
+    const artistLookup = sql`SELECT artistId FROM artists WHERE nameNorm = ${artistNorm}`
+    const artist = db.get<{ artistId: number }>(String(artistLookup), artistLookup.parameters)
+
+    if (!artist) return null
+
+    const songLookup = sql`SELECT songId FROM songs WHERE artistId = ${artist.artistId} AND titleNorm = ${titleNorm}`
+    const song = db.get<{ songId: number }>(String(songLookup), songLookup.parameters)
+
+    return song?.songId ?? null
+  }
+
+  /**
   * Retags a song (admin only): updates its artist/title, matching or
   * creating the artist as needed, and renames its media files to match
   * (`Artist - Title.ext`, same format as downloads). Throws ConflictError
@@ -258,16 +274,10 @@ class Library {
 
     // resolve the target artist without creating it yet, so that a
     // conflict doesn't leave an orphaned artist row behind
-    const artistLookup = sql`SELECT artistId, name FROM artists WHERE nameNorm = ${parsed.artistNorm}`
-    const matched = db.get<{ artistId: number, name: string }>(String(artistLookup), artistLookup.parameters)
+    const clash = Library.findSong(parsed.artistNorm, parsed.titleNorm)
 
-    if (matched) {
-      const clashQuery = sql`SELECT songId FROM songs WHERE artistId = ${matched.artistId} AND titleNorm = ${parsed.titleNorm} AND songId != ${songId}`
-      const clash = db.get<{ songId: number }>(String(clashQuery), clashQuery.parameters)
-
-      if (clash) {
-        throw new ConflictError('Another song already has that artist and title')
-      }
+    if (clash !== null && clash !== songId) {
+      throw new ConflictError('Another song already has that artist and title')
     }
 
     const resolved = Library.matchArtist({ artist, artistNorm: parsed.artistNorm })

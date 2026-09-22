@@ -12,7 +12,9 @@ import {
 } from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
+import { findDownloadedFile } from './registerDownload.js'
 import { getAlreadyDownloadedIds } from './library.js'
+import Library from '../Library/Library.js'
 
 export interface RouterContext {
   user: { isAdmin: boolean } | undefined
@@ -137,6 +139,19 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   if (!path) ctx.throw(422, 'could not determine download folder')
 
   const norms = deriveNorms(artist, title)
+  const baseName = toFilename(artist, title)
+
+  // same duplicate rules as song retagging: refuse before downloading anything
+  if (Library.findSong(norms.artistNorm, norms.titleNorm) !== null) {
+    ctx.throw(409, 'Another song already has that artist and title')
+  }
+
+  const existingFile = await findDownloadedFile(path.destDir, baseName)
+
+  if (existingFile) {
+    ctx.throw(409, `File already exists: ${existingFile}`)
+  }
+
   const extraArgs = typeof prefs.youtubeDlExtraArgs === 'string'
     ? prefs.youtubeDlExtraArgs.trim().split(/\s+/).filter(Boolean)
     : []
@@ -151,7 +166,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
     destDir: path.destDir,
     pathRoot: path.destDir,
     pathId: path.pathId,
-    baseName: toFilename(artist, title),
+    baseName,
     extraArgs,
   })
 

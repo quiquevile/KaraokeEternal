@@ -157,3 +157,20 @@ describe('Library.updateSong', () => {
     expect(existsSync(abs('set1', 'Roxette - Sleeping In My Car.mp3'))).toBe(true)
   })
 })
+
+describe('Library.findSong', () => {
+  it('finds a song by normalized artist and title without creating anything', () => {
+    const { artistNorm, titleNorm } = deriveNorms('Queen', 'Bohemian Rhapsody')
+
+    expect(Library.findSong(artistNorm, titleNorm)).toBe(2)
+    expect(db.get<{ count: number }>('SELECT COUNT(*) AS count FROM artists')?.count).toBe(2)
+  })
+
+  it('returns null for unknown artists or titles', () => {
+    expect(Library.findSong(...Object.values(deriveNorms('Nobody', 'Nothing')) as [string, string])).toBeNull()
+
+    const { titleNorm } = deriveNorms('Queen', 'No Such Title')
+    const { artistNorm } = deriveNorms('Queen', 'Bohemian Rhapsody')
+    expect(Library.findSong(artistNorm, titleNorm)).toBeNull()
+  })
+})

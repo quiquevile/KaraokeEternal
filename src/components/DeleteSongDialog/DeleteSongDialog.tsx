@@ -111,7 +111,7 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
   const handleDeleteSelected = () => {
     if (!selected.length) return
 
-    dispatch(deleteMedia({ songId, mediaIds: selected }))
+    dispatch(deleteMedia(selected))
     setSelected([])
     setPreviewId(null)
   }

@@ -48,17 +48,12 @@ export const fetchSongMedia = createAsyncThunk(
 
 export const deleteMedia = createAsyncThunk(
   SONG_INFO_DELETE_MEDIA,
-  async ({ songId, mediaIds }: { songId: number, mediaIds: number[] }, thunkAPI) => {
+  async (mediaIds: number[], thunkAPI) => {
     for (const mediaId of mediaIds) {
       await api.delete(`media/${mediaId}`)
     }
 
-    try {
-      await thunkAPI.dispatch(fetchSongMedia(songId)).unwrap()
-    } catch {
-      // the last version is gone with the whole song: close the dialog
-      thunkAPI.dispatch(closeDeleteSong())
-    }
+    thunkAPI.dispatch(closeDeleteSong())
   },
 )
 

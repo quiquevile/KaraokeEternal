@@ -114,12 +114,46 @@ function musl (): boolean {
   }
 }
 
-function ytdlAsset (): string {
+interface YtdlVariant {
+  asset: string
+  /** runtime prerequisite besides the download itself */
+  needs: 'python' | 'musl-loader' | null
+}
+
+/**
+ * Self-contained yt-dlp flavours, preferred first for this environment:
+ * the musl build needs no interpreter (ideal for containers) but only
+ * runs where its loader exists; the plain build is a Python script.
+ */
+function ytdlAssetVariants (): YtdlVariant[] {
+  let muslAsset: string
+
   switch (process.arch) {
-    case 'x64': return musl() ? 'yt-dlp_musllinux' : 'yt-dlp'
-    case 'arm64': return musl() ? 'yt-dlp_musllinux_aarch64' : 'yt-dlp'
-    default: throw new Error(`No self-contained yt-dlp for architecture ${process.arch}`)
+    case 'x64':
+      muslAsset = 'yt-dlp_musllinux'
+      break
+    case 'arm64':
+      muslAsset = 'yt-dlp_musllinux_aarch64'
+      break
+    default:
+      throw new Error(`No self-contained yt-dlp for architecture ${process.arch}`)
   }
+
+  if (musl()) {
+    return [
+      { asset: muslAsset, needs: null },
+      { asset: 'yt-dlp', needs: 'python' },
+    ]
+  }
+
+  return [
+    { asset: 'yt-dlp', needs: 'python' },
+    { asset: muslAsset, needs: 'musl-loader' },
+  ]
+}
+
+function ytdlAsset (): string {
+  return ytdlAssetVariants()[0].asset
 }
 
 export function ytdlReleaseUrl (): string {
@@ -197,6 +231,28 @@ export function ensureYtdlBinary (): Promise<void> {
   return ensurePromise
 }
 
+/**
+ * Checks a flavour's runtime prerequisite (the musl loader is known from
+ * the filesystem; a Python interpreter has to run).
+ */
+async function variantReady (variant: YtdlVariant): Promise<boolean> {
+  if (variant.needs === 'python') return isRunnable('python3')
+  if (variant.needs === 'musl-loader') return musl()
+
+  return true
+}
+
+async function downloadAsset (url: string, target: string): Promise<void> {
+  const res = await fetch(url)
+
+  if (!res.ok) throw new Error(`Failed to download yt-dlp: HTTP ${res.status}`)
+
+  const tmp = `${target}.tmp-${process.pid}-${Date.now()}`
+  await fsPromises.writeFile(tmp, Buffer.from(await res.arrayBuffer()), { mode: 0o755 })
+  await fsPromises.rename(tmp, target)
+  await fsPromises.chmod(target, 0o755)
+}
+
 async function doEnsure (): Promise<void> {
   const dir = getYtdlDir()
 
@@ -204,12 +260,12 @@ async function doEnsure (): Promise<void> {
 
   const target = path.join(dir, 'yt-dlp')
 
+  // whatever flavour is there, keep it when it runs (a folder shared
+  // across environments self-heals in both directions this way)
   if (await isExecutable(target)) {
     if (await isRunnable(target)) return
 
-    // present but broken (e.g. built for another libc): replace it with
-    // a fresh download for the current environment
-    log.warn('managed yt-dlp binary does not run, re-downloading: %s', target)
+    log.warn('managed yt-dlp binary does not run, replacing it: %s', target)
 
     try {
       await fsPromises.rm(target, { force: true })
@@ -218,28 +274,45 @@ async function doEnsure (): Promise<void> {
     }
   }
 
-  const asset = ytdlAsset()
-  const url = ytdlReleaseUrl()
+  await fsPromises.mkdir(dir, { recursive: true })
 
-  log.info('Downloading %s to %s', asset, target)
+  const failures: string[] = []
 
-  try {
-    await fsPromises.mkdir(dir, { recursive: true })
+  for (const variant of ytdlAssetVariants()) {
+    if (!(await variantReady(variant))) {
+      failures.push(`${variant.asset} needs ${variant.needs}`)
+      log.warn('Skipping yt-dlp flavour %s: missing %s', variant.asset, variant.needs)
 
-    const res = await fetch(url)
+      continue
+    }
 
-    if (!res.ok) throw new Error(`Failed to download yt-dlp: HTTP ${res.status}`)
+    const url = `${YTDL_RELEASE_BASE}${variant.asset}`
+    log.info('Downloading %s to %s', variant.asset, target)
 
-    const tmp = `${target}.tmp-${process.pid}-${Date.now()}`
-    await fsPromises.writeFile(tmp, Buffer.from(await res.arrayBuffer()), { mode: 0o755 })
-    await fsPromises.rename(tmp, target)
-    await fsPromises.chmod(target, 0o755)
-    await writeYtdlUpdatedAt(dir)
-  } catch (err) {
-    ensurePromise = null
+    try {
+      await downloadAsset(url, target)
+    } catch (err) {
+      failures.push(`${variant.asset}: ${err instanceof Error ? err.message : String(err)}`)
 
-    throw err
+      continue
+    }
+
+    if (await isRunnable(target)) {
+      await writeYtdlUpdatedAt(dir)
+
+      return
+    }
+
+    failures.push(`${variant.asset} does not run here`)
+
+    try {
+      await fsPromises.rm(target, { force: true })
+    } catch {
+      // the next flavour (or the final error) will tell
+    }
   }
+
+  throw new Error(`Could not provision yt-dlp (${failures.join('; ')})`)
 }
 
 export async function getYtdlVersion (): Promise<string | null> {

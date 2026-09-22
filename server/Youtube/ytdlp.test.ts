@@ -130,6 +130,10 @@ describe('managed yt-dlp folder', () => {
       arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
     })
     vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['Python 3.11.0\n'],
+    }) as unknown as ReturnType<typeof spawn>)
 
     await ensureYtdlBinary()
 
@@ -178,15 +182,45 @@ describe('managed yt-dlp folder', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     vi.mocked(spawn).mockClear()
-    vi.mocked(spawn).mockImplementation(() => fakeChild({
-      stderrLines: ['cannot execute\n'],
-      code: 1,
-    }) as unknown as ReturnType<typeof spawn>)
+    // 1: existing binary check fails; 2: python3 prerequisite ok;
+    // 3: downloaded binary check ok
+    vi.mocked(spawn)
+      .mockImplementationOnce(() => fakeChild({
+        stderrLines: ['cannot execute\n'],
+        code: 1,
+      }) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['Python 3.11.0\n'],
+      }) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['2025.12.17\n'],
+      }) as unknown as ReturnType<typeof spawn>)
 
     await ensureYtdlBinary()
 
     expect(fetchMock).toHaveBeenCalledWith(ytdlReleaseUrl())
     await expect(fsPromises.access(target, fsPromises.constants.X_OK)).resolves.toBeUndefined()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('fails clearly when no flavour can run here', async () => {
+    // glibc host without python3 and without a musl loader: nothing to try
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stderrLines: ['cannot execute\n'],
+      code: 1,
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(ensureYtdlBinary()).rejects.toThrow(/python/)
+    expect(fetchMock).not.toHaveBeenCalled()
 
     vi.unstubAllGlobals()
     setYtdlDir(null)
@@ -232,6 +266,10 @@ describe('managed yt-dlp folder', () => {
       arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
     })
     vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['Python 3.11.0\n'],
+    }) as unknown as ReturnType<typeof spawn>)
 
     await Promise.all([ensureYtdlBinary(), ensureYtdlBinary(), ensureYtdlBinary()])
 

@@ -107,6 +107,9 @@ export const SONG_INFO_CLOSE = 'songInfo/SONG_INFO_CLOSE'
 export const SONG_INFO_SHOW_EDITOR = 'songInfo/SHOW_EDITOR'
 export const SONG_INFO_CLOSE_EDITOR = 'songInfo/CLOSE_EDITOR'
 export const SONG_INFO_UPDATE = 'songInfo/UPDATE'
+export const SONG_INFO_SHOW_DELETE = 'songInfo/SHOW_DELETE'
+export const SONG_INFO_CLOSE_DELETE = 'songInfo/CLOSE_DELETE'
+export const SONG_INFO_DELETE = 'songInfo/DELETE'
 
 // IPC Messages
 export const REQUEST_SCAN = 'scannerWorker/REQUEST_SCAN'

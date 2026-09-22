@@ -21,6 +21,7 @@ interface SongItemProps {
   onSongStarClick(songId: number): void
   onSongInfo(songId: number): void
   onSongEdit(songId: number): void
+  onSongDelete(songId: number): void
   isPlayed: boolean
   isStarred: boolean
   isUpcoming: boolean
@@ -39,6 +40,7 @@ const SongItem = ({
   onSongStarClick,
   onSongInfo,
   onSongEdit,
+  onSongDelete,
   isPlayed,
   isStarred,
   isUpcoming,
@@ -55,6 +57,7 @@ const SongItem = ({
   }
   const handleInfoClick = () => onSongInfo(songId)
   const handleEditClick = () => onSongEdit(songId)
+  const handleDeleteClick = () => onSongDelete(songId)
   const handleStarClick = () => onSongStarClick(songId)
 
   const swipeHandlers = useSwipeable({
@@ -115,6 +118,11 @@ const SongItem = ({
         {isAdmin && (
           <Button onClick={handleEditClick} className={clsx(styles.btn, styles.info)} data-hide aria-label='Edit song'>
             <Icon icon='EDIT' />
+          </Button>
+        )}
+        {isAdmin && (
+          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.info)} data-hide aria-label='Delete song'>
+            <Icon icon='DELETE' />
           </Button>
         )}
       </Buttons>

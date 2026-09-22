@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('./Library.js', () => ({
   default: {
     updateSong: vi.fn(),
+    deleteSong: vi.fn(),
     getSong: vi.fn((songId: number) => ({ [songId]: { songId, title: 'New Title' } })),
   },
 }))
@@ -24,10 +25,10 @@ vi.mock('../Youtube/metadata.js', () => ({
   })),
 }))
 
-import { handleUpdateSong } from './router.js'
+import { handleUpdateSong, handleDeleteSong } from './router.js'
 import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
-import { ConflictError, ValidationError } from '../lib/Errors.js'
+import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
 
 const makeCtx = (user: object, params: object = { songId: '1' }, body: object = {}) => {
   const emitted: { event: string, channel?: string, data: unknown }[] = []
@@ -110,5 +111,46 @@ describe('handleUpdateSong', () => {
     const { ctx } = makeCtx({ isAdmin: true }, { songId: '1' }, { artist: 'A', title: 'T' })
 
     await expect(handleUpdateSong(ctx)).rejects.toMatchObject({ status: 409 })
+  })
+})
+
+describe('handleDeleteSong', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('deletes the song and pushes full library + queues (admin)', async () => {
+    const { ctx, emitted } = makeCtx({ isAdmin: true }, { songId: '1' })
+
+    await handleDeleteSong(ctx)
+
+    expect(Library.deleteSong).toHaveBeenCalledWith(1)
+    expect(ctx.status).toBe(200)
+    expect(ctx.body).toEqual({ songId: 1 })
+    expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
+    expect(emitted).toEqual([])
+  })
+
+  it('rejects non-admins with 401 without touching the library', async () => {
+    const { ctx } = makeCtx({ isAdmin: false }, { songId: '1' })
+
+    await expect(handleDeleteSong(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(Library.deleteSong).not.toHaveBeenCalled()
+  })
+
+  it('rejects an invalid songId with 422', async () => {
+    const { ctx } = makeCtx({ isAdmin: true }, { songId: 'abc' })
+
+    await expect(handleDeleteSong(ctx)).rejects.toMatchObject({ status: 422 })
+    expect(Library.deleteSong).not.toHaveBeenCalled()
+  })
+
+  it('maps NotFoundError to 404', async () => {
+    vi.mocked(Library.deleteSong).mockImplementationOnce(() => {
+      throw new NotFoundError('songId 1 not found')
+    })
+    const { ctx } = makeCtx({ isAdmin: true }, { songId: '1' })
+
+    await expect(handleDeleteSong(ctx)).rejects.toMatchObject({ status: 404 })
   })
 })

@@ -5,7 +5,7 @@ import { join, sep } from 'node:path'
 import { open, close, db } from '../lib/Database.js'
 import Library from './Library.js'
 import { deriveNorms } from '../Youtube/metadata.js'
-import { ConflictError, ValidationError } from '../lib/Errors.js'
+import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
 
 let dir: string
 let musicDir: string
@@ -172,5 +172,76 @@ describe('Library.findSong', () => {
     const { titleNorm } = deriveNorms('Queen', 'No Such Title')
     const { artistNorm } = deriveNorms('Queen', 'Bohemian Rhapsody')
     expect(Library.findSong(artistNorm, titleNorm)).toBeNull()
+  })
+})
+
+describe('Library.deleteSong', () => {
+  it('deletes files, rows, queue items and the orphaned artist', () => {
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['Disposable', 'Disposable'])
+    const artistId = Number(db.get<{ artistId: number }>(
+      'SELECT artistId FROM artists WHERE nameNorm = ?', ['Disposable'],
+    )?.artistId)
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)',
+      [artistId, 'Bye Bye', 'Bye Bye'])
+    const songId = Number(db.get<{ songId: number }>(
+      'SELECT songId FROM songs WHERE titleNorm = ?', ['Bye Bye'],
+    )?.songId)
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+      [songId, 1, ['set1', 'Disposable - Bye Bye.mp3'].join(sep), 200])
+    db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?)', [1, songId])
+    db.run('INSERT INTO artistStars (userId, artistId) VALUES (?, ?)', [1, artistId])
+    db.run('INSERT INTO rooms (name, status) VALUES (?, ?)', ['Room 1', 'open'])
+    // queue chain q1 -> q2 (deleted song) -> q3
+    db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)', [1, 2, 1, null])
+    const q1 = Number(db.get<{ queueId: number }>('SELECT last_insert_rowid() AS queueId')?.queueId)
+    db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)', [1, songId, 1, q1])
+    const q2 = Number(db.get<{ queueId: number }>('SELECT last_insert_rowid() AS queueId')?.queueId)
+    db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)', [1, 2, 1, q2])
+    const q3 = Number(db.get<{ queueId: number }>('SELECT last_insert_rowid() AS queueId')?.queueId)
+    writeFileSync(abs('set1', 'Disposable - Bye Bye.mp3'), 'audio')
+    writeFileSync(abs('set1', 'Disposable - Bye Bye.cdg'), 'graphics')
+
+    Library.cache.version = 123
+    Library.deleteSong(songId)
+
+    // files gone, sidecar included
+    expect(existsSync(abs('set1', 'Disposable - Bye Bye.mp3'))).toBe(false)
+    expect(existsSync(abs('set1', 'Disposable - Bye Bye.cdg'))).toBe(false)
+    // rows gone
+    expect(db.get('SELECT songId FROM songs WHERE songId = ?', [songId])).toBeUndefined()
+    expect(db.get('SELECT mediaId FROM media WHERE songId = ?', [songId])).toBeUndefined()
+    expect(db.get('SELECT * FROM songStars WHERE songId = ?', [songId])).toBeUndefined()
+    // queue gap closed: q3 now follows q1
+    expect(db.get('SELECT queueId FROM queue WHERE queueId = ?', [q2])).toBeUndefined()
+    expect(db.get<{ prevQueueId: number }>(
+      'SELECT prevQueueId FROM queue WHERE queueId = ?', [q3],
+    )?.prevQueueId).toBe(q1)
+    // orphaned artist and its stars gone
+    expect(db.get('SELECT artistId FROM artists WHERE artistId = ?', [artistId])).toBeUndefined()
+    expect(db.get('SELECT * FROM artistStars WHERE artistId = ?', [artistId])).toBeUndefined()
+    expect(Library.cache.version).toBeNull()
+  })
+
+  it('skips files that are already gone and still deletes rows', () => {
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['Ghost', 'Ghost'])
+    const artistId = Number(db.get<{ artistId: number }>(
+      'SELECT artistId FROM artists WHERE nameNorm = ?', ['Ghost'],
+    )?.artistId)
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)',
+      [artistId, 'Vanished', 'Vanished'])
+    const songId = Number(db.get<{ songId: number }>(
+      'SELECT songId FROM songs WHERE titleNorm = ?', ['Vanished'],
+    )?.songId)
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+      [songId, 1, ['set1', 'missing-file.mp3'].join(sep), 200])
+
+    Library.deleteSong(songId)
+
+    expect(db.get('SELECT songId FROM songs WHERE songId = ?', [songId])).toBeUndefined()
+  })
+
+  it('throws NotFoundError for unknown songIds and ValidationError for NaN', () => {
+    expect(() => Library.deleteSong(999)).toThrowError(NotFoundError)
+    expect(() => Library.deleteSong(Number.NaN)).toThrowError(ValidationError)
   })
 })

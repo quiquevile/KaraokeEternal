@@ -4,7 +4,7 @@ import path from 'path'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import getCdgName from '../lib/getCdgName.js'
-import { ConflictError, ValidationError } from '../lib/Errors.js'
+import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
@@ -399,6 +399,107 @@ class Library {
     Library.cache.version = null
 
     log.debug('updated song %s: %s - %s', songId, artist, title)
+  }
+
+  /**
+  * Deletes a song (admin only): removes its media files from disk, its
+  * queue items in every room, and its song/media/star rows. Artists left
+  * without songs are removed (their stars are lost with them). Files
+  * that are already gone from disk are skipped.
+  */
+  static deleteSong (songId: number): void {
+    if (!Number.isInteger(songId)) {
+      throw new ValidationError('Invalid songId')
+    }
+
+    const existingQuery = sql`SELECT artistId FROM songs WHERE songId = ${songId}`
+    const song = db.get<{ artistId: number }>(String(existingQuery), existingQuery.parameters)
+
+    if (!song) {
+      throw new NotFoundError(`songId ${songId} not found`)
+    }
+
+    // resolve media files (mp3+g sidecars travel with their audio file)
+    const { result, entities } = Media.search({ songId })
+    const files: string[] = []
+
+    for (const mediaId of result) {
+      const media = entities[mediaId]
+      const file = path.join(media.path, ...media.relPath.split('/'))
+      files.push(file)
+
+      const cdg = getCdgName(file)
+
+      if (cdg) files.push(cdg)
+    }
+
+    // queue items referencing the song, in every room
+    const queueQuery = sql`SELECT queueId, prevQueueId FROM queue WHERE songId = ${songId}`
+    const queueRows = db.all<{ queueId: number, prevQueueId: number | null }>(
+      String(queueQuery), queueQuery.parameters,
+    )
+
+    // delete files first; missing files are already gone, so skip them
+    for (const file of files) {
+      try {
+        fs.unlinkSync(file)
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') throw err
+
+        log.debug('file already gone: %s', file)
+      }
+    }
+
+    // everything else in a single transaction
+    db.exec('BEGIN')
+
+    try {
+      // remove queue items, closing each linked-list gap (as in Queue.remove)
+      for (const { queueId, prevQueueId } of queueRows) {
+        const deleteQuery = sql`
+          DELETE FROM queue
+          WHERE queueId = ${queueId}
+        `
+        db.run(String(deleteQuery), deleteQuery.parameters)
+
+        const updateQuery = sql`
+          UPDATE queue
+          SET prevQueueId = ${prevQueueId}
+          WHERE prevQueueId = ${queueId}
+        `
+        db.run(String(updateQuery), updateQuery.parameters)
+      }
+
+      Media.remove([...result])
+
+      const deleteSongStars = sql`DELETE FROM songStars WHERE songId = ${songId}`
+      db.run(String(deleteSongStars), deleteSongStars.parameters)
+
+      const deleteSong = sql`DELETE FROM songs WHERE songId = ${songId}`
+      db.run(String(deleteSong), deleteSong.parameters)
+
+      // drop the artist if it has no songs left (its stars go with it)
+      const remainingQuery = sql`SELECT songId FROM songs WHERE artistId = ${song.artistId} LIMIT 1`
+      const remaining = db.get<{ songId: number }>(String(remainingQuery), remainingQuery.parameters)
+
+      if (!remaining) {
+        const deleteStars = sql`DELETE FROM artistStars WHERE artistId = ${song.artistId}`
+        db.run(String(deleteStars), deleteStars.parameters)
+
+        const deleteArtist = sql`DELETE FROM artists WHERE artistId = ${song.artistId}`
+        db.run(String(deleteArtist), deleteArtist.parameters)
+      }
+
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw err
+    }
+
+    // library cache holds song/artist entities: force a rebuild
+    Library.cache.version = null
+
+    log.debug('deleted song %s', songId)
   }
 
   /**

@@ -20,7 +20,12 @@ const PlayerController = (props: PlayerControllerProps) => {
   const prefs = useAppSelector(state => state.prefs)
   const roomPrefs = useAppSelector(getRoomPrefs)
   const queueItem = queue.entities[player.queueId]
-  const nextQueueItem = queue.entities[queue.result[queue.result.indexOf(player.queueId) + 1]]
+  // current item deleted (e.g. its song was removed from the library)?
+  // fall back to the first unplayed item, as it is the next song to play
+  const playedIds: number[] = JSON.parse(player.historyJSON)
+  const nextQueueItem = queueItem
+    ? queue.entities[queue.result[queue.result.indexOf(player.queueId) + 1]]
+    : queue.entities[queue.result.find(queueId => !playedIds.includes(queueId))]
 
   const dispatch = useAppDispatch()
   const handleStatus = useCallback((status?: Partial<PlayerState>) => dispatch(playerStatus(status)), [dispatch])
@@ -142,6 +147,13 @@ const PlayerController = (props: PlayerControllerProps) => {
       handleLoadNext()
     }
   }, [handleLoadNext, player.isPlaying, player.isAtQueueEnd, nextQueueItem])
+
+  // current item vanished while playing (e.g. its song was deleted)?
+  useEffect(() => {
+    if (player.isPlaying && !player.isAtQueueEnd && !player.isErrored && player.queueId !== -1 && !queueItem) {
+      handleLoadNext()
+    }
+  }, [handleLoadNext, player.isPlaying, player.isAtQueueEnd, player.isErrored, player.queueId, queueItem])
 
   // retrying after error?
   useEffect(() => {

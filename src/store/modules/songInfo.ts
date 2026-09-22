@@ -7,6 +7,9 @@ import {
   SONG_INFO_SHOW_EDITOR,
   SONG_INFO_CLOSE_EDITOR,
   SONG_INFO_UPDATE,
+  SONG_INFO_SHOW_DELETE,
+  SONG_INFO_CLOSE_DELETE,
+  SONG_INFO_DELETE,
 } from 'shared/actionTypes'
 import { Media } from 'shared/types'
 
@@ -24,6 +27,17 @@ export const closeSongInfo = createAction(SONG_INFO_CLOSE)
 
 export const showSongEditor = createAction<number>(SONG_INFO_SHOW_EDITOR)
 export const closeSongEditor = createAction(SONG_INFO_CLOSE_EDITOR)
+
+export const showDeleteSong = createAction<number>(SONG_INFO_SHOW_DELETE)
+export const closeDeleteSong = createAction(SONG_INFO_CLOSE_DELETE)
+
+export const deleteSong = createAsyncThunk(
+  SONG_INFO_DELETE,
+  async (songId: number, thunkAPI) => {
+    await api.delete(`song/${songId}`)
+    thunkAPI.dispatch(closeDeleteSong())
+  },
+)
 
 export const updateSong = createAsyncThunk(
   SONG_INFO_UPDATE,
@@ -63,6 +77,7 @@ interface SongInfoState {
   isVisible: boolean
   songId: number | null
   editorSongId: number | null
+  deleteSongId: number | null
   media: { result: number[], entities: Record<number, Media> }
 }
 
@@ -71,6 +86,7 @@ const initialState: SongInfoState = {
   isVisible: false,
   songId: null,
   editorSongId: null,
+  deleteSongId: null,
   media: { result: [], entities: {} },
 }
 
@@ -97,6 +113,12 @@ const songInfoReducer = createReducer(initialState, (builder) => {
     })
     .addCase(closeSongEditor, (state) => {
       state.editorSongId = null
+    })
+    .addCase(showDeleteSong, (state, { payload }) => {
+      state.deleteSongId = payload
+    })
+    .addCase(closeDeleteSong, (state) => {
+      state.deleteSongId = null
     })
 })
 

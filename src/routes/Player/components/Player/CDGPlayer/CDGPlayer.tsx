@@ -46,7 +46,9 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
   }
 
   componentDidUpdate (prevProps: CDGPlayerProps) {
-    if (prevProps.mediaKey !== this.props.mediaKey) {
+    // same queue item, but the underlying file changed (e.g. its media
+    // version was deleted): restart with the new file
+    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaId !== this.props.mediaId) {
       this.updateSources()
       return
     }

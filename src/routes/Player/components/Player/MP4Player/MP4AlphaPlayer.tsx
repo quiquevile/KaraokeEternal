@@ -54,7 +54,9 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
   }
 
   componentDidUpdate (prevProps: MP4AlphaPlayerProps) {
-    if (prevProps.mediaKey !== this.props.mediaKey) {
+    // same queue item, but the underlying file changed (e.g. its media
+    // version was deleted): restart with the new file
+    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaId !== this.props.mediaId) {
       this.updateSources()
       return
     }

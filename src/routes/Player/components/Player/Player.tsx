@@ -77,7 +77,7 @@ class Player extends React.Component<PlayerProps> {
     }
 
     // prevent applying next song's RG vals prematurely
-    if (this.props.mediaKey !== prevProps.mediaKey) {
+    if (this.props.mediaKey !== prevProps.mediaKey || this.props.mediaId !== prevProps.mediaId) {
       this.isFetching = true
     }
 

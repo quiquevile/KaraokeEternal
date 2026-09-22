@@ -72,14 +72,14 @@ const RequireAuth = ({
   path,
   redirectTo,
 }: RequireAuthProps) => {
-  const { isAdmin, isRoomAdmin, userId } = useAppSelector(state => state.user)
+  const { isAdmin, isRoomAdmin, userId, permissions } = useAppSelector(state => state.user)
   const location = useLocation()
 
   if (path === '/player' && !isAdmin && !isRoomAdmin) {
     return <Navigate to='/' replace />
   }
 
-  if (path === '/youtube' && !isAdmin) {
+  if (path === '/youtube' && !isAdmin && !permissions?.youtubeDownload) {
     return <Navigate to='/' replace />
   }
 

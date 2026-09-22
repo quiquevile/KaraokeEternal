@@ -45,6 +45,7 @@ const createUserCtx = (user, roomId) => {
     isGuest: user.role === 'guest',
     isRoomAdmin: user.role === 'roomadmin',
     name: user.name,
+    permissions: user.permissions ?? {},
     roomId: parseInt(roomId, 10) || null,
     userId: user.userId,
     username: user.username,

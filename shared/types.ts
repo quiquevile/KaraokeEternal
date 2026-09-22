@@ -82,6 +82,7 @@ export interface User {
   isAdmin: boolean // todo: client and server ctx only
   isGuest: boolean // todo: client and server ctx only
   isRoomAdmin: boolean // todo: client and server ctx only
+  permissions?: Record<string, boolean>
   dateCreated: number
   dateUpdated: number
 }

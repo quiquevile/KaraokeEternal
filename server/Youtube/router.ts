@@ -1,5 +1,6 @@
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
+import { can } from '../lib/permissions.js'
 import {
   searchYoutube,
   resolveVideo,
@@ -17,7 +18,7 @@ import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
 
 export interface RouterContext {
-  user: { isAdmin: boolean } | undefined
+  user: { isAdmin: boolean, permissions?: Record<string, boolean> } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown> }
@@ -34,6 +35,10 @@ type YoutubePrefs = ReturnType<typeof Prefs.get> & {
 
 function requireAdmin (ctx: RouterContext): void {
   if (!ctx.user?.isAdmin) ctx.throw(401)
+}
+
+function requireYoutubeAccess (ctx: RouterContext): void {
+  if (!can(ctx.user, 'youtubeDownload')) ctx.throw(401)
 }
 
 function bodyOf (ctx: RouterContext): Record<string, unknown> {
@@ -62,7 +67,7 @@ function applyYoutubePrefs (): YoutubePrefs {
 }
 
 export async function handleSearch (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
   applyYoutubePrefs()
   requireYtdlBin(ctx)
 
@@ -81,7 +86,7 @@ export async function handleSearch (ctx: RouterContext): Promise<void> {
 }
 
 export async function handleIdentify (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
 
   const body = bodyOf(ctx)
   const title = str(body.title)
@@ -95,7 +100,7 @@ export async function handleIdentify (ctx: RouterContext): Promise<void> {
 }
 
 export async function handleStream (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
   applyYoutubePrefs()
   requireYtdlBin(ctx)
 
@@ -125,7 +130,7 @@ export function resolveDownloadPath (prefs: {
 }
 
 export async function handleDownload (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
 
   const body = bodyOf(ctx)
   const url = str(body.url)
@@ -180,14 +185,14 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 }
 
 export async function handleDownloads (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
 
   ctx.status = 200
   ctx.body = downloadManager.getStatus()
 }
 
 export async function handleDownloadsClear (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
 
   downloadManager.clearHistory()
 
@@ -196,7 +201,7 @@ export async function handleDownloadsClear (ctx: RouterContext): Promise<void> {
 }
 
 export async function handleDownloadsDelete (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
+  requireYoutubeAccess(ctx)
 
   downloadManager.removeHistory(ctx.params.id as string)
 

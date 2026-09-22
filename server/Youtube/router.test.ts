@@ -191,9 +191,16 @@ describe('router', () => {
       expect(resolveVideo).not.toHaveBeenCalled()
     })
 
-    it('requires admin', async () => {
-      const ctx = makeCtx({ user: { isAdmin: false }, request: { body: { query: 'x' } } })
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} }, request: { body: { query: 'x' } } })
       await expect(handleSearch(ctx)).rejects.toSatisfy(throwStatus(401))
+    })
+
+    it('allows non-admin with youtubeDownload permission', async () => {
+      vi.mocked(searchYoutube).mockResolvedValue([])
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: { youtubeDownload: true } }, request: { body: { query: 'x' } } })
+      await handleSearch(ctx)
+      expect(searchYoutube).toHaveBeenCalledWith('x')
     })
 
     it('rejects 422 when no yt-dlp folder is configured', async () => {
@@ -224,6 +231,10 @@ describe('router', () => {
       const ctx = makeCtx({ request: { body: { channel: 'SingKing' } } })
       await expect(handleIdentify(ctx)).rejects.toSatisfy(throwStatus(422))
     })
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} } })
+      await expect(handleIdentify(ctx)).rejects.toSatisfy(throwStatus(401))
+    })
   })
 
   describe('handleStream', () => {
@@ -248,6 +259,11 @@ describe('router', () => {
       const ctx = makeCtx({ query: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } })
       await expect(handleStream(ctx)).rejects.toSatisfy(throwStatus(422))
       expect(resolveStreamUrl).not.toHaveBeenCalled()
+    })
+
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} } })
+      await expect(handleStream(ctx)).rejects.toSatisfy(throwStatus(401))
     })
   })
 
@@ -369,6 +385,12 @@ describe('router', () => {
       await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
       expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
+
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} } })
+      await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
   })
 
   describe('handleDownloads', () => {
@@ -380,6 +402,12 @@ describe('router', () => {
       await handleDownloads(ctx)
 
       expect(ctx.body).toBe(status)
+    })
+
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} } })
+      await expect(handleDownloads(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(downloadManager.getStatus).not.toHaveBeenCalled()
     })
   })
 
@@ -395,8 +423,8 @@ describe('router', () => {
       expect(ctx.body).toBe(status)
     })
 
-    it('requires admin', async () => {
-      const ctx = makeCtx({ user: { isAdmin: false } })
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} } })
       await expect(handleDownloadsClear(ctx)).rejects.toSatisfy(throwStatus(401))
       expect(downloadManager.clearHistory).not.toHaveBeenCalled()
     })
@@ -414,8 +442,8 @@ describe('router', () => {
       expect(ctx.body).toBe(status)
     })
 
-    it('requires admin', async () => {
-      const ctx = makeCtx({ user: { isAdmin: false }, params: { id: 'abc123' } })
+    it('requires youtubeDownload permission', async () => {
+      const ctx = makeCtx({ user: { isAdmin: false, permissions: {} }, params: { id: 'abc123' } })
       await expect(handleDownloadsDelete(ctx)).rejects.toSatisfy(throwStatus(401))
       expect(downloadManager.removeHistory).not.toHaveBeenCalled()
     })

@@ -1,6 +1,7 @@
 import sql from 'sqlate'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
+import { ConflictError, ValidationError } from '../lib/Errors.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
@@ -124,6 +125,45 @@ class Library {
   }
 
   /**
+  * Matches an existing artist by norm or creates it
+  */
+  static matchArtist (parsed: { artist: string, artistNorm: string }): {
+    artistId: number
+    artist: string
+    artistNorm: string
+  } {
+    const query = sql`
+      SELECT *
+      FROM artists
+      WHERE nameNorm = ${parsed.artistNorm}
+    `
+    const row = db.get<{ artistId: number, name: string, nameNorm: string }>(String(query), query.parameters)
+
+    if (row) {
+      log.debug('matched artist: %s', row.name)
+      return { artistId: row.artistId, artist: row.name, artistNorm: row.nameNorm }
+    }
+
+    log.debug('new artist: %s', parsed.artist)
+
+    const fields = new Map()
+    fields.set('name', parsed.artist)
+    fields.set('nameNorm', parsed.artistNorm)
+
+    const insert = sql`
+      INSERT INTO artists ${sql.tuple(Array.from(fields.keys()).map(sql.column))}
+      VALUES ${sql.tuple(Array.from(fields.values()))}
+    `
+    const res = db.run(String(insert), insert.parameters)
+
+    if (!Number.isInteger(res.lastID)) {
+      throw new Error('invalid artistId after insert')
+    }
+
+    return { artistId: res.lastID as number, artist: parsed.artist, artistNorm: parsed.artistNorm }
+  }
+
+  /**
   * Matches or creates artist and song
   */
   static matchSong (parsed: { artist: string, artistNorm: string, title: string, titleNorm: string }): {
@@ -138,39 +178,10 @@ class Library {
 
     // match artist
     {
-      const query = sql`
-        SELECT *
-        FROM artists
-        WHERE nameNorm = ${parsed.artistNorm}
-      `
-      const row = db.get<{ artistId: number, name: string, nameNorm: string }>(String(query), query.parameters)
-
-      if (row) {
-        log.debug('matched artist: %s', row.name)
-        match.artistId = row.artistId
-        match.artist = row.name
-        match.artistNorm = row.nameNorm
-      } else {
-        log.debug('new artist: %s', parsed.artist)
-
-        const fields = new Map()
-        fields.set('name', parsed.artist)
-        fields.set('nameNorm', parsed.artistNorm)
-
-        const query = sql`
-          INSERT INTO artists ${sql.tuple(Array.from(fields.keys()).map(sql.column))}
-          VALUES ${sql.tuple(Array.from(fields.values()))}
-        `
-        const res = db.run(String(query), query.parameters)
-
-        if (!Number.isInteger(res.lastID)) {
-          throw new Error('invalid artistId after insert')
-        }
-
-        match.artistId = res.lastID
-        match.artist = parsed.artist
-        match.artistNorm = parsed.artistNorm
-      }
+      const artist = Library.matchArtist(parsed)
+      match.artistId = artist.artistId
+      match.artist = artist.artist
+      match.artistNorm = artist.artistNorm
     }
 
     // match song title
@@ -212,6 +223,52 @@ class Library {
     }
 
     return match
+  }
+
+  /**
+  * Retags a song (admin only): updates its artist/title, matching or
+  * creating the artist as needed. Throws ConflictError if another song
+  * already has the resulting artist + title.
+  */
+  static updateSong (songId: number, parsed: { artist: string, artistNorm: string, title: string, titleNorm: string }): void {
+    if (!Number.isInteger(songId)) {
+      throw new ValidationError('Invalid songId')
+    }
+
+    if (!parsed.artist?.trim() || !parsed.title?.trim()) {
+      throw new ValidationError('Artist and title are required')
+    }
+
+    const existing = sql`SELECT songId FROM songs WHERE songId = ${songId}`
+    const song = db.get<{ songId: number }>(String(existing), existing.parameters)
+
+    if (!song) {
+      throw new ValidationError(`songId ${songId} not found`)
+    }
+
+    const artist = Library.matchArtist({
+      artist: parsed.artist.trim(),
+      artistNorm: parsed.artistNorm,
+    })
+
+    const clashQuery = sql`SELECT songId FROM songs WHERE artistId = ${artist.artistId} AND titleNorm = ${parsed.titleNorm} AND songId != ${songId}`
+    const clash = db.get<{ songId: number }>(String(clashQuery), clashQuery.parameters)
+
+    if (clash) {
+      throw new ConflictError('Another song already has that artist and title')
+    }
+
+    const query = sql`
+      UPDATE songs
+      SET artistId = ${artist.artistId}, title = ${parsed.title.trim()}, titleNorm = ${parsed.titleNorm}
+      WHERE songId = ${songId}
+    `
+    db.run(String(query), query.parameters)
+
+    // library cache holds song/artist entities: force a rebuild
+    Library.cache.version = null
+
+    log.debug('updated song %s: %s - %s', songId, parsed.artist, parsed.title)
   }
 
   /**

@@ -1,0 +1,16 @@
+.hint {
+  color: var(--color-gray-5);
+  margin-top: 0;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+  margin-top: var(--space-l);
+}
+
+.buttons button {
+  width: auto;
+  padding: var(--space-s) var(--space-l);
+}

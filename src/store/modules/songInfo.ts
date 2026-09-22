@@ -4,6 +4,9 @@ import {
   SONG_INFO_REQUEST,
   SONG_INFO_SET_PREFERRED,
   SONG_INFO_CLOSE,
+  SONG_INFO_SHOW_EDITOR,
+  SONG_INFO_CLOSE_EDITOR,
+  SONG_INFO_UPDATE,
 } from 'shared/actionTypes'
 import { Media } from 'shared/types'
 
@@ -18,6 +21,27 @@ export const showSongInfo = createAsyncThunk(
 )
 
 export const closeSongInfo = createAction(SONG_INFO_CLOSE)
+
+export const showSongEditor = createAction<number>(SONG_INFO_SHOW_EDITOR)
+export const closeSongEditor = createAction(SONG_INFO_CLOSE_EDITOR)
+
+export const updateSong = createAsyncThunk(
+  SONG_INFO_UPDATE,
+  async ({
+    songId,
+    artist,
+    title,
+  }: {
+    songId: number
+    artist: string
+    title: string
+  }, thunkAPI) => {
+    await api.put(`song/${songId}`, {
+      body: { artist, title },
+    })
+    thunkAPI.dispatch(closeSongEditor())
+  },
+)
 
 export const setPreferredSong = createAsyncThunk(
   SONG_INFO_SET_PREFERRED,
@@ -38,6 +62,7 @@ interface SongInfoState {
   isLoading: boolean
   isVisible: boolean
   songId: number | null
+  editorSongId: number | null
   media: { result: number[], entities: Record<number, Media> }
 }
 
@@ -45,6 +70,7 @@ const initialState: SongInfoState = {
   isLoading: false,
   isVisible: false,
   songId: null,
+  editorSongId: null,
   media: { result: [], entities: {} },
 }
 
@@ -65,6 +91,12 @@ const songInfoReducer = createReducer(initialState, (builder) => {
     })
     .addCase(closeSongInfo, (state) => {
       state.isVisible = false
+    })
+    .addCase(showSongEditor, (state, { payload }) => {
+      state.editorSongId = payload
+    })
+    .addCase(closeSongEditor, (state) => {
+      state.editorSongId = null
     })
 })
 

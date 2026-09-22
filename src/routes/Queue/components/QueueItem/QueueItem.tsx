@@ -21,6 +21,7 @@ interface QueueItemProps {
   errorMessage: string
   isCurrent: boolean
   isErrored: boolean
+  isEditable: boolean
   isInfoable: boolean
   isMovable: boolean
   isOwner: boolean
@@ -42,6 +43,7 @@ interface QueueItemProps {
   wait?: string
   // actions
   onMoveClick(queueId: number): void
+  onEditClick(songId: number): void
   onRemoveUpcoming: (userId: number) => void
 }
 
@@ -50,6 +52,7 @@ const QueueItem = ({
   errorMessage,
   isCurrent,
   isErrored,
+  isEditable,
   isInfoable,
   isMovable,
   isOwner,
@@ -60,6 +63,7 @@ const QueueItem = ({
   isSkippable,
   isStarred,
   isUpcoming,
+  onEditClick,
   onMoveClick,
   onRemoveUpcoming,
   pctPlayed,
@@ -78,6 +82,10 @@ const QueueItem = ({
 
   const handleErrorInfoClick = () => dispatch(showErrorMessage(errorMessage))
   const handleInfoClick = () => dispatch(showSongInfo(songId))
+  const handleEditClick = () => {
+    onEditClick(songId)
+    setExpanded(false)
+  }
   const handleMoveClick = () => {
     onMoveClick(queueId)
     setExpanded(false)
@@ -99,7 +107,7 @@ const QueueItem = ({
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
-      setExpanded(isErrored || isInfoable || isRemovable || isSkippable || isReplayable)
+      setExpanded(isErrored || isEditable || isInfoable || isRemovable || isSkippable || isReplayable)
     },
     onSwipedRight: () => setExpanded(false),
     preventScrollOnSwipe: true,
@@ -177,6 +185,15 @@ const QueueItem = ({
               data-hide
               icon='INFO_OUTLINE'
               onClick={handleInfoClick}
+            />
+          )}
+          {isEditable && (
+            <Button
+              className={styles.active}
+              data-hide
+              icon='EDIT'
+              onClick={handleEditClick}
+              aria-label='Edit song'
             />
           )}
           {isMovable && (

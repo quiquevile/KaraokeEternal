@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { ensureState } from 'redux-optimistic-ui'
 import SongItem from '../SongItem/SongItem'
 import { queueSong } from 'routes/Queue/modules/queue'
-import { showSongInfo } from 'store/modules/songInfo'
+import { showSongEditor, showSongInfo } from 'store/modules/songInfo'
 import { toggleSongStarred } from 'store/modules/userStars'
 import getSongsStatus from '../../selectors/getSongsStatus'
 
@@ -24,6 +24,7 @@ const SongList = (props: SongListProps) => {
 
   const handleSongQueue = (songId: number) => dispatch(queueSong(songId))
   const handleSongInfo = (songId: number) => dispatch(showSongInfo(songId))
+  const handleSongEdit = (songId: number) => dispatch(showSongEditor(songId))
   const handleSongStar = (songId: number) => dispatch(toggleSongStarred(songId))
 
   return props.songIds.map(songId => (
@@ -40,6 +41,7 @@ const SongList = (props: SongListProps) => {
       onSongQueue={handleSongQueue}
       onSongStarClick={handleSongStar}
       onSongInfo={handleSongInfo}
+      onSongEdit={handleSongEdit}
     />
   ))
 }

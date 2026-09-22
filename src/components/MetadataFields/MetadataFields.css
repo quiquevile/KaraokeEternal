@@ -1,0 +1,47 @@
+.fields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  margin: var(--space-l) 0;
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  font-size: var(--font-size-s);
+}
+
+.label {
+  font-weight: var(--font-weight-bold);
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.caseBtn {
+  width: auto;
+  padding: 0 var(--space-s);
+  font-size: var(--font-size-s);
+}
+
+.field input {
+  font-size: var(--font-size-m);
+}
+
+.swap {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  width: auto;
+  padding: var(--space-s);
+}
+
+.swap svg {
+  width: 24px;
+  height: 24px;
+}

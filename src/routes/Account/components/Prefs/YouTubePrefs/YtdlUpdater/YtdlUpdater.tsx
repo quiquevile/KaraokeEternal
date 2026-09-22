@@ -71,15 +71,21 @@ const YtdlUpdater = () => {
         {isUpdating ? 'Updating…' : (status === 'empty' ? 'Download' : 'Update')}
       </Button>
 
-      {status === 'empty' && (
+      {status === 'empty' && !(folder || dir) && (
+        <div className={styles.emptyHint}>
+          Select a yt-dlp folder to start using YouTube downloads.
+        </div>
+      )}
+
+      {status === 'empty' && (folder || dir) && (
         <div className={styles.emptyHint}>
           The yt-dlp folder is empty. Download yt-dlp to start using it.
         </div>
       )}
 
-      {mode === 'system' && (
+      {status === 'system' && (
         <div className={styles.systemHint}>
-          A yt-dlp folder is not configured; the system yt-dlp is used and cannot be updated here.
+          A custom yt-dlp binary is used and cannot be updated here.
         </div>
       )}
 

@@ -6,6 +6,7 @@ import {
   resolveStreamUrl,
   parseVideoId,
   setYtdlDir,
+  getYtdlBin,
   getYtdlStatus,
   getYtdlMode,
   updateYtdl,
@@ -43,6 +44,14 @@ function str (value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function requireYtdlBin (ctx: RouterContext): void {
+  try {
+    getYtdlBin()
+  } catch (err) {
+    ctx.throw(422, err instanceof Error ? err.message : 'yt-dlp is not configured')
+  }
+}
+
 function applyYoutubePrefs (): YoutubePrefs {
   const prefs = Prefs.get() as YoutubePrefs
 
@@ -55,6 +64,7 @@ function applyYoutubePrefs (): YoutubePrefs {
 export async function handleSearch (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
   applyYoutubePrefs()
+  requireYtdlBin(ctx)
 
   const query = str(bodyOf(ctx).query)
 
@@ -87,6 +97,7 @@ export async function handleIdentify (ctx: RouterContext): Promise<void> {
 export async function handleStream (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
   applyYoutubePrefs()
+  requireYtdlBin(ctx)
 
   const url = str(ctx.query.url)
 
@@ -129,6 +140,8 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   const path = resolveDownloadPath(prefs)
 
   if (!path) ctx.throw(422, 'could not determine download folder')
+
+  requireYtdlBin(ctx)
 
   const norms = deriveNorms(artist, title)
   const baseName = toFilename(artist, title)
@@ -202,6 +215,7 @@ export async function handleYtdlVersion (ctx: RouterContext): Promise<void> {
 export async function handleYtdlUpdate (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
   applyYoutubePrefs()
+  requireYtdlBin(ctx)
 
   ctx.status = 200
   ctx.body = { ...(await updateYtdl()), mode: getYtdlMode() }

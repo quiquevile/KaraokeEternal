@@ -79,8 +79,9 @@ export function getYtdlDir (): string | null {
 
 /**
  * Resolves the yt-dlp executable:
- * an explicit binary (prefs/override or KES_YTDL_BIN) wins; otherwise a
- * managed folder yields `<dir>/yt-dlp`; without that, the system PATH.
+ * an explicit binary (prefs/override or KES_YTDL_BIN) wins; otherwise the
+ * self-contained binary in the managed folder. Throws when neither is
+ * configured instead of falling back to the system PATH.
  */
 export function getYtdlBin (): string {
   if (ytdlBinOverride) return ytdlBinOverride
@@ -89,7 +90,9 @@ export function getYtdlBin (): string {
 
   const dir = getYtdlDir()
 
-  return dir ? path.join(dir, 'yt-dlp') : 'yt-dlp'
+  if (!dir) throw new Error('yt-dlp folder is not configured: select a folder in prefs')
+
+  return path.join(dir, 'yt-dlp')
 }
 
 /** 'managed' when the self-contained folder owns the binary; 'system' otherwise. */
@@ -134,6 +137,52 @@ async function isExecutable (file: string): Promise<boolean> {
 }
 
 /**
+ * Checks that a binary actually runs (an executable bit is not enough: a
+ * binary built for another libc fails at spawn with ENOENT).
+ */
+function isRunnable (bin: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const done = (ok: boolean) => resolve(ok)
+    let child: ReturnType<typeof spawn>
+
+    try {
+      child = spawn(bin, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] })
+    } catch {
+      done(false)
+
+      return
+    }
+
+    const timer = setTimeout(() => done(false), 15000)
+
+    if (typeof (timer as unknown as { unref?: () => void }).unref === 'function') {
+      (timer as unknown as { unref: () => void }).unref()
+    }
+
+    let out = ''
+
+    try {
+      child.stdout.setEncoding('utf8')
+      child.stdout.on('data', (chunk) => {
+        out += String(chunk)
+      })
+      child.stderr.on('data', () => {})
+      child.on('error', () => {
+        clearTimeout(timer)
+        done(false)
+      })
+      child.on('close', (code) => {
+        clearTimeout(timer)
+        done(code === 0 && out.trim().length > 0)
+      })
+    } catch {
+      clearTimeout(timer)
+      done(false)
+    }
+  })
+}
+
+/**
  * Guarantees the managed yt-dlp binary exists, downloading it the first time
  * (arch-aware, atomically) — identical behaviour inside and outside the
  * container. No-op when the system yt-dlp is in use.
@@ -155,7 +204,19 @@ async function doEnsure (): Promise<void> {
 
   const target = path.join(dir, 'yt-dlp')
 
-  if (await isExecutable(target)) return
+  if (await isExecutable(target)) {
+    if (await isRunnable(target)) return
+
+    // present but broken (e.g. built for another libc): replace it with
+    // a fresh download for the current environment
+    log.warn('managed yt-dlp binary does not run, re-downloading: %s', target)
+
+    try {
+      await fsPromises.rm(target, { force: true })
+    } catch {
+      // the download below will fail loudly if the file cannot go
+    }
+  }
 
   const asset = ytdlAsset()
   const url = ytdlReleaseUrl()
@@ -236,6 +297,12 @@ export interface YtdlStatusReport {
 export async function getYtdlStatus (): Promise<YtdlStatusReport> {
   const mode = getYtdlMode()
   const dir = getYtdlDir()
+  const explicitBin = !!ytdlBinOverride || !!process.env.KES_YTDL_BIN
+
+  if (!dir && !explicitBin) {
+    // no managed folder and no explicit binary: not configured
+    return { version: null, mode, status: 'empty', updatedAt: null, dir: null }
+  }
 
   if (mode !== 'managed' || !dir) {
     return { version: await getYtdlVersion(), mode, status: 'system', updatedAt: null, dir: null }

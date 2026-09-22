@@ -104,6 +104,7 @@ function makePrefs (overrides: Partial<MockPrefs> = {}): MockPrefs {
   return {
     paths: { result: [1], entities: { 1: { path: '/media/musica' } } },
     youtubeDownloadPathId: 1,
+    youtubeYtdlDir: '/data/bin',
     youtubeDlExtraArgs: '',
     ...overrides,
   }
@@ -194,6 +195,14 @@ describe('router', () => {
       const ctx = makeCtx({ user: { isAdmin: false }, request: { body: { query: 'x' } } })
       await expect(handleSearch(ctx)).rejects.toSatisfy(throwStatus(401))
     })
+
+    it('rejects 422 when no yt-dlp folder is configured', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeYtdlDir: undefined }))
+
+      const ctx = makeCtx({ request: { body: { query: 'Dancing Queen' } } })
+      await expect(handleSearch(ctx)).rejects.toSatisfy(throwStatus(422))
+      expect(searchYoutube).not.toHaveBeenCalled()
+    })
   })
 
   describe('handleIdentify', () => {
@@ -229,6 +238,14 @@ describe('router', () => {
 
     it('rejects non-YouTube URLs', async () => {
       const ctx = makeCtx({ query: { url: 'https://evil.example/x' } })
+      await expect(handleStream(ctx)).rejects.toSatisfy(throwStatus(422))
+      expect(resolveStreamUrl).not.toHaveBeenCalled()
+    })
+
+    it('rejects 422 when no yt-dlp folder is configured', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeYtdlDir: undefined }))
+
+      const ctx = makeCtx({ query: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } })
       await expect(handleStream(ctx)).rejects.toSatisfy(throwStatus(422))
       expect(resolveStreamUrl).not.toHaveBeenCalled()
     })
@@ -342,6 +359,16 @@ describe('router', () => {
       expect(findDownloadedFile).toHaveBeenCalledWith('/media/musica', 'ABBA - Dancing Queen')
       expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
+
+    it('rejects 422 when no yt-dlp folder is configured', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeYtdlDir: undefined }))
+
+      const ctx = makeCtx({
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
   })
 
   describe('handleDownloads', () => {
@@ -448,6 +475,14 @@ describe('router', () => {
     it('requires admin', async () => {
       const ctx = makeCtx({ user: { isAdmin: false } })
       await expect(handleYtdlUpdate(ctx)).rejects.toSatisfy(throwStatus(401))
+      expect(updateYtdl).not.toHaveBeenCalled()
+    })
+
+    it('rejects 422 when no yt-dlp folder is configured', async () => {
+      vi.mocked(Prefs.get).mockReturnValue(mockedPrefs({ youtubeYtdlDir: undefined }))
+
+      const ctx = makeCtx()
+      await expect(handleYtdlUpdate(ctx)).rejects.toSatisfy(throwStatus(422))
       expect(updateYtdl).not.toHaveBeenCalled()
     })
   })

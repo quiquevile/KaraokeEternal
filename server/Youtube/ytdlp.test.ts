@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import fsPromises from 'node:fs/promises'
@@ -65,9 +65,9 @@ function fakeChild (options: FakeChildOptions = {}) {
 }
 
 describe('getYtdlBin', () => {
-  it('defaults to yt-dlp when KES_YTDL_BIN is not set', () => {
+  it('throws when no folder or binary is configured', () => {
     delete process.env.KES_YTDL_BIN
-    expect(getYtdlBin()).toBe('yt-dlp')
+    expect(() => getYtdlBin()).toThrow('yt-dlp folder is not configured')
   })
 
   it('uses KES_YTDL_BIN when set', () => {
@@ -116,8 +116,8 @@ describe('managed yt-dlp folder', () => {
     expect(getYtdlBin()).toBe('/force/yt-dlp')
   })
 
-  it('falls back to the system yt-dlp when no folder is configured', () => {
-    expect(getYtdlBin()).toBe('yt-dlp')
+  it('refuses the system PATH fallback when no folder is configured', () => {
+    expect(() => getYtdlBin()).toThrow('yt-dlp folder is not configured')
     expect(getYtdlMode()).toBe('system')
   })
 
@@ -144,7 +144,7 @@ describe('managed yt-dlp folder', () => {
     await fsPromises.rm(dir, { recursive: true, force: true })
   })
 
-  it('skips the download when the managed binary already exists', async () => {
+  it('skips the download when the managed binary already exists and runs', async () => {
     const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
     const target = path.join(dir, 'yt-dlp')
     await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
@@ -152,10 +152,41 @@ describe('managed yt-dlp folder', () => {
 
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
 
     await ensureYtdlBinary()
 
     expect(fetchMock).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
+    setYtdlDir(null)
+    await fsPromises.rm(dir, { recursive: true, force: true })
+  })
+
+  it('re-downloads a present but broken binary', async () => {
+    const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'ytdlp-ensure-'))
+    const target = path.join(dir, 'yt-dlp')
+    await fsPromises.writeFile(target, '#!/bin/sh\nexit 1\n', { mode: 0o755 })
+    setYtdlDir(dir)
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stderrLines: ['cannot execute\n'],
+      code: 1,
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await ensureYtdlBinary()
+
+    expect(fetchMock).toHaveBeenCalledWith(ytdlReleaseUrl())
+    await expect(fsPromises.access(target, fsPromises.constants.X_OK)).resolves.toBeUndefined()
 
     vi.unstubAllGlobals()
     setYtdlDir(null)
@@ -173,6 +204,10 @@ describe('managed yt-dlp folder', () => {
       arrayBuffer: async () => new TextEncoder().encode('#!/bin/sh\necho yt-dlp-mock\n').buffer,
     })
     vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stdoutLines: ['2025.12.17\n'],
+    }) as unknown as ReturnType<typeof spawn>)
 
     await ensureYtdlBinary()
     expect(fetchMock).not.toHaveBeenCalled()
@@ -396,6 +431,13 @@ describe('parseProgressLine', () => {
 })
 
 describe('runYtdl', () => {
+  beforeEach(() => {
+    setYtdlBin('/test/yt-dlp')
+  })
+
+  afterEach(() => {
+    setYtdlBin(null)
+  })
   it('captures stdout/stderr and forwards lines to onLine', async () => {
     const onLine = vi.fn()
     vi.mocked(spawn).mockImplementation(() => fakeChild({
@@ -423,6 +465,13 @@ describe('runYtdl', () => {
 })
 
 describe('getYtdlVersion', () => {
+  beforeEach(() => {
+    setYtdlBin('/test/yt-dlp')
+  })
+
+  afterEach(() => {
+    setYtdlBin(null)
+  })
   it('returns the trimmed --version output', async () => {
     vi.mocked(spawn).mockImplementation(() => fakeChild({
       stdoutLines: ['2025.12.17\n'],
@@ -450,7 +499,27 @@ describe('getYtdlStatus', () => {
     delete process.env.KES_YTDL_UPDATE_CMD
   })
 
-  it('reports the system yt-dlp', async () => {
+  it('reports empty without downloading or spawning when nothing is configured', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(spawn).mockClear()
+
+    await expect(getYtdlStatus()).resolves.toEqual({
+      version: null,
+      mode: 'system',
+      status: 'empty',
+      updatedAt: null,
+      dir: null,
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(spawn).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
+  })
+
+  it('reports the explicit system yt-dlp', async () => {
+    process.env.KES_YTDL_BIN = '/system/yt-dlp'
     vi.mocked(spawn).mockImplementation(() => fakeChild({
       stdoutLines: ['2025.12.17\n'],
     }) as unknown as ReturnType<typeof spawn>)
@@ -462,6 +531,8 @@ describe('getYtdlStatus', () => {
       updatedAt: null,
       dir: null,
     })
+
+    delete process.env.KES_YTDL_BIN
   })
 
   it('reports a ready managed binary with its marker date', async () => {
@@ -541,10 +612,19 @@ describe('updateYtdl', () => {
     await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
     setYtdlDir(dir)
 
+    const runnable = () => fakeChild({
+      stdoutLines: ['2025.10.1\n'],
+    }) as unknown as ReturnType<typeof spawn>
     vi.mocked(spawn).mockClear()
-    vi.mocked(spawn).mockImplementation(() => fakeChild({
-      stdoutLines: ['Latest version: 2025.12.17\n'],
-    }) as unknown as ReturnType<typeof spawn>)
+    vi.mocked(spawn)
+      .mockImplementationOnce(runnable)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['Latest version: 2025.12.17\n'],
+      }) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(runnable)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['2025.12.17\n'],
+      }) as unknown as ReturnType<typeof spawn>)
 
     const res = await updateYtdl()
 
@@ -563,11 +643,20 @@ describe('updateYtdl', () => {
     await fsPromises.writeFile(target, '#!/bin/sh\n', { mode: 0o755 })
     setYtdlDir(dir)
 
+    const runnable = () => fakeChild({
+      stdoutLines: ['2025.10.1\n'],
+    }) as unknown as ReturnType<typeof spawn>
     vi.mocked(spawn).mockClear()
-    vi.mocked(spawn).mockImplementation(() => fakeChild({
-      stderrLines: ['ERROR: failed to update\n'],
-      code: 1,
-    }) as unknown as ReturnType<typeof spawn>)
+    vi.mocked(spawn)
+      .mockImplementationOnce(runnable)
+      .mockImplementationOnce(() => fakeChild({
+        stderrLines: ['ERROR: failed to update\n'],
+        code: 1,
+      }) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce(runnable)
+      .mockImplementationOnce(() => fakeChild({
+        stdoutLines: ['2025.10.1\n'],
+      }) as unknown as ReturnType<typeof spawn>)
 
     const res = await updateYtdl()
 
@@ -579,6 +668,7 @@ describe('updateYtdl', () => {
   })
 
   it('runs the default [bin, -U] command and returns the new version', async () => {
+    process.env.KES_YTDL_BIN = '/system/yt-dlp'
     vi.mocked(spawn).mockClear()
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild({
@@ -590,15 +680,17 @@ describe('updateYtdl', () => {
 
     const res = await updateYtdl()
 
-    expect(spawn).toHaveBeenNthCalledWith(1, 'yt-dlp', ['-U'], expect.anything())
+    expect(spawn).toHaveBeenNthCalledWith(1, '/system/yt-dlp', ['-U'], expect.anything())
     expect(res).toEqual({
       ok: true,
       output: 'Latest version: 2025.12.17, Current version: 2025.10.1, Update is required!',
       version: '2025.12.17',
     })
+    delete process.env.KES_YTDL_BIN
   })
 
   it('honours KES_YTDL_UPDATE_CMD for pip-managed installs', async () => {
+    process.env.KES_YTDL_BIN = '/system/yt-dlp'
     process.env.KES_YTDL_UPDATE_CMD = 'pip3 install -U yt-dlp'
     vi.mocked(spawn).mockClear()
     vi.mocked(spawn)
@@ -610,10 +702,12 @@ describe('updateYtdl', () => {
     await updateYtdl()
 
     expect(spawn).toHaveBeenNthCalledWith(1, 'pip3', ['install', '-U', 'yt-dlp'], expect.anything())
+    delete process.env.KES_YTDL_BIN
     delete process.env.KES_YTDL_UPDATE_CMD
   })
 
   it('reports ok:false when the update exits non-zero', async () => {
+    process.env.KES_YTDL_BIN = '/system/yt-dlp'
     vi.mocked(spawn).mockClear()
     vi.mocked(spawn)
       .mockImplementationOnce(() => fakeChild({
@@ -629,10 +723,19 @@ describe('updateYtdl', () => {
     expect(res.ok).toBe(false)
     expect(res.output).toContain('ERROR: failed to update')
     expect(res.version).toBe('2025.10.1')
+    delete process.env.KES_YTDL_BIN
   })
 })
 
 describe('searchYoutube', () => {
+  beforeEach(() => {
+    setYtdlBin('/test/yt-dlp')
+  })
+
+  afterEach(() => {
+    setYtdlBin(null)
+  })
+
   it('spawns with ytsearch args and parses the output', async () => {
     const line = JSON.stringify({
       id: 'dQw4w9WgXcQ',
@@ -658,6 +761,14 @@ describe('searchYoutube', () => {
 })
 
 describe('resolveVideo', () => {
+  beforeEach(() => {
+    setYtdlBin('/test/yt-dlp')
+  })
+
+  afterEach(() => {
+    setYtdlBin(null)
+  })
+
   it('spawns with no-playlist JSON args and parses a single video result', async () => {
     const line = JSON.stringify({
       id: 'dQw4w9WgXcQ',
@@ -691,6 +802,14 @@ describe('resolveVideo', () => {
 })
 
 describe('resolveStreamUrl', () => {
+  beforeEach(() => {
+    setYtdlBin('/test/yt-dlp')
+  })
+
+  afterEach(() => {
+    setYtdlBin(null)
+  })
+
   it('returns the first non-empty output line', async () => {
     vi.mocked(spawn).mockImplementation(() => fakeChild({
       stdoutLines: ['https://example.com/stream.mp4\n'],

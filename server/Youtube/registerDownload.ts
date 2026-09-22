@@ -100,7 +100,6 @@ export default async function registerDownload (options: { job: DownloadJob, io:
     duration,
     pathId: job.pathId,
     relPath,
-    youtubeVideoId: job.id,
     dateAdded: Math.round(Date.now() / 1000),
   })
 

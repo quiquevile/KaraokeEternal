@@ -7,7 +7,6 @@ const api = new HttpApi('youtube')
 // Types
 // ------------------------------------
 export interface YouTubeResult {
-  alreadyDownloaded?: boolean
   artist: string
   duration: number
   durationLabel: string

@@ -29,24 +29,19 @@ const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
           ·
           {' '}
           {item.durationLabel}
-          {item.alreadyDownloaded
-            && <span className={styles.downloaded}>Downloaded</span>}
         </div>
       </div>
 
-      {!item.alreadyDownloaded
-        && (
-          <div className={styles.actions}>
-            <Button
-              icon='DOWNLOAD'
-              size={24}
-              variant='primary'
-              className={styles.download}
-              onClick={() => dispatch(selectYoutubeResult(item))}
-              aria-label='Download'
-            />
-          </div>
-        )}
+      <div className={styles.actions}>
+        <Button
+          icon='DOWNLOAD'
+          size={24}
+          variant='primary'
+          className={styles.download}
+          onClick={() => dispatch(selectYoutubeResult(item))}
+          aria-label='Download'
+        />
+      </div>
     </li>
   )
 }

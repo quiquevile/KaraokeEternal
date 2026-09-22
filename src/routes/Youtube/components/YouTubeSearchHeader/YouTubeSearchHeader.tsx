@@ -51,12 +51,11 @@ const YouTubeSearchHeader = () => {
     try {
       const results = await dispatch(searchYoutubeVideos(q)).unwrap()
 
-      // a pasted YouTube URL opens the artist <-> title dialog directly,
-      // unless the video is already in the library
+      // a pasted YouTube URL opens the artist <-> title dialog directly
       if (parseVideoId(q) && !/\s/.test(q)) {
         const result = results[0]
 
-        if (result && !result.alreadyDownloaded) {
+        if (result) {
           dispatch(selectYoutubeResult(result))
         }
       }

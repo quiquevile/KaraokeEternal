@@ -55,11 +55,6 @@
   font-size: var(--font-size-s);
 }
 
-.downloaded {
-  color: var(--link-color);
-  margin-left: var(--space-s);
-}
-
 .actions {
   display: flex;
   align-items: center;

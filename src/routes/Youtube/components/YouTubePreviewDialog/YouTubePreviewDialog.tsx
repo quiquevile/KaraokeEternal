@@ -24,7 +24,7 @@ const YouTubePreviewDialog = () => {
       onClose={handleClose}
       title='Preview'
       buttons={(
-        <Button variant='primary' onClick={handleDownload} disabled={preview?.item.alreadyDownloaded}>
+        <Button variant='primary' onClick={handleDownload}>
           Download
         </Button>
       )}

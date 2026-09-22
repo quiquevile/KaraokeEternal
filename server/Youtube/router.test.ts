@@ -17,10 +17,6 @@ vi.mock('../Prefs/Prefs.js', () => ({
   default: { get: vi.fn() },
 }))
 
-vi.mock('./library.js', () => ({
-  getAlreadyDownloadedIds: vi.fn(),
-}))
-
 vi.mock('./downloadManager.js', () => ({
   downloadManager: {
     enqueue: vi.fn(),
@@ -65,7 +61,6 @@ import {
   getYtdlMode,
 } from './ytdlp.js'
 import Prefs from '../Prefs/Prefs.js'
-import { getAlreadyDownloadedIds } from './library.js'
 import { downloadManager } from './downloadManager.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
@@ -128,7 +123,7 @@ describe('router', () => {
   })
 
   describe('handleSearch', () => {
-    it('returns results with alreadyDownloaded flags', async () => {
+    it('returns search results', async () => {
       const a: YouTubeResult = {
         id: 'idA',
         url: 'https://youtu.be/idA',
@@ -148,19 +143,12 @@ describe('router', () => {
         thumbnail: 'https://img.youtube.com/vi/idB/mqdefault.jpg',
       }
       vi.mocked(searchYoutube).mockResolvedValue([a, b])
-      vi.mocked(getAlreadyDownloadedIds).mockReturnValue(new Set(['idA']))
 
       const ctx = makeCtx({ request: { body: { query: 'Dancing Queen' } } })
       await handleSearch(ctx)
 
       expect(searchYoutube).toHaveBeenCalledWith('Dancing Queen')
-      expect(getAlreadyDownloadedIds).toHaveBeenCalledWith(['idA', 'idB'])
-      expect(ctx.body).toEqual({
-        results: [
-          { ...a, alreadyDownloaded: true },
-          { ...b, alreadyDownloaded: false },
-        ],
-      })
+      expect(ctx.body).toEqual({ results: [a, b] })
     })
 
     it('rejects an empty query', async () => {
@@ -179,7 +167,6 @@ describe('router', () => {
         thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
       }
       vi.mocked(resolveVideo).mockResolvedValue(video)
-      vi.mocked(getAlreadyDownloadedIds).mockReturnValue(new Set())
 
       const ctx = makeCtx({
         request: { body: { query: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
@@ -188,15 +175,11 @@ describe('router', () => {
 
       expect(resolveVideo).toHaveBeenCalledWith('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
       expect(searchYoutube).not.toHaveBeenCalled()
-      expect(getAlreadyDownloadedIds).toHaveBeenCalledWith(['dQw4w9WgXcQ'])
-      expect(ctx.body).toEqual({
-        results: [{ ...video, alreadyDownloaded: false }],
-      })
+      expect(ctx.body).toEqual({ results: [video] })
     })
 
     it('falls back to search when the query is text even if it prefixes a URL', async () => {
       vi.mocked(searchYoutube).mockResolvedValue([])
-      vi.mocked(getAlreadyDownloadedIds).mockReturnValue(new Set())
 
       const ctx = makeCtx({
         request: { body: { query: 'Dancing Queen https://youtu.be/dQw4w9WgXcQ' } },

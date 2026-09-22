@@ -13,7 +13,6 @@ import {
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
 import { findDownloadedFile } from './registerDownload.js'
-import { getAlreadyDownloadedIds } from './library.js'
 import Library from '../Library/Library.js'
 
 export interface RouterContext {
@@ -67,15 +66,8 @@ export async function handleSearch (ctx: RouterContext): Promise<void> {
     ? [await resolveVideo(query)]
     : await searchYoutube(query)
 
-  const alreadyDownloaded = getAlreadyDownloadedIds(results.map(result => result.id))
-
   ctx.status = 200
-  ctx.body = {
-    results: results.map(result => ({
-      ...result,
-      alreadyDownloaded: alreadyDownloaded.has(result.id),
-    })),
-  }
+  ctx.body = { results }
 }
 
 export async function handleIdentify (ctx: RouterContext): Promise<void> {

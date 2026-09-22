@@ -6,7 +6,7 @@ import { useAppSelector } from 'store/hooks'
 import styles from './Navigation.css'
 
 const Navigation = React.forwardRef<HTMLDivElement>((_, ref) => {
-  const { isAdmin } = useAppSelector(state => state.user)
+  const { isAdmin, permissions } = useAppSelector(state => state.user)
 
   return (
     <div className={clsx(styles.container, 'bg-blur')} ref={ref}>
@@ -30,7 +30,7 @@ const Navigation = React.forwardRef<HTMLDivElement>((_, ref) => {
           />
         )}
       </NavLink>
-      {isAdmin
+      {(isAdmin || permissions?.youtubeDownload)
         && (
           <NavLink to='/youtube' replace className={({ isActive }) => clsx(isActive && styles.active)}>
             {({ isActive }) => (

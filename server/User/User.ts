@@ -65,6 +65,9 @@ class User {
 
     res.forEach((row) => {
       result.push(row.userId)
+      if (typeof row.permissions === 'string') {
+        row.permissions = JSON.parse(row.permissions)
+      }
       entities[row.userId] = row
     })
 

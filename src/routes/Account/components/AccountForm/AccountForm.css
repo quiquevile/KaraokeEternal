@@ -8,3 +8,9 @@
   display: flex;
   gap: var(--space-s);
 }
+
+.permissions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}

@@ -56,7 +56,7 @@ class User {
     const entities = {}
 
     const query = sql`
-      SELECT users.userId, users.username, users.name, users.dateCreated, users.dateUpdated, roles.name AS role
+      SELECT users.userId, users.username, users.name, users.dateCreated, users.dateUpdated, users.permissions, roles.name AS role
       FROM users
         INNER JOIN roles USING (roleId)
       ORDER BY dateCreated DESC

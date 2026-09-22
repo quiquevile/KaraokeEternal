@@ -9,6 +9,7 @@ const PERMISSIONS = [
   { value: 'queueReplay', label: 'Puede reiniciar canciones de la cola' },
   { value: 'playerAccess', label: 'Puede abrir el reproductor' },
   { value: 'playerControls', label: 'Puede controlar la reproducción' },
+  { value: 'youtubeDownload', label: 'Puede descargar de YouTube' },
 ]
 
 interface AccountFormProps {

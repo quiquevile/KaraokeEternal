@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { applyCaseStep, CASE_STEP_COUNT } from 'routes/Youtube/components/YouTubeMetadataDialog/caseCycle'
+import { nextCaseStep } from 'routes/Youtube/components/YouTubeMetadataDialog/caseCycle'
 
 export interface CaseField {
   value: string
@@ -18,9 +18,9 @@ export const useCaseField = (initial: string): CaseField => {
   }
 
   const cycleCase = () => {
-    const step = (cycle.step + 1) % CASE_STEP_COUNT
-    setCycle({ base: cycle.base, step })
-    setValue(applyCaseStep(cycle.base, step))
+    const next = nextCaseStep(cycle.base, cycle.step, value)
+    setCycle({ base: cycle.base, step: next.step })
+    setValue(next.value)
   }
 
   return { value, set, cycleCase }

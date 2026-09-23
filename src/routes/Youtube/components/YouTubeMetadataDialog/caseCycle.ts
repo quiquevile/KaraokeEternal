@@ -35,3 +35,20 @@ export function applyCaseStep (base: string, step: number): string {
     default: return base
   }
 }
+
+/**
+ * Next case step whose output differs from the current text, so a press
+ * always shows a visible change. Skips forms identical to the current
+ * one (e.g. uppercasing an already uppercase text). When every form is
+ * identical (e.g. no cased characters), just advances the step.
+ */
+export function nextCaseStep (base: string, step: number, current: string): { step: number, value: string } {
+  for (let i = 1; i <= CASE_STEP_COUNT; i++) {
+    const next = (step + i) % CASE_STEP_COUNT
+    const value = applyCaseStep(base, next)
+
+    if (value !== current) return { step: next, value }
+  }
+
+  return { step: (step + 1) % CASE_STEP_COUNT, value: current }
+}

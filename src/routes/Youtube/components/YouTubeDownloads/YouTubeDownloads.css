@@ -11,16 +11,10 @@
 
 .job {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-s) 0;
-  border-top: 1px solid var(--chrome-border-color);
-}
-
-.jobTitleRow {
-  display: flex;
   align-items: center;
   gap: var(--space-s);
+  padding: var(--space-s) 0;
+  border-top: 1px solid var(--chrome-border-color);
 }
 
 .jobTitle {
@@ -32,28 +26,32 @@
   font-size: var(--font-size-m);
 }
 
+.jobStatus {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-gray-5);
+  font-size: var(--font-size-s);
+  text-transform: capitalize;
+}
+
 .remove {
   flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
-  height: 2.75rem;
   padding: var(--space-s);
   color: var(--btn-active-bg-color);
   filter: var(--btn-active-filter);
 }
 
 .remove svg {
-  height: 3rem;
-}
-
-.remove svg {
-  width: 20px;
-  height: 20px;
-}
-
-.jobStatus {
-  color: var(--color-gray-5);
-  font-size: var(--font-size-s);
-  text-transform: capitalize;
+  height: 1.75rem;
+  width: auto;
 }
 
 .error {

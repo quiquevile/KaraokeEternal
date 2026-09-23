@@ -3,6 +3,7 @@ import {
   applyCaseStep,
   capitalizeFirst,
   CASE_STEP_COUNT,
+  nextCaseStep,
   toLowerCase,
   toSentenceCase,
   toTitleCase,
@@ -33,5 +34,19 @@ describe('caseCycle', () => {
     expect(toLowerCase('')).toBe('')
     expect(toUpperCase('')).toBe('')
     expect(capitalizeFirst('')).toBe('')
+  })
+
+  it('advances to the next step when it changes the text', () => {
+    expect(nextCaseStep('abba', 0, 'abba')).toEqual({ step: 1, value: 'Abba' })
+  })
+
+  it('skips steps identical to the current text', () => {
+    // uppercasing ABBA gives ABBA again: jump from step 4 to step 0,
+    // which is also identical, then to step 1
+    expect(nextCaseStep('ABBA', 4, 'ABBA')).toEqual({ step: 1, value: 'Abba' })
+  })
+
+  it('advances without changing identical texts', () => {
+    expect(nextCaseStep('123', 2, '123')).toEqual({ step: 3, value: '123' })
   })
 })

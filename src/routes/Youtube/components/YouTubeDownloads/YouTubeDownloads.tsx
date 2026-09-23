@@ -10,23 +10,12 @@ const DownloadJobItem = ({ job, onRemove }: { job: DownloadJob, onRemove (id: st
 
   return (
     <li className={styles.job}>
-      <div className={styles.jobTitleRow}>
-        <div className={styles.jobTitle}>
-          {job.artist}
-          {' '}
-          -
-          {' '}
-          {job.title}
-        </div>
-        {isDone
-          && (
-            <Button
-              icon='CLEAR'
-              className={styles.remove}
-              onClick={() => onRemove(job.id)}
-              aria-label='Remove notification'
-            />
-          )}
+      <div className={styles.jobTitle}>
+        {job.artist}
+        {' '}
+        -
+        {' '}
+        {job.title}
       </div>
       <div className={styles.jobStatus}>
         {job.status}
@@ -42,6 +31,15 @@ const DownloadJobItem = ({ job, onRemove }: { job: DownloadJob, onRemove (id: st
             </span>
           )}
       </div>
+      {isDone
+        && (
+          <Button
+            icon='CLEAR'
+            className={styles.remove}
+            onClick={() => onRemove(job.id)}
+            aria-label='Remove notification'
+          />
+        )}
     </li>
   )
 }

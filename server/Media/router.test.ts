@@ -92,8 +92,8 @@ describe('Media media streaming permissions', () => {
     vi.mocked(Prefs.get).mockReturnValue(mockPrefs)
   })
 
-  it('streams media for a room admin', async () => {
-    const ctx = makeCtx({ isAdmin: false, isRoomAdmin: true })
+  it('streams media for a user with playerAccess', async () => {
+    const ctx = makeCtx({ isAdmin: false, permissions: { playerAccess: true } })
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
     expect(ctx.status).toBe(200)
@@ -101,14 +101,14 @@ describe('Media media streaming permissions', () => {
   })
 
   it('streams media for an admin', async () => {
-    const ctx = makeCtx({ isAdmin: true, isRoomAdmin: false })
+    const ctx = makeCtx({ isAdmin: true, permissions: {} })
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
     expect(ctx.status).toBe(200)
   })
 
   it('rejects streaming for a standard user', async () => {
-    const ctx = makeCtx({ isAdmin: false, isRoomAdmin: false })
+    const ctx = makeCtx({ isAdmin: false, permissions: {} })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
   })
@@ -136,7 +136,7 @@ describe('Media version deletion', () => {
   })
 
   it('rejects deletion for a standard user', async () => {
-    const ctx = deleteCtx({ isAdmin: false, isRoomAdmin: false })
+    const ctx = deleteCtx({ isAdmin: false, permissions: {} })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
     expect(Library.deleteMedia).not.toHaveBeenCalled()

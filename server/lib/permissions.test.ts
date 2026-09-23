@@ -4,23 +4,11 @@ import { isStaff, can } from './permissions.js'
 
 describe('isStaff', () => {
   it('returns true for admin', () => {
-    expect(isStaff({ isAdmin: true, isRoomAdmin: false })).toBe(true)
+    expect(isStaff({ isAdmin: true })).toBe(true)
   })
 
-  it('returns true for room admin', () => {
-    expect(isStaff({ isAdmin: false, isRoomAdmin: true })).toBe(true)
-  })
-
-  it('returns true for both', () => {
-    expect(isStaff({ isAdmin: true, isRoomAdmin: true })).toBe(true)
-  })
-
-  it('returns false for neither', () => {
-    expect(isStaff({ isAdmin: false, isRoomAdmin: false })).toBe(false)
-  })
-
-  it('returns false for guest', () => {
-    expect(isStaff({ isAdmin: false, isRoomAdmin: false })).toBe(false)
+  it('returns false for non-admin', () => {
+    expect(isStaff({ isAdmin: false })).toBe(false)
   })
 })
 

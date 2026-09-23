@@ -17,7 +17,7 @@ const Account = () => {
   const [isDirty, setDirty] = useState(false)
 
   const handleSignOut = () => {
-    if (!user.isAdmin && !user.isRoomAdmin) {
+    if (!user.isAdmin) {
       const hasUpcomingSongs = upcomingQueueIds.length > 0
       let message = ''
 

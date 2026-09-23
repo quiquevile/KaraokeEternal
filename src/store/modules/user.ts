@@ -164,7 +164,6 @@ interface UserState {
   roomId: number | null
   isAdmin: boolean
   isGuest: boolean
-  isRoomAdmin: boolean
   permissions: Record<string, boolean>
   dateCreated: number
   dateUpdated: number
@@ -177,7 +176,6 @@ const initialState: UserState = {
   roomId: null,
   isAdmin: false,
   isGuest: false,
-  isRoomAdmin: false,
   permissions: {},
   dateCreated: 0,
   dateUpdated: 0,

@@ -12,7 +12,7 @@ import Media from './Media.js'
 import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
-import isStaff from '../lib/permissions.js'
+import { can } from '../lib/permissions.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import fileTypes from './fileTypes.js'
 import { NotFoundError, ValidationError } from '../lib/Errors.js'
@@ -26,7 +26,7 @@ const audioExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].mimeType.s
 router.get('/:mediaId', async (ctx) => {
   const { type } = ctx.query
 
-  if (!isStaff(ctx.user)) {
+  if (!can(ctx.user, 'playerAccess')) {
     ctx.throw(401)
   }
 

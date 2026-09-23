@@ -49,10 +49,10 @@ const PlaybackCtrl = () => {
   const hasPerm = (perm: string): boolean => isAdmin || (permissions?.[perm] ?? false)
 
   if (!status.isPlayerPresent) {
-    return (isAdmin || hasPerm('playerControls')) && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
+    return (isAdmin || hasPerm('playerAccess')) && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
   }
 
-  return (
+  return (isAdmin || hasPerm('playerControls')) && isInRoom && screenfull.isEnabled ? (
     <div className={styles.container}>
       <Button
         animateClassName={styles.btnAnimate}
@@ -121,7 +121,7 @@ const PlaybackCtrl = () => {
         />
       )}
     </div>
-  )
+  ) : null;
 }
 
 export default PlaybackCtrl

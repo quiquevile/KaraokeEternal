@@ -107,7 +107,7 @@ const QueueItem = ({
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
-      setExpanded(isErrored || isEditable || isInfoable || isRemovable || isSkippable || isReplayable)
+      setExpanded(isErrored || isEditable || isInfoable || isMovable || isRemovable || isSkippable || isReplayable)
     },
     onSwipedRight: () => setExpanded(false),
     preventScrollOnSwipe: true,

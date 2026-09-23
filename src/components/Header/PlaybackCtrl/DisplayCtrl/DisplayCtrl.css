@@ -94,6 +94,23 @@
   flex: 1;
 }
 
+.step {
+  display: block;
+  background-color: var(--btn-active-bg-color);
+  border-radius: var(--border-radius);
+}
+
+.step svg {
+  height: var(--icon-size-xl);
+  color: #000;
+  margin: 0 auto;
+}
+
+.pitchButtons .reset {
+  flex: 0 0 auto;
+  width: auto;
+}
+
 .pitchValue {
   flex: 1;
   margin: 0;

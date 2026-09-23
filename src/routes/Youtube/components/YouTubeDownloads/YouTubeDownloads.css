@@ -35,7 +35,14 @@
 .remove {
   flex: 0 0 auto;
   width: auto;
+  height: 2.75rem;
   padding: var(--space-s);
+  color: var(--btn-active-bg-color);
+  filter: var(--btn-active-filter);
+}
+
+.remove svg {
+  height: 3rem;
 }
 
 .remove svg {

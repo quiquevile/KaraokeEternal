@@ -22,7 +22,6 @@ const DownloadJobItem = ({ job, onRemove }: { job: DownloadJob, onRemove (id: st
           && (
             <Button
               icon='CLEAR'
-              size={20}
               className={styles.remove}
               onClick={() => onRemove(job.id)}
               aria-label='Remove notification'

@@ -28,6 +28,8 @@
   width: auto;
   padding: 0 var(--space-s);
   font-size: var(--font-size-s);
+  color: var(--btn-active-bg-color);
+  filter: var(--btn-active-filter);
 }
 
 .field input {

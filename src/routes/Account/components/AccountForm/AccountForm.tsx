@@ -1,16 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
+import Button from 'components/Button/Button'
 import InputImage from 'components/InputImage/InputImage'
-import { Permission, UserWithRole } from 'shared/types'
+import PermissionsDialog from './PermissionsDialog'
+import { PERMISSIONS } from './permissions'
+import { UserWithRole } from 'shared/types'
 import styles from './AccountForm.css'
-
-const PERMISSIONS: Array<{ value: Permission, label: string }> = [
-  { value: 'queueDelete', label: 'Can delete queue songs' },
-  { value: 'queueMove', label: 'Can move queue songs' },
-  { value: 'queueReplay', label: 'Can restart queue songs' },
-  { value: 'playerAccess', label: 'Can open the player' },
-  { value: 'playerControls', label: 'Can control playback' },
-  { value: 'youtubeDownload', label: 'Can download from YouTube' },
-]
 
 interface AccountFormProps {
   autoFocus?: boolean
@@ -38,12 +32,15 @@ const AccountForm = ({
   const newPasswordConfirm = useRef<HTMLInputElement>(null)
   const name = useRef<HTMLInputElement>(null)
   const role = useRef<HTMLSelectElement>(null)
-  const permissionsRef = useRef<HTMLDivElement>(null)
   const [prevDateUpdated, setPrevDateUpdated] = useState(user?.dateUpdated)
   const [state, setState] = useState({
     isDirty: false,
     isChangingPassword: !user || user.userId === null,
     userImage: undefined as Blob | undefined,
+    perms: Object.fromEntries(
+      PERMISSIONS.filter(p => user?.permissions?.[p.value]).map(p => [p.value, true]),
+    ) as Record<string, boolean>,
+    permsOpen: false,
   })
 
   const prevIsDirty = useRef(state.isDirty)
@@ -63,16 +60,11 @@ const AccountForm = ({
 
   const [selectedRole, setSelectedRole] = useState(user?.role ?? '')
 
-  const updateDirty = () => {
+  const updateDirty = (perms: Record<string, boolean> = state.perms) => {
     if (!user || user.userId === null) return
 
     const userPerms = user.permissions ?? {}
-    const permsChanged = permissionsRef.current
-      ? PERMISSIONS.some((p) => {
-          const checkbox = permissionsRef.current!.querySelector(`[value="${p.value}"]`) as HTMLInputElement | null
-          return !!checkbox && checkbox.checked !== !!userPerms[p.value]
-        })
-      : false
+    const permsChanged = PERMISSIONS.some(p => !!perms[p.value] !== !!userPerms[p.value])
 
     setState(prev => ({
       ...prev,
@@ -90,6 +82,12 @@ const AccountForm = ({
       userImage: blob,
       isDirty: true,
     }))
+  }
+
+  const handleApplyPerms = (perms: Record<string, boolean>) => {
+    const cleaned = Object.fromEntries(Object.entries(perms).filter(([, v]) => v))
+    setState(prev => ({ ...prev, perms: cleaned, permsOpen: false }))
+    updateDirty(cleaned)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -117,13 +115,8 @@ const AccountForm = ({
       data.append('role', role.current.value)
     }
 
-    if (permissionsRef.current) {
-      const perms = PERMISSIONS.reduce((acc, p) => {
-        const checkbox = permissionsRef.current.querySelector(`[value="${p.value}"]`) as HTMLInputElement
-        if (checkbox?.checked) acc[p.value] = true
-        return acc
-      }, {} as Record<string, boolean>)
-      data.append('permissions', JSON.stringify(perms))
+    if (showRole && selectedRole !== 'admin' && selectedRole !== 'guest') {
+      data.append('permissions', JSON.stringify(state.perms))
     }
 
     onSubmit(data)
@@ -141,7 +134,7 @@ const AccountForm = ({
           type='email'
           autoComplete='off'
           autoFocus={autoFocus}
-          onChange={updateDirty}
+          onChange={() => updateDirty()}
           placeholder={user && user.userId !== null ? 'change username (optional)' : 'username or email'}
           // https://github.com/facebook/react/issues/23301
           ref={(r) => {
@@ -155,7 +148,7 @@ const AccountForm = ({
         <input
           type='password'
           autoComplete='new-password'
-          onChange={updateDirty}
+          onChange={() => updateDirty()}
           placeholder={user && user.userId !== null ? 'change password (optional)' : 'password'}
           ref={newPassword}
         />
@@ -178,7 +171,7 @@ const AccountForm = ({
         <input
           type='text'
           defaultValue={user?.name ?? ''}
-          onChange={updateDirty}
+          onChange={() => updateDirty()}
           placeholder='display name'
           ref={name}
         />
@@ -201,20 +194,21 @@ const AccountForm = ({
       )}
 
       {showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && (
-        <div ref={permissionsRef} className={styles.permissions}>
-          {PERMISSIONS.map(p => (
-            <label key={p.value}>
-              <input
-                type='checkbox'
-                name={p.value}
-                value={p.value}
-                defaultChecked={user?.permissions?.[p.value] ?? false}
-                onChange={updateDirty}
-              />
-              {p.label}
-            </label>
-          ))}
-        </div>
+        <>
+          <Button
+            className={styles.permsBtn}
+            onClick={() => setState(prev => ({ ...prev, permsOpen: true }))}
+            aria-haspopup='dialog'
+          >
+            Permissions
+          </Button>
+          <PermissionsDialog
+            visible={state.permsOpen}
+            initial={state.perms}
+            onApply={handleApplyPerms}
+            onClose={() => setState(prev => ({ ...prev, permsOpen: false }))}
+          />
+        </>
       )}
 
       {children}

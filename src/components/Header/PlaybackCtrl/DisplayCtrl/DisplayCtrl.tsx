@@ -174,6 +174,7 @@ const DisplayCtrl = ({
                   onClick={handlePitchDown}
                   disabled={isPitchSupported === false || pitchSemitones <= PITCH_SEMITONE_MIN}
                   aria-label='Lower pitch by one semitone'
+                  className={styles.step}
                 >
                   <Icon icon='CHEVRON_LEFT' />
                 </Button>
@@ -187,6 +188,7 @@ const DisplayCtrl = ({
                   onClick={handlePitchUp}
                   disabled={isPitchSupported === false || pitchSemitones >= PITCH_SEMITONE_MAX}
                   aria-label='Raise pitch by one semitone'
+                  className={styles.step}
                 >
                   <Icon icon='CHEVRON_RIGHT' />
                 </Button>
@@ -194,6 +196,8 @@ const DisplayCtrl = ({
                   onClick={handlePitchReset}
                   disabled={isPitchSupported === false || pitchSemitones === 0}
                   aria-label='Reset pitch'
+                  variant='primary'
+                  className={styles.reset}
                 >
                   Reset
                 </Button>

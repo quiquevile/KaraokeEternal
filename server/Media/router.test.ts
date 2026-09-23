@@ -10,8 +10,14 @@ vi.mock('fs', () => ({
 vi.mock('node:fs/promises', () => ({
   default: {
     stat: vi.fn().mockResolvedValue({ size: 1024 }),
+    readFile: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
   },
   stat: vi.fn().mockResolvedValue({ size: 1024 }),
+  readFile: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+}))
+
+vi.mock('unzipit', () => ({
+  unzip: vi.fn(),
 }))
 
 vi.mock('../Media/Media.js', () => ({
@@ -55,6 +61,7 @@ import Media from '../Media/Media.js'
 import Prefs from '../Prefs/Prefs.js'
 import Library from '../Library/Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
+import { unzip } from 'unzipit'
 import { NotFoundError, ValidationError } from '../lib/Errors.js'
 
 const mockSong = {
@@ -111,6 +118,87 @@ describe('Media media streaming permissions', () => {
     const ctx = makeCtx({ isAdmin: false, permissions: {} })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+  })
+
+  it('rejects invalid mediaIds with 422', async () => {
+    const ctx = {
+      ...makeCtx({ isAdmin: true }),
+      path: '/api/media/abc',
+    }
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 422 })
+  })
+
+  it('rejects unknown media with 404', async () => {
+    vi.mocked(Media.search).mockReturnValue({ result: [], entities: {} })
+    const ctx = makeCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('rejects unknown MIME types with 404', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { pathId: 1, relPath: 'file.unknown' } },
+    })
+    const ctx = makeCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('streams the audio entry of a zip archive', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
+    })
+    vi.mocked(unzip).mockResolvedValue({
+      entries: {
+        'track.mp3': { size: 100, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer },
+      },
+    })
+    const ctx = makeCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(ctx.status).toBe(200)
+    expect(ctx.type).toBe('audio/mpeg')
+  })
+
+  it('streams the cdg sidecar of a zip archive', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
+    })
+    vi.mocked(unzip).mockResolvedValue({
+      entries: {
+        'track.mp3': { size: 100, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer },
+        'track.cdg': { size: 50, arrayBuffer: async () => new Uint8Array([4, 5]).buffer },
+      },
+    })
+    const ctx = { ...makeCtx({ isAdmin: true }), query: { type: 'cdg' } }
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(ctx.status).toBe(200)
+  })
+
+  it('rejects zips without a valid audio entry with 404', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
+    })
+    vi.mocked(unzip).mockResolvedValue({ entries: { 'notes.txt': {} } })
+    const ctx = makeCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('rejects missing cdg sidecars with 404', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { pathId: 1, relPath: 'definitely-not-on-disk.mp3' } },
+    })
+    const ctx = { ...makeCtx({ isAdmin: true }), query: { type: 'cdg' } }
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
   })
 })
 

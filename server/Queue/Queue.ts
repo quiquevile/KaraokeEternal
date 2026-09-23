@@ -1,6 +1,7 @@
 import path from 'path'
 import { db } from '../lib/Database.js'
 import sql from 'sqlate'
+import { NotFoundError, ValidationError } from '../lib/Errors.js'
 import { QueueItem } from '../../shared/types.js'
 
 class Queue {
@@ -110,45 +111,80 @@ class Queue {
   }
 
   /**
-   * Move a queue item
-   */
+  * Move a queue item after another one (or to the head with null)
+  */
   static move ({ prevQueueId, queueId, roomId }: { prevQueueId: number | null, queueId: number, roomId: number }): void {
     if (queueId === prevQueueId) {
-      throw new Error('Invalid prevQueueId')
+      throw new ValidationError('Invalid prevQueueId')
     }
 
     if (prevQueueId === -1) prevQueueId = null
 
-    const query = sql`
-      UPDATE queue
-      SET prevQueueId = CASE
-        WHEN queueId = newChild THEN ${queueId}
-        WHEN queueId = curChild AND curParent IS NOT NULL AND newChild IS NOT NULL THEN curParent
-        WHEN queueId = ${queueId} THEN ${prevQueueId}
-        ELSE queue.prevQueueId
-      END
-      FROM (SELECT
-        (
-          SELECT prevQueueId
-          FROM queue
-          WHERE queueId = ${queueId}
-        ) AS curParent,
-        (
-          SELECT queueId
-          FROM queue
-          WHERE prevQueueId = ${queueId}
-        ) AS curChild,
-        (
-          SELECT queueId
-          FROM queue
-          WHERE queueId != ${queueId}
-            AND prevQueueId ${prevQueueId === null ? sql`IS NULL` : sql`= ${prevQueueId}`}
-            AND roomId = ${roomId}
-        ) AS newChild
-      )
-      WHERE roomId = ${roomId}
+    const currentQuery = sql`
+      SELECT prevQueueId
+      FROM queue
+      WHERE queueId = ${queueId} AND roomId = ${roomId}
     `
-    db.run(String(query), query.parameters)
+    const current = db.get<{ prevQueueId: number | null }>(String(currentQuery), currentQuery.parameters)
+
+    if (!current) {
+      throw new NotFoundError(`queueId ${queueId} not found`)
+    }
+
+    // no-op: already right after the target
+    if (current.prevQueueId === prevQueueId) return
+
+    if (prevQueueId !== null) {
+      const targetQuery = sql`
+        SELECT queueId
+        FROM queue
+        WHERE queueId = ${prevQueueId} AND roomId = ${roomId}
+      `
+      const target = db.get<{ queueId: number }>(String(targetQuery), targetQuery.parameters)
+
+      if (!target) {
+        throw new ValidationError(`prevQueueId ${prevQueueId} not found`)
+      }
+    }
+
+    db.exec('BEGIN')
+
+    try {
+      // close the gap left behind
+      const detachQuery = sql`
+        UPDATE queue
+        SET prevQueueId = ${current.prevQueueId}
+        WHERE prevQueueId = ${queueId} AND roomId = ${roomId}
+      `
+      db.run(String(detachQuery), detachQuery.parameters)
+
+      // whoever followed the target now follows the moved item
+      const followerQuery = prevQueueId === null
+        ? sql`
+          UPDATE queue
+          SET prevQueueId = ${queueId}
+          WHERE prevQueueId IS NULL AND queueId != ${queueId} AND roomId = ${roomId}
+        `
+        : sql`
+          UPDATE queue
+          SET prevQueueId = ${queueId}
+          WHERE prevQueueId = ${prevQueueId} AND queueId != ${queueId} AND roomId = ${roomId}
+        `
+      db.run(String(followerQuery), followerQuery.parameters)
+
+      // link the moved item after the target
+      const moveQuery = sql`
+        UPDATE queue
+        SET prevQueueId = ${prevQueueId}
+        WHERE queueId = ${queueId} AND roomId = ${roomId}
+      `
+      db.run(String(moveQuery), moveQuery.parameters)
+
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw err
+    }
   }
 
   /**

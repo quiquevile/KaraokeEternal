@@ -1,3 +1,41 @@
+# Karaoke Eternal (quiquevile's fork)
+
+Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser — with full library management, YouTube downloads and granular user permissions on top of the base project.
+
+## What's new in this fork
+
+### Library management (admin)
+- Edit a song's artist and title from the library or the queue (admin only), with case cycling and artist/title swap.
+- Media files are renamed automatically to match (`Artist - Title.ext`, MP3+G sidecars included); clashes are refused without changing anything.
+- Delete whole songs or individual versions: the dialog lists every file with its full path, inline audio/video preview and checkboxes, plus a Delete all option with confirmation.
+- Deleting removes queue entries in every room; if the playing song is deleted, playback skips ahead, and if the playing version is deleted it restarts with the new current one.
+- Everything updates live on all connected clients.
+
+### YouTube downloads
+- Dedicated search tab with direct video-URL support and automatic artist/title identification.
+- Each downloader gets their own subfolder named after their username.
+- Downloads are refused when the song or the file already exists — no duplicates, nothing half-downloaded.
+- Download notifications are private to whoever started them (admins see them all).
+- Self-contained yt-dlp: it downloads and updates itself in the configured folder, picked per environment (no system Python or yt-dlp needed).
+
+### Permissions
+- Granular per-user capabilities instead of a single admin-or-not model: delete/move/restart queue songs, open the player, control playback and download from YouTube.
+- Room admins and a managed account editor with roles.
+
+### Player
+- Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported).
+- Replay/restart button in the top playback bar.
+
+### Queue
+- Move songs around, and delete played or currently-playing songs from the queue.
+
+### Docker
+- Ready-to-build image and compose file (`Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh`).
+
+---
+
+> The original Karaoke Eternal README follows below.
+
 # Karaoke Eternal
 
 Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser. The player is also fully browser-based with support for MP3+G, MP4 videos and WebGL visualizations. The server is self-hosted and runs on nearly everything.

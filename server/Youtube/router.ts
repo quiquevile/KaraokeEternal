@@ -1,4 +1,6 @@
 import KoaRouter from '@koa/router'
+import fsPromises from 'node:fs/promises'
+import pathLib from 'node:path'
 import Prefs from '../Prefs/Prefs.js'
 import { can } from '../lib/permissions.js'
 import {
@@ -21,7 +23,7 @@ import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
 
 export interface RouterContext {
-  user: { isAdmin: boolean, permissions?: Record<string, boolean> } | undefined
+  user: { isAdmin: boolean, permissions?: Record<string, boolean>, userId?: number, username?: string } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown> }
@@ -145,7 +147,21 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   if (!path) ctx.throw(422, 'could not determine download folder')
 
+  // each downloader gets their own subfolder, named after their
+  // (filesystem-sanitized) username; existing files stay where they are
+  const username = ctx.user?.username?.trim()
+
+  if (!username) ctx.throw(422, 'username is required')
+
+  const destDir = pathLib.join(path.destDir, toFilename(username, ''))
+
+  await fsPromises.mkdir(destDir, { recursive: true })
+
   requireYtdlBin(ctx)
+
+  const userId = ctx.user?.userId
+
+  if (typeof userId !== 'number') ctx.throw(422, 'userId is required')
 
   const norms = deriveNorms(artist, title)
   const baseName = toFilename(artist, title)
@@ -155,7 +171,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
     ctx.throw(409, DUPLICATE_SONG_MESSAGE)
   }
 
-  const existingFile = await findDownloadedFile(path.destDir, baseName)
+  const existingFile = await findDownloadedFile(destDir, baseName)
 
   if (existingFile) {
     ctx.throw(409, `File already exists: ${existingFile}`)
@@ -167,12 +183,13 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   const job = downloadManager.enqueue({
     url,
+    userId,
     artist,
     artistNorm: norms.artistNorm,
     title,
     titleNorm: norms.titleNorm,
     thumbnail: typeof body.thumbnail === 'string' ? body.thumbnail : null,
-    destDir: path.destDir,
+    destDir,
     pathRoot: path.destDir,
     pathId: path.pathId,
     baseName,
@@ -187,25 +204,25 @@ export async function handleDownloads (ctx: RouterContext): Promise<void> {
   requireYoutubeAccess(ctx)
 
   ctx.status = 200
-  ctx.body = downloadManager.getStatus()
+  ctx.body = downloadManager.getStatus(ctx.user)
 }
 
 export async function handleDownloadsClear (ctx: RouterContext): Promise<void> {
   requireYoutubeAccess(ctx)
 
-  downloadManager.clearHistory()
+  downloadManager.clearHistory(ctx.user)
 
   ctx.status = 200
-  ctx.body = downloadManager.getStatus()
+  ctx.body = downloadManager.getStatus(ctx.user)
 }
 
 export async function handleDownloadsDelete (ctx: RouterContext): Promise<void> {
   requireYoutubeAccess(ctx)
 
-  downloadManager.removeHistory(ctx.params.id as string)
+  downloadManager.removeHistory(ctx.params.id as string, ctx.user)
 
   ctx.status = 200
-  ctx.body = downloadManager.getStatus()
+  ctx.body = downloadManager.getStatus(ctx.user)
 }
 
 export async function handleYtdlVersion (ctx: RouterContext): Promise<void> {

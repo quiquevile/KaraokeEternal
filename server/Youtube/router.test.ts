@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const { mkdirMock } = vi.hoisted(() => ({ mkdirMock: vi.fn() }))
+
+vi.mock('node:fs/promises', () => ({
+  default: {
+    mkdir: mkdirMock,
+  },
+  mkdir: mkdirMock,
+}))
+
 vi.mock('./ytdlp.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./ytdlp.js')>()
   return {
@@ -77,7 +86,7 @@ interface MockPrefs {
 
 function makeCtx (overrides: Record<string, unknown> = {}): RouterContext {
   return {
-    user: { isAdmin: true },
+    user: { isAdmin: true, userId: 1, username: 'tester' },
     params: {},
     query: {},
     request: { body: {} },
@@ -292,7 +301,8 @@ describe('router', () => {
           title: 'Dancing Queen',
           titleNorm: 'Dancing Queen',
           baseName: 'ABBA - Dancing Queen',
-          destDir: '/media/musica',
+          destDir: '/media/musica/tester',
+          pathRoot: '/media/musica',
           pathId: 1,
           thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
           extraArgs: [],
@@ -349,6 +359,66 @@ describe('router', () => {
       await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
     })
 
+    it('downloads into a subfolder named after the user', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 2, username: 'pepe' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await handleDownload(ctx)
+
+      expect(mkdirMock).toHaveBeenCalledWith('/media/musica/pepe', { recursive: true })
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+        destDir: '/media/musica/pepe',
+        pathRoot: '/media/musica',
+      }))
+    })
+
+    it('sanitizes the username for the subfolder', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 3, username: 'a/b:c' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await handleDownload(ctx)
+
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+        destDir: '/media/musica/a b c',
+      }))
+    })
+
+    it('rejects 422 without a username', async () => {
+      const ctx = makeCtx({
+        user: { isAdmin: true, username: '  ' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('enqueues the job with the downloader userId', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await handleDownload(ctx)
+
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({ userId: 7 }))
+    })
+
+    it('rejects 422 without a userId', async () => {
+      const ctx = makeCtx({
+        user: { isAdmin: true, username: 'pepe' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
     it('rejects 409 when the song already exists without enqueueing', async () => {
       vi.mocked(Library.findSong).mockReturnValueOnce(7)
 
@@ -372,7 +442,7 @@ describe('router', () => {
 
       expect(err).toMatchObject({ status: 409 })
       expect(String((err as Error)?.message)).toContain('File already exists')
-      expect(findDownloadedFile).toHaveBeenCalledWith('/media/musica', 'ABBA - Dancing Queen')
+      expect(findDownloadedFile).toHaveBeenCalledWith('/media/musica/tester', 'ABBA - Dancing Queen')
       expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
 
@@ -401,6 +471,7 @@ describe('router', () => {
       const ctx = makeCtx()
       await handleDownloads(ctx)
 
+      expect(downloadManager.getStatus).toHaveBeenCalledWith(ctx.user)
       expect(ctx.body).toBe(status)
     })
 
@@ -419,7 +490,7 @@ describe('router', () => {
       const ctx = makeCtx()
       await handleDownloadsClear(ctx)
 
-      expect(downloadManager.clearHistory).toHaveBeenCalledWith()
+      expect(downloadManager.clearHistory).toHaveBeenCalledWith(ctx.user)
       expect(ctx.body).toBe(status)
     })
 
@@ -438,7 +509,7 @@ describe('router', () => {
       const ctx = makeCtx({ params: { id: 'abc123' } })
       await handleDownloadsDelete(ctx)
 
-      expect(downloadManager.removeHistory).toHaveBeenCalledWith('abc123')
+      expect(downloadManager.removeHistory).toHaveBeenCalledWith('abc123', ctx.user)
       expect(ctx.body).toBe(status)
     })
 

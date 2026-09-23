@@ -16,11 +16,11 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Each downloader gets their own subfolder named after their username.
 - Downloads are refused when the song or the file already exists — no duplicates, nothing half-downloaded.
 - Download notifications are private to whoever started them (admins see them all).
-- Self-contained yt-dlp: it downloads and updates itself in the configured folder, picked per environment (no system Python or yt-dlp needed).
+- Self-contained yt-dlp: it downloads and updates itself in the configured folder, picked per environment (no system Python or yt-dlp needed). YouTube features stay disabled until a folder is selected.
 
 ### Permissions
-- Granular per-user capabilities instead of a single admin-or-not model: delete/move/restart queue songs, open the player, control playback and download from YouTube.
-- Room admins and a managed account editor with roles.
+- Granular per-user capabilities instead of a single admin-or-not model: delete/move/restart queue songs, open the player, control playback and download from YouTube (e.g. a download-only user profile).
+- Room admins and a managed account editor with roles and a permissions dialog.
 
 ### Player
 - Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported).

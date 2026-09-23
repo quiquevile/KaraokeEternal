@@ -1,3 +1,38 @@
+## Unreleased (quiquevile's fork)
+
+### YouTube search and downloads
+
+- Added a dedicated search tab with direct video-URL support and automatic artist/title identification
+- Downloaded tracks land in a subfolder named after the downloader, and each user only sees their own download notifications (admins see them all)
+- Downloads are refused when the song or the file already exists, without downloading anything
+- yt-dlp is fully self-contained: it downloads and updates itself in the configured folder, picking the right build per environment and healing itself when broken; features stay disabled until a folder is selected
+
+### Library management (admin)
+
+- Songs can be retagged from the library or the queue, with media files renamed automatically to match
+- Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
+- All changes are pushed live to every connected client
+
+### Permissions
+
+- Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor
+- Closed privilege-escalation paths around permission editing and player control
+
+### Player
+
+- Live pitch control in semitones, replay/restart button, and automatic advance when the playing item disappears
+- Restart with the new current version when the playing file is deleted
+
+### Queue and rooms
+
+- Songs can be moved around, and played or currently-playing songs deleted from the queue
+- Room admins with playback and queue controls
+
+### Other
+
+- Ready-to-build container image and compose file
+- More consistent API error statuses (404/422)
+
 ## v2.0.2 (2026-02-14)
 
 - **(App)** Star counts are now shown in the Queue view

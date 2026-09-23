@@ -1,4 +1,6 @@
 import KoaRouter from '@koa/router'
+import fsPromises from 'node:fs/promises'
+import pathLib from 'node:path'
 import Prefs from '../Prefs/Prefs.js'
 import { can } from '../lib/permissions.js'
 import {
@@ -18,7 +20,7 @@ import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
 
 export interface RouterContext {
-  user: { isAdmin: boolean, permissions?: Record<string, boolean> } | undefined
+  user: { isAdmin: boolean, permissions?: Record<string, boolean>, userId?: number, username?: string } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown> }
@@ -146,6 +148,16 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   if (!path) ctx.throw(422, 'could not determine download folder')
 
+  // each downloader gets their own subfolder, named after their
+  // (filesystem-sanitized) username; existing files stay where they are
+  const username = ctx.user?.username?.trim()
+
+  if (!username) ctx.throw(422, 'username is required')
+
+  const destDir = pathLib.join(path.destDir, toFilename(username, ''))
+
+  await fsPromises.mkdir(destDir, { recursive: true })
+
   requireYtdlBin(ctx)
 
   const norms = deriveNorms(artist, title)
@@ -156,7 +168,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
     ctx.throw(409, 'Another song already has that artist and title')
   }
 
-  const existingFile = await findDownloadedFile(path.destDir, baseName)
+  const existingFile = await findDownloadedFile(destDir, baseName)
 
   if (existingFile) {
     ctx.throw(409, `File already exists: ${existingFile}`)
@@ -173,7 +185,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
     title,
     titleNorm: norms.titleNorm,
     thumbnail: typeof body.thumbnail === 'string' ? body.thumbnail : null,
-    destDir: path.destDir,
+    destDir,
     pathRoot: path.destDir,
     pathId: path.pathId,
     baseName,

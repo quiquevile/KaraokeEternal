@@ -51,7 +51,8 @@
   "license": "ISC",
   "overrides": {
     "is-generator-function": "1.0.10",
-    "get-generator-function": "1.0.10"
+    "get-generator-function": "1.0.10",
+    "glob": "^13.0.6"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.6",

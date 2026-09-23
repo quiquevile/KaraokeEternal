@@ -86,7 +86,7 @@ interface MockPrefs {
 
 function makeCtx (overrides: Record<string, unknown> = {}): RouterContext {
   return {
-    user: { isAdmin: true, username: 'tester' },
+    user: { isAdmin: true, userId: 1, username: 'tester' },
     params: {},
     query: {},
     request: { body: {} },
@@ -363,7 +363,7 @@ describe('router', () => {
       vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
 
       const ctx = makeCtx({
-        user: { isAdmin: true, username: 'pepe' },
+        user: { isAdmin: true, userId: 2, username: 'pepe' },
         request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
       })
       await handleDownload(ctx)
@@ -379,7 +379,7 @@ describe('router', () => {
       vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
 
       const ctx = makeCtx({
-        user: { isAdmin: true, username: 'a/b:c' },
+        user: { isAdmin: true, userId: 3, username: 'a/b:c' },
         request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
       })
       await handleDownload(ctx)
@@ -392,6 +392,27 @@ describe('router', () => {
     it('rejects 422 without a username', async () => {
       const ctx = makeCtx({
         user: { isAdmin: true, username: '  ' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('enqueues the job with the downloader userId', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await handleDownload(ctx)
+
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({ userId: 7 }))
+    })
+
+    it('rejects 422 without a userId', async () => {
+      const ctx = makeCtx({
+        user: { isAdmin: true, username: 'pepe' },
         request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
       })
       await expect(handleDownload(ctx)).rejects.toSatisfy(throwStatus(422))
@@ -450,6 +471,7 @@ describe('router', () => {
       const ctx = makeCtx()
       await handleDownloads(ctx)
 
+      expect(downloadManager.getStatus).toHaveBeenCalledWith(ctx.user)
       expect(ctx.body).toBe(status)
     })
 
@@ -468,7 +490,7 @@ describe('router', () => {
       const ctx = makeCtx()
       await handleDownloadsClear(ctx)
 
-      expect(downloadManager.clearHistory).toHaveBeenCalledWith()
+      expect(downloadManager.clearHistory).toHaveBeenCalledWith(ctx.user)
       expect(ctx.body).toBe(status)
     })
 
@@ -487,7 +509,7 @@ describe('router', () => {
       const ctx = makeCtx({ params: { id: 'abc123' } })
       await handleDownloadsDelete(ctx)
 
-      expect(downloadManager.removeHistory).toHaveBeenCalledWith('abc123')
+      expect(downloadManager.removeHistory).toHaveBeenCalledWith('abc123', ctx.user)
       expect(ctx.body).toBe(status)
     })
 

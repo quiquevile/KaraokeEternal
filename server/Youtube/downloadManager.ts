@@ -5,6 +5,7 @@ export type DownloadJobStatus = 'queued' | 'downloading' | 'merging' | 'register
 
 export interface DownloadJobInput {
   url: string
+  userId: number
   artist: string
   artistNorm: string
   title: string
@@ -63,20 +64,32 @@ export class DownloadManager {
     this.io = io
   }
 
-  getStatus (): DownloadReport {
+  getStatus (viewer?: { userId?: number | null, isAdmin?: boolean }): DownloadReport {
+    const visible = (job: DownloadJob) =>
+      viewer?.isAdmin || job.userId === viewer?.userId
+
     return {
-      active: this.active,
-      queue: [...this.queue],
-      history: [...this.history],
+      active: this.active && visible(this.active) ? this.active : null,
+      queue: this.queue.filter(visible),
+      history: this.history.filter(visible),
     }
   }
 
-  clearHistory (): void {
-    this.history.length = 0
+  clearHistory (viewer?: { userId?: number | null, isAdmin?: boolean }): void {
+    if (viewer?.isAdmin) {
+      this.history.length = 0
+
+      return
+    }
+
+    for (let i = this.history.length - 1; i >= 0; i--) {
+      if (this.history[i].userId === viewer?.userId) this.history.splice(i, 1)
+    }
   }
 
-  removeHistory (id: string): boolean {
-    const index = this.history.findIndex(job => job.id === id)
+  removeHistory (id: string, viewer?: { userId?: number | null, isAdmin?: boolean }): boolean {
+    const index = this.history.findIndex(job =>
+      job.id === id && (viewer?.isAdmin || job.userId === viewer?.userId))
 
     if (index === -1) return false
 

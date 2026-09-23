@@ -7,6 +7,7 @@ type FakeRegister = (opts: { job: DownloadJob, io: unknown }) => Promise<void>
 
 interface JobOverrides {
   url?: string
+  userId?: number
   artist?: string
   title?: string
   baseName?: string
@@ -16,6 +17,7 @@ interface JobOverrides {
 function makeJob (overrides: JobOverrides = {}) {
   return {
     url: overrides.url ?? 'https://www.youtube.com/watch?v=abc',
+    userId: overrides.userId ?? 1,
     artist: overrides.artist ?? 'ABBA',
     title: overrides.title ?? 'Dancing Queen',
     artistNorm: 'ABBA',
@@ -144,11 +146,11 @@ describe('DownloadManager', () => {
     const manager = new DownloadManager({ deps })
     manager.enqueue(makeJob())
 
-    await vi.waitFor(() => expect(manager.getStatus().history.length).toBe(1))
+    await vi.waitFor(() => expect(manager.getStatus({ userId: 1 }).history.length).toBe(1))
 
-    manager.clearHistory()
+    manager.clearHistory({ userId: 1 })
 
-    expect(manager.getStatus().history).toEqual([])
+    expect(manager.getStatus({ userId: 1 }).history).toEqual([])
   })
 
   it('removes a single job from the download history', async () => {
@@ -157,10 +159,54 @@ describe('DownloadManager', () => {
     manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=aaaaaaaaaaa' }))
     manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=bbbbbbbbbbb' }))
 
-    await vi.waitFor(() => expect(manager.getStatus().history.length).toBe(2))
+    await vi.waitFor(() => expect(manager.getStatus({ userId: 1 }).history.length).toBe(2))
 
-    expect(manager.removeHistory('aaaaaaaaaaa')).toBe(true)
-    expect(manager.getStatus().history.map(job => job.id)).toEqual(['bbbbbbbbbbb'])
-    expect(manager.removeHistory('nope')).toBe(false)
+    expect(manager.removeHistory('aaaaaaaaaaa', { userId: 1 })).toBe(true)
+    expect(manager.getStatus({ userId: 1 }).history.map(job => job.id)).toEqual(['bbbbbbbbbbb'])
+    expect(manager.removeHistory('nope', { userId: 1 })).toBe(false)
+  })
+
+  it('shows only own jobs unless admin', async () => {
+    const deps = {
+      buildDownloadArgs,
+      parseProgressLine,
+      runYtdl: vi.fn<FakeYtdl>(() => new Promise(() => {})),
+      registerDownload: vi.fn<FakeRegister>(async () => {}),
+    } satisfies DownloadManagerDeps
+    const manager = new DownloadManager({ deps })
+    manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=aaaaaaaaaaa', userId: 1 }))
+    manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=bbbbbbbbbbb', userId: 2 }))
+
+    await vi.waitFor(() => expect(manager.getStatus({ userId: 1 }).active?.userId).toBe(1))
+
+    const mine = manager.getStatus({ userId: 1 })
+    expect(mine.active?.userId).toBe(1)
+    expect(mine.queue).toEqual([])
+    expect(mine.history).toEqual([])
+
+    const other = manager.getStatus({ userId: 2 })
+    expect(other.active).toBeNull()
+    expect(other.queue.map(job => job.userId)).toEqual([2])
+
+    const admin = manager.getStatus({ userId: 9, isAdmin: true })
+    expect(admin.active?.userId).toBe(1)
+    expect(admin.queue.map(job => job.userId)).toEqual([2])
+  })
+
+  it('clears and removes only own jobs unless admin', async () => {
+    const deps = makeDeps()
+    const manager = new DownloadManager({ deps })
+    manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=aaaaaaaaaaa', userId: 1 }))
+    manager.enqueue(makeJob({ url: 'https://www.youtube.com/watch?v=bbbbbbbbbbb', userId: 2 }))
+
+    await vi.waitFor(() => expect(manager.getStatus({ userId: 1, isAdmin: true }).history.length).toBe(2))
+
+    expect(manager.removeHistory('bbbbbbbbbbb', { userId: 1 })).toBe(false)
+    manager.clearHistory({ userId: 2 })
+    expect(manager.getStatus({ userId: 1, isAdmin: true }).history.map(job => job.id))
+      .toEqual(['aaaaaaaaaaa'])
+
+    manager.clearHistory({ userId: 9, isAdmin: true })
+    expect(manager.getStatus({ userId: 1, isAdmin: true }).history).toEqual([])
   })
 })

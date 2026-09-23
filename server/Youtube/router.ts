@@ -160,6 +160,10 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   requireYtdlBin(ctx)
 
+  const userId = ctx.user?.userId
+
+  if (typeof userId !== 'number') ctx.throw(422, 'userId is required')
+
   const norms = deriveNorms(artist, title)
   const baseName = toFilename(artist, title)
 
@@ -180,6 +184,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   const job = downloadManager.enqueue({
     url,
+    userId,
     artist,
     artistNorm: norms.artistNorm,
     title,
@@ -200,25 +205,25 @@ export async function handleDownloads (ctx: RouterContext): Promise<void> {
   requireYoutubeAccess(ctx)
 
   ctx.status = 200
-  ctx.body = downloadManager.getStatus()
+  ctx.body = downloadManager.getStatus(ctx.user)
 }
 
 export async function handleDownloadsClear (ctx: RouterContext): Promise<void> {
   requireYoutubeAccess(ctx)
 
-  downloadManager.clearHistory()
+  downloadManager.clearHistory(ctx.user)
 
   ctx.status = 200
-  ctx.body = downloadManager.getStatus()
+  ctx.body = downloadManager.getStatus(ctx.user)
 }
 
 export async function handleDownloadsDelete (ctx: RouterContext): Promise<void> {
   requireYoutubeAccess(ctx)
 
-  downloadManager.removeHistory(ctx.params.id as string)
+  downloadManager.removeHistory(ctx.params.id as string, ctx.user)
 
   ctx.status = 200
-  ctx.body = downloadManager.getStatus()
+  ctx.body = downloadManager.getStatus(ctx.user)
 }
 
 export async function handleYtdlVersion (ctx: RouterContext): Promise<void> {

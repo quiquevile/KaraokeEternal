@@ -6,10 +6,9 @@ import getEntries from '../lib/getEntries.js'
 import getWindowsDrives from '../lib/getWindowsDrives.js'
 import Prefs from './Prefs.js'
 import Media from '../Media/Media.js'
-import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
-import Rooms from '../Rooms/Rooms.js'
-import Queue from '../Queue/Queue.js'
-import { PREFS_PATHS_CHANGED, QUEUE_PUSH } from '../../shared/actionTypes.js'
+import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
+import { parseIdParam, requireAdmin } from '../lib/http.js'
+import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
 
 interface RequestWithBody {
@@ -37,9 +36,7 @@ router.get('/', (ctx) => {
 router.post('/path', (ctx) => {
   const dir = decodeURIComponent(ctx.query.dir as string)
 
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
   // required
   if (!dir) {
@@ -62,15 +59,9 @@ router.post('/path', (ctx) => {
 
 // set media path preferences
 router.put('/path/:pathId', (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const pathId = parseInt(ctx.params.pathId, 10)
-
-  if (isNaN(pathId)) {
-    ctx.throw(422, 'Invalid pathId')
-  }
+  const pathId = parseIdParam(ctx, 'pathId')
 
   Prefs.setPathData(pathId, 'prefs.', (ctx.request as unknown as RequestWithBody).body)
 
@@ -85,26 +76,15 @@ router.put('/path/:pathId', (ctx) => {
 
   // need to push updated queue items?
   if ('isVideoKeyingEnabled' in (ctx.request as unknown as RequestWithBody).body) {
-    for (const { room, roomId } of Rooms.getActive(ctx.io)) {
-      ctx.io.to(room).emit('action', {
-        type: QUEUE_PUSH,
-        payload: Queue.get(roomId),
-      })
-    }
+    pushQueues(ctx.io)
   }
 })
 
 // remove a media path
 router.delete('/path/:pathId', (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const pathId = parseInt(ctx.params.pathId, 10)
-
-  if (isNaN(pathId)) {
-    ctx.throw(422, 'Invalid pathId')
-  }
+  const pathId = parseIdParam(ctx, 'pathId')
 
   ctx.stopScanner()
 
@@ -124,15 +104,9 @@ router.delete('/path/:pathId', (ctx) => {
 
 // scan a media path
 router.get('/path/:pathId/scan', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const pathId = parseInt(ctx.params.pathId, 10)
-
-  if (isNaN(pathId)) {
-    ctx.throw(422, 'Invalid pathId')
-  }
+  const pathId = parseIdParam(ctx, 'pathId')
 
   ctx.status = 200
   ctx.startScanner(pathId)
@@ -140,9 +114,7 @@ router.get('/path/:pathId/scan', async (ctx) => {
 
 // scan all media paths
 router.get('/paths/scan', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
   ctx.status = 200
   ctx.startScanner(true)
@@ -150,9 +122,7 @@ router.get('/paths/scan', async (ctx) => {
 
 // stop scanning
 router.get('/paths/scan/stop', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
   ctx.status = 200
   ctx.stopScanner()
@@ -160,9 +130,7 @@ router.get('/paths/scan/stop', async (ctx) => {
 
 // get folder listing for path browser
 router.get('/path/ls', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
   const dir = decodeURIComponent(ctx.query.dir as string)
 
@@ -197,9 +165,7 @@ router.get('/path/ls', async (ctx) => {
 
 // get folder && file listing for the yt-dlp folder browser
 router.get('/file/ls', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
   const dir = decodeURIComponent(ctx.query.dir as string)
 

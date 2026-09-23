@@ -18,3 +18,5 @@ export class NotFoundError extends Error {
     this.name = 'NotFoundError'
   }
 }
+
+export const DUPLICATE_SONG_MESSAGE = 'Another song already has that artist and title'

@@ -1,5 +1,6 @@
 import { buildDownloadArgs, parseProgressLine, parseVideoId, runYtdl, type ParsedProgressLine } from './ytdlp.js'
 import registerDownload from './registerDownload.js'
+import { getErrorMessage } from '../lib/util.js'
 
 export type DownloadJobStatus = 'queued' | 'downloading' | 'merging' | 'registering' | 'complete' | 'failed'
 
@@ -143,7 +144,7 @@ export class DownloadManager {
       job.dateCompleted = Date.now()
     } catch (err) {
       job.status = 'failed'
-      job.error = err instanceof Error ? err.message : String(err)
+      job.error = getErrorMessage(err)
       job.dateCompleted = Date.now()
     } finally {
       this.history.push(job)

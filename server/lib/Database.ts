@@ -68,6 +68,23 @@ export class DatabaseWrapper {
     this.db.exec(sql)
   }
 
+  /**
+   * Runs fn inside a transaction, rolling back on error
+   */
+  transaction<T> (fn: () => T): T {
+    this.exec('BEGIN')
+
+    try {
+      const result = fn()
+      this.exec('COMMIT')
+
+      return result
+    } catch (err) {
+      this.exec('ROLLBACK')
+      throw err
+    }
+  }
+
   migrate ({ migrationsPath, force = false, table = 'migrations' }: { migrationsPath: string, force?: boolean, table?: string }) {
     this.db.exec(`CREATE TABLE IF NOT EXISTS "${table}" (
       id INTEGER PRIMARY KEY,
@@ -111,16 +128,11 @@ export class DatabaseWrapper {
         || (force && lastMigration && migration.id === lastMigration.id)
       ) {
         log.info('Running down migration %s: %s', migration.id, migration.name)
-        this.exec('BEGIN')
-        try {
+        this.transaction(() => {
           this.exec(migration.down)
           this.run(`DELETE FROM "${table}" WHERE id = ?`, [migration.id])
-          this.exec('COMMIT')
-          dbMigrations = dbMigrations.filter(x => x.id !== migration.id)
-        } catch (err) {
-          this.exec('ROLLBACK')
-          throw err
-        }
+        })
+        dbMigrations = dbMigrations.filter(x => x.id !== migration.id)
       } else {
         break
       }
@@ -133,18 +145,13 @@ export class DatabaseWrapper {
     for (const migration of migrations) {
       if (migration.id > lastMigrationId) {
         log.info('Running migration %s: %s', migration.id, migration.name)
-        this.exec('BEGIN')
-        try {
+        this.transaction(() => {
           this.exec(migration.up)
           this.run(
             `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
             [migration.id, migration.name, migration.up, migration.down || null],
           )
-          this.exec('COMMIT')
-        } catch (err) {
-          this.exec('ROLLBACK')
-          throw err
-        }
+        })
       }
     }
   }

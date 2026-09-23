@@ -3,7 +3,7 @@ import sql from 'sqlate'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import Rooms, { STATUSES } from '../Rooms/Rooms.js'
-import { ValidationError } from '../lib/Errors.js'
+import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
 
 interface RequestWithBody {
   body: Record<string, unknown>
@@ -35,16 +35,13 @@ router.get(['/', '/:roomId'], (ctx) => {
 
 // create room
 router.post('/', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
   try {
     const res = await Rooms.set(undefined, (ctx.request as unknown as RequestWithBody).body)
     log.verbose('%s created a room (roomId: %s)', ctx.user.name, res.lastID)
   } catch (err) {
-    if (err instanceof ValidationError) ctx.throw(422, err.message)
-    throw err
+    mapDomainError(ctx, err)
   }
 
   // send updated room list
@@ -53,17 +50,14 @@ router.post('/', async (ctx) => {
 
 // update room
 router.put('/:roomId', async (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const roomId = parseInt(ctx.params.roomId, 10)
+  const roomId = parseIdParam(ctx, 'roomId')
 
   try {
     await Rooms.set(roomId, (ctx.request as unknown as RequestWithBody).body)
   } catch (err) {
-    if (err instanceof ValidationError) ctx.throw(422, err.message)
-    throw err
+    mapDomainError(ctx, err)
   }
 
   log.verbose('%s updated a room (roomId: %s)', ctx.user.name, roomId)
@@ -85,15 +79,9 @@ router.put('/:roomId', async (ctx) => {
 
 // remove room
 router.delete('/:roomId', (ctx) => {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const roomId = parseInt(ctx.params.roomId, 10)
-
-  if (typeof roomId !== 'number') {
-    ctx.throw(422, 'Invalid roomId')
-  }
+  const roomId = parseIdParam(ctx, 'roomId')
 
   // remove room's queue first
   const queueQuery = sql`

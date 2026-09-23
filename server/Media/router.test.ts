@@ -48,6 +48,7 @@ vi.mock('../Library/Library.js', () => ({
 
 vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
   default: vi.fn(),
+  pushQueues: vi.fn(),
 }))
 
 vi.mock('../Rooms/Rooms.js', () => ({
@@ -155,7 +156,7 @@ describe('Media media streaming permissions', () => {
       entries: {
         'track.mp3': { size: 100, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer },
       },
-    })
+    } as unknown as Awaited<ReturnType<typeof unzip>>)
     const ctx = makeCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
@@ -173,7 +174,7 @@ describe('Media media streaming permissions', () => {
         'track.mp3': { size: 100, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer },
         'track.cdg': { size: 50, arrayBuffer: async () => new Uint8Array([4, 5]).buffer },
       },
-    })
+    } as unknown as Awaited<ReturnType<typeof unzip>>)
     const ctx = { ...makeCtx({ isAdmin: true }), query: { type: 'cdg' } }
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
@@ -185,7 +186,7 @@ describe('Media media streaming permissions', () => {
       result: [123],
       entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
     })
-    vi.mocked(unzip).mockResolvedValue({ entries: { 'notes.txt': {} } })
+    vi.mocked(unzip).mockResolvedValue({ entries: { 'notes.txt': {} } } as unknown as Awaited<ReturnType<typeof unzip>>)
     const ctx = makeCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })

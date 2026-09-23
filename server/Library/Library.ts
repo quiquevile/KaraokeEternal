@@ -4,7 +4,8 @@ import path from 'path'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import getCdgName from '../lib/getCdgName.js'
-import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
+import { assertNoRenameClash, atomicRenameAll } from '../lib/fsUtils.js'
+import { ConflictError, DUPLICATE_SONG_MESSAGE, NotFoundError, ValidationError } from '../lib/Errors.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
@@ -277,7 +278,7 @@ class Library {
     const clash = Library.findSong(parsed.artistNorm, parsed.titleNorm)
 
     if (clash !== null && clash !== songId) {
-      throw new ConflictError('Another song already has that artist and title')
+      throw new ConflictError(DUPLICATE_SONG_MESSAGE)
     }
 
     const resolved = Library.matchArtist({ artist, artistNorm: parsed.artistNorm })
@@ -310,78 +311,41 @@ class Library {
       }
     }
 
-    // pre-check: no destination may exist (and no two sources may target
-    // the same destination); otherwise nothing is changed at all
-    const destinations = new Set<string>()
-
-    for (const { from, to } of renames) {
-      if (to === from) continue
-
-      if (destinations.has(to)) {
-        throw new ConflictError(`Rename target already exists: ${to}`)
-      }
-
-      destinations.add(to)
-
-      if (fs.existsSync(to)) {
-        throw new ConflictError(`File already exists: ${to}`)
-      }
-    }
-
-    // rename files, rolling back on failure
-    const done: Array<{ from: string, to: string }> = []
+    // rename files (asserted clash-free above, rolls back on failure)
+    assertNoRenameClash(renames)
+    atomicRenameAll(renames)
 
     const rollbackFiles = () => {
-      for (const { from, to } of done.reverse()) {
-        try {
-          fs.renameSync(to, from)
-        } catch {
-          // best effort: the original error is more relevant
-        }
-      }
-    }
-
-    try {
-      for (const { from, to } of renames) {
-        if (to === from) continue
-        fs.renameSync(from, to)
-        done.push({ from, to })
-      }
-    } catch (err) {
-      rollbackFiles()
-      throw err
+      atomicRenameAll(renames.map(({ from, to }) => ({ from: to, to: from })))
     }
 
     // update db in a single transaction
-    db.exec('BEGIN')
-
     try {
-      const query = sql`
-        UPDATE songs
-        SET artistId = ${resolved.artistId}, title = ${title}, titleNorm = ${parsed.titleNorm}
-        WHERE songId = ${songId}
-      `
-      db.run(String(query), query.parameters)
-
-      for (const { mediaId, newRelPath } of renames) {
-        if (!newRelPath) continue // sidecar: no db row
-
-        const mediaQuery = sql`
-          UPDATE media
-          SET relPath = ${newRelPath}
-          WHERE mediaId = ${mediaId}
+      db.transaction(() => {
+        const query = sql`
+          UPDATE songs
+          SET artistId = ${resolved.artistId}, title = ${title}, titleNorm = ${parsed.titleNorm}
+          WHERE songId = ${songId}
         `
-        db.run(String(mediaQuery), mediaQuery.parameters)
-      }
+        db.run(String(query), query.parameters)
 
-      // drop the previous artist if it has no songs left (its stars go with it)
-      if (song.oldArtistId !== resolved.artistId) {
-        Library.dropOrphanArtist(song.oldArtistId)
-      }
+        for (const { mediaId, newRelPath } of renames) {
+          if (!newRelPath) continue // sidecar: no db row
 
-      db.exec('COMMIT')
+          const mediaQuery = sql`
+            UPDATE media
+            SET relPath = ${newRelPath}
+            WHERE mediaId = ${mediaId}
+          `
+          db.run(String(mediaQuery), mediaQuery.parameters)
+        }
+
+        // drop the previous artist if it has no songs left (its stars go with it)
+        if (song.oldArtistId !== resolved.artistId) {
+          Library.dropOrphanArtist(song.oldArtistId)
+        }
+      })
     } catch (err) {
-      db.exec('ROLLBACK')
       rollbackFiles()
       throw err
     }
@@ -506,16 +470,9 @@ class Library {
     Library.deleteFiles(Library.songFiles(songId))
 
     // everything else in a single transaction
-    db.exec('BEGIN')
-
-    try {
+    db.transaction(() => {
       Library.purgeSongRows(songId, song.artistId)
-
-      db.exec('COMMIT')
-    } catch (err) {
-      db.exec('ROLLBACK')
-      throw err
-    }
+    })
 
     // library cache holds song/artist entities: force a rebuild
     Library.cache.version = null
@@ -555,9 +512,7 @@ class Library {
 
     Library.deleteFiles(files)
 
-    db.exec('BEGIN')
-
-    try {
+    db.transaction(() => {
       const deleteQuery = sql`DELETE FROM media WHERE mediaId = ${mediaId}`
       db.run(String(deleteQuery), deleteQuery.parameters)
 
@@ -567,12 +522,7 @@ class Library {
       if (!remaining) {
         Library.purgeSongRows(media.songId, song.artistId)
       }
-
-      db.exec('COMMIT')
-    } catch (err) {
-      db.exec('ROLLBACK')
-      throw err
-    }
+    })
 
     // library cache holds song/artist entities: force a rebuild
     Library.cache.version = null

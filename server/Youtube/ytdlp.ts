@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import path from 'path'
 import getLogger from '../lib/Log.js'
+import { getErrorMessage } from '../lib/util.js'
 
 const log = getLogger('YoutubeYtDlp')
 
@@ -292,7 +293,7 @@ async function doEnsure (): Promise<void> {
     try {
       await downloadAsset(url, target)
     } catch (err) {
-      failures.push(`${variant.asset}: ${err instanceof Error ? err.message : String(err)}`)
+      failures.push(`${variant.asset}: ${getErrorMessage(err)}`)
 
       continue
     }
@@ -629,7 +630,7 @@ export async function runYtdl (args: string[], { onLine }: RunYtdlOptions = {}):
         try {
           onLine(trimmed)
         } catch (err) {
-          log.error('onLine handler failed: %s', err instanceof Error ? err.message : String(err))
+          log.error('onLine handler failed: %s', getErrorMessage(err))
         }
       }
     }

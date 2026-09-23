@@ -38,10 +38,14 @@ const cases = [
 ] as const
 
 describe.each(cases)('Player $req', ({ req, cmd, payload, perm }) => {
+  const call = (sock: unknown) => (
+    handlers[req] as (sock: unknown, msg: unknown, ack: unknown) => unknown
+  )(sock, { payload }, vi.fn())
+
   it('emits the command for admins', () => {
     const { sock, emit } = makeSock({ isAdmin: true })
 
-    handlers[req](sock, { payload }, vi.fn())
+    call(sock)
 
     expect(sock.server.to).toHaveBeenCalledWith('ROOM_ID_5')
     expect(emit).toHaveBeenCalledWith('action', { type: cmd, ...(payload === undefined ? {} : { payload }) })
@@ -50,7 +54,7 @@ describe.each(cases)('Player $req', ({ req, cmd, payload, perm }) => {
   it('emits the command with the matching permission', () => {
     const { sock, emit } = makeSock({ isAdmin: false, permissions: { [perm]: true } })
 
-    handlers[req](sock, { payload }, vi.fn())
+    call(sock)
 
     expect(emit).toHaveBeenCalledTimes(1)
   })
@@ -58,7 +62,7 @@ describe.each(cases)('Player $req', ({ req, cmd, payload, perm }) => {
   it('stays silent without the permission', () => {
     const { sock, emit } = makeSock({ isAdmin: false, permissions: {} })
 
-    handlers[req](sock, { payload }, vi.fn())
+    call(sock)
 
     expect(emit).not.toHaveBeenCalled()
   })

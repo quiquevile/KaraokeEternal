@@ -14,6 +14,9 @@ import {
 } from './ytdlp.js'
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
+import { DUPLICATE_SONG_MESSAGE } from '../lib/Errors.js'
+import { requireAdmin } from '../lib/http.js'
+import { getErrorMessage } from '../lib/util.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
 
@@ -33,10 +36,6 @@ type YoutubePrefs = ReturnType<typeof Prefs.get> & {
   youtubeDlExtraArgs?: string
 }
 
-function requireAdmin (ctx: RouterContext): void {
-  if (!ctx.user?.isAdmin) ctx.throw(401)
-}
-
 function requireYoutubeAccess (ctx: RouterContext): void {
   if (!can(ctx.user, 'youtubeDownload')) ctx.throw(401)
 }
@@ -53,7 +52,7 @@ function requireYtdlBin (ctx: RouterContext): void {
   try {
     getYtdlBin()
   } catch (err) {
-    ctx.throw(422, err instanceof Error ? err.message : 'yt-dlp is not configured')
+    ctx.throw(422, getErrorMessage(err))
   }
 }
 
@@ -153,7 +152,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   // same duplicate rules as song retagging: refuse before downloading anything
   if (Library.findSong(norms.artistNorm, norms.titleNorm) !== null) {
-    ctx.throw(409, 'Another song already has that artist and title')
+    ctx.throw(409, DUPLICATE_SONG_MESSAGE)
   }
 
   const existingFile = await findDownloadedFile(path.destDir, baseName)

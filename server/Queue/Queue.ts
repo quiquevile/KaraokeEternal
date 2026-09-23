@@ -147,9 +147,7 @@ class Queue {
       }
     }
 
-    db.exec('BEGIN')
-
-    try {
+    db.transaction(() => {
       // close the gap left behind
       const detachQuery = sql`
         UPDATE queue
@@ -179,12 +177,7 @@ class Queue {
         WHERE queueId = ${queueId} AND roomId = ${roomId}
       `
       db.run(String(moveQuery), moveQuery.parameters)
-
-      db.exec('COMMIT')
-    } catch (err) {
-      db.exec('ROLLBACK')
-      throw err
-    }
+    })
   }
 
   /**

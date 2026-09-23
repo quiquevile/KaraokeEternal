@@ -2,22 +2,15 @@ import KoaRouter from '@koa/router'
 import Media from '../Media/Media.js'
 import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
-import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
+import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
 import { deriveNorms } from '../Youtube/metadata.js'
 const router = new KoaRouter({ prefix: '/api' })
 
 // lists underlying media for a given song
 router.get('/song/:songId', async (ctx) => {
-  // must be admin
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const songId = parseInt(ctx.params.songId, 10)
-
-  if (Number.isNaN(songId)) {
-    ctx.throw(422, 'Invalid songId')
-  }
+  const songId = parseIdParam(ctx, 'songId')
 
   const res = Media.search({ songId })
 
@@ -30,15 +23,9 @@ router.get('/song/:songId', async (ctx) => {
 
 // retag a song's artist/title (admin only)
 export async function handleUpdateSong (ctx) {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const songId = parseInt(ctx.params.songId, 10)
-
-  if (Number.isNaN(songId)) {
-    ctx.throw(422, 'Invalid songId')
-  }
+  const songId = parseIdParam(ctx, 'songId')
 
   const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
   const title = typeof ctx.request.body?.title === 'string' ? ctx.request.body.title : ''
@@ -46,10 +33,7 @@ export async function handleUpdateSong (ctx) {
   try {
     Library.updateSong(songId, { artist, title, ...deriveNorms(artist, title) })
   } catch (err) {
-    if (err instanceof ConflictError) ctx.throw(409, err.message)
-    if (err instanceof NotFoundError) ctx.throw(404, err.message)
-    if (err instanceof ValidationError) ctx.throw(422, err.message)
-    throw err
+    mapDomainError(ctx, err)
   }
 
   ctx.status = 200
@@ -64,22 +48,14 @@ router.put('/song/:songId', handleUpdateSong)
 
 // delete a song's files, queue items, and rows (admin only)
 export async function handleDeleteSong (ctx) {
-  if (!ctx.user.isAdmin) {
-    ctx.throw(401)
-  }
+  requireAdmin(ctx)
 
-  const songId = parseInt(ctx.params.songId, 10)
-
-  if (Number.isNaN(songId)) {
-    ctx.throw(422, 'Invalid songId')
-  }
+  const songId = parseIdParam(ctx, 'songId')
 
   try {
     Library.deleteSong(songId)
   } catch (err) {
-    if (err instanceof NotFoundError) ctx.throw(404, err.message)
-    if (err instanceof ValidationError) ctx.throw(422, err.message)
-    throw err
+    mapDomainError(ctx, err)
   }
 
   ctx.status = 200

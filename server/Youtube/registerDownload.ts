@@ -5,6 +5,7 @@ import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import getLogger from '../lib/Log.js'
+import { getErrorMessage } from '../lib/util.js'
 import type { DownloadJob } from './downloadManager.js'
 
 const log = getLogger('YoutubeRegister')
@@ -74,7 +75,7 @@ export default async function registerDownload (options: { job: DownloadJob, io:
   try {
     duration = await getDuration(filePath)
   } catch (err) {
-    log.warn('could not probe duration of %s: %s', filePath, err instanceof Error ? err.message : String(err))
+    log.warn('could not probe duration of %s: %s', filePath, getErrorMessage(err))
   }
 
   const match = Library.matchSong({

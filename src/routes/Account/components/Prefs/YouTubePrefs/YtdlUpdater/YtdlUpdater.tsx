@@ -59,17 +59,15 @@ const YtdlUpdater = () => {
             {formatUpdatedAt(new Date(updatedAt))}
           </span>
         )}
+        <Button
+          icon='REFRESH'
+          onClick={handleUpdate}
+          disabled={!canUpdate}
+          className={styles.updateButton}
+          title='Update yt-dlp'
+          aria-label='Update yt-dlp'
+        />
       </div>
-
-      <Button
-        icon='REFRESH'
-        onClick={handleUpdate}
-        disabled={!canUpdate}
-        className={styles.updateButton}
-        title='Update yt-dlp'
-      >
-        {isUpdating ? 'Updating…' : (status === 'empty' ? 'Download' : 'Update')}
-      </Button>
 
       {status === 'empty' && !(folder || dir) && (
         <div className={styles.emptyHint}>

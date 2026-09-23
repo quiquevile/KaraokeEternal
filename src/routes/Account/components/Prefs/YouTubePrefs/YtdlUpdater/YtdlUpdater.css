@@ -6,7 +6,7 @@
 
 .status {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-s);
 }
 
@@ -26,9 +26,14 @@
 }
 
 .updateButton {
-  align-self: flex-start;
+  margin-left: auto;
   width: auto;
-  padding: var(--space-s);
+  padding: var(--space-xs);
+  color: var(--btn-active-bg-color);
+}
+
+.updateButton svg {
+  height: var(--icon-size-l);
 }
 
 .output {

@@ -3,7 +3,7 @@ import Button from 'components/Button/Button'
 import InputImage from 'components/InputImage/InputImage'
 import PermissionsDialog from './PermissionsDialog'
 import { PERMISSIONS } from './permissions'
-import { UserWithRole } from 'shared/types'
+import { Permission, UserWithRole } from 'shared/types'
 import styles from './AccountForm.css'
 
 interface AccountFormProps {
@@ -84,9 +84,11 @@ const AccountForm = ({
     }))
   }
 
-  const handleApplyPerms = (perms: Record<string, boolean>) => {
-    const cleaned = Object.fromEntries(Object.entries(perms).filter(([, v]) => v))
-    setState(prev => ({ ...prev, perms: cleaned, permsOpen: false }))
+  const handleTogglePerm = (value: Permission) => {
+    const cleaned = Object.fromEntries(
+      Object.entries({ ...state.perms, [value]: !state.perms[value] }).filter(([, v]) => v),
+    )
+    setState(prev => ({ ...prev, perms: cleaned }))
     updateDirty(cleaned)
   }
 
@@ -204,8 +206,8 @@ const AccountForm = ({
           </Button>
           <PermissionsDialog
             visible={state.permsOpen}
-            initial={state.perms}
-            onApply={handleApplyPerms}
+            perms={state.perms}
+            onToggle={handleTogglePerm}
             onClose={() => setState(prev => ({ ...prev, permsOpen: false }))}
           />
         </>

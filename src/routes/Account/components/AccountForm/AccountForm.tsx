@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import InputImage from 'components/InputImage/InputImage'
-import { UserWithRole } from 'shared/types'
+import { Permission, UserWithRole } from 'shared/types'
 import styles from './AccountForm.css'
 
-const PERMISSIONS = [
+const PERMISSIONS: Array<{ value: Permission, label: string }> = [
   { value: 'queueDelete', label: 'Puede borrar canciones de la cola' },
   { value: 'queueMove', label: 'Puede mover canciones de la cola' },
   { value: 'queueReplay', label: 'Puede reiniciar canciones de la cola' },
@@ -66,10 +66,11 @@ const AccountForm = ({
   const updateDirty = () => {
     if (!user || user.userId === null) return
 
-    const permsChanged = permissionsRef.current && user.permissions
+    const userPerms = user.permissions ?? {}
+    const permsChanged = permissionsRef.current
       ? PERMISSIONS.some((p) => {
           const checkbox = permissionsRef.current!.querySelector(`[value="${p.value}"]`) as HTMLInputElement | null
-          return !!checkbox && checkbox.checked !== !!user.permissions![p.value]
+          return !!checkbox && checkbox.checked !== !!userPerms[p.value]
         })
       : false
 
@@ -77,7 +78,7 @@ const AccountForm = ({
       ...prev,
       isDirty: !!username.current?.value || !!newPassword.current?.value
         || (name.current?.value !== user.name)
-        || (role.current && role.current.value !== (user.isAdmin ? '1' : '0'))
+        || (role.current && role.current.value !== (user.role ?? ''))
         || permsChanged,
       isChangingPassword: !!newPassword.current?.value,
     }))
@@ -208,6 +209,7 @@ const AccountForm = ({
                 name={p.value}
                 value={p.value}
                 defaultChecked={user?.permissions?.[p.value] ?? false}
+                onChange={updateDirty}
               />
               {p.label}
             </label>

@@ -6,6 +6,7 @@ import AppRouter from 'lib/AppRouter'
 import { RootState } from 'store/store'
 import HttpApi from 'lib/HttpApi'
 import Persistor from 'store/Persistor'
+import type { Permission } from 'shared/types'
 import { fetchPrefs } from './prefs'
 import {
   ACCOUNT_RECEIVE,
@@ -200,5 +201,5 @@ export default persistReducer({
   storage,
 }, userReducer)
 
-export const hasPermission = (state: UserState, permission: string): boolean =>
+export const hasPermission = (state: UserState, permission: Permission): boolean =>
   state.isAdmin || (state.permissions?.[permission] ?? false)

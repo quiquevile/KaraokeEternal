@@ -6,6 +6,7 @@ import { Routes, Route, useLocation } from 'react-router'
 import { createSelector } from '@reduxjs/toolkit'
 
 import { requestScanStop } from 'store/modules/prefs'
+import { hasPermission } from 'store/modules/user'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import getWaits from 'routes/Queue/selectors/getWaits'
 import LibraryHeader from 'routes/Library/components/LibraryHeader/LibraryHeader'
@@ -49,7 +50,8 @@ const getStatusProps = createSelector(
 
 // component
 const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
-  const { isAdmin, permissions } = useAppSelector(state => state.user)
+  const user = useAppSelector(state => state.user)
+  const { isAdmin } = user
   const isPlayerPresent = useAppSelector(state => state.status.isPlayerPresent)
   const isScanning = useAppSelector(state => state.prefs.isScanning)
   const scannerText = useAppSelector(state => state.prefs.scannerText)
@@ -68,7 +70,7 @@ const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
       {!isPlayer && isPlayerPresent
         && <UpNext isUpNext={isUpNext} isUpNow={isUpNow} wait={wait} />}
 
-      {(isUpNow || isAdmin || (permissions?.playerAccess ?? false) || (permissions?.playerControls ?? false))
+      {(isUpNow || hasPermission(user, 'playerAccess') || hasPermission(user, 'playerControls'))
         && <PlaybackCtrl />}
 
       {isAdmin && !isPlayer

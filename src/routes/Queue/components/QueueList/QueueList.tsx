@@ -5,6 +5,7 @@ import QueueItem from '../QueueItem/QueueItem'
 import QueueListAnimator from '../QueueListAnimator/QueueListAnimator'
 import { formatSeconds } from 'lib/dateTime'
 import { moveItem, removeUpcomingItems } from '../../modules/queue'
+import { hasPermission } from 'store/modules/user'
 import { showSongEditor } from 'store/modules/songInfo'
 import getPlayerHistory from '../../selectors/getPlayerHistory'
 import getRoundRobinQueue from '../../selectors/getRoundRobinQueue'
@@ -58,8 +59,6 @@ const QueueList = () => {
 
     const isInfoable = user.isAdmin
 
-    const hasPerm = (perm: string): boolean => user.isAdmin || (user.permissions?.[perm] ?? false)
-
     return (
       <QueueItem
         {...item}
@@ -70,13 +69,13 @@ const QueueList = () => {
         isErrored={isCurrent && isErrored}
         isInfoable={isInfoable}
         isEditable={user.isAdmin}
-        isMovable={isUpcoming && (isOwner || hasPerm('queueMove'))}
+        isMovable={isUpcoming && (isOwner || hasPermission(user, 'queueMove'))}
         isOwner={isOwner}
         isPlayed={isPlayed}
         isPlaying={isCurrent && isPlaying}
-        isRemovable={(isOwner || hasPerm('queueDelete'))}
-        isReplayable={(!isUpcoming || isCurrent) && hasPerm('queueReplay')}
-        isSkippable={isCurrent && (isOwner || hasPerm('playerControls'))}
+        isRemovable={(isOwner || hasPermission(user, 'queueDelete'))}
+        isReplayable={(!isUpcoming || isCurrent) && hasPermission(user, 'queueReplay')}
+        isSkippable={isCurrent && (isOwner || hasPermission(user, 'playerControls'))}
         isStarred={starredSongs.includes(item.songId)}
         isUpcoming={isUpcoming}
         pctPlayed={isCurrent ? position / duration * 100 : 0}

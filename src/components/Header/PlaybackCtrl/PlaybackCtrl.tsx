@@ -4,6 +4,7 @@ import { useLocation } from 'react-router'
 import clsx from 'clsx'
 import screenfull from 'screenfull'
 import { requestOptions, requestPause, requestPlay, requestPlayNext, requestReplay, requestVolume } from 'store/modules/status'
+import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import VolumeSlider from './VolumeSlider/VolumeSlider'
 import NoPlayer from './NoPlayer/NoPlayer'
@@ -23,8 +24,7 @@ const PlaybackCtrl = () => {
   const location = useLocation()
   const isPlayer = location.pathname.replace(/\/$/, '').endsWith('/player')
 
-  const isAdmin = useAppSelector(state => state.user.isAdmin)
-  const { permissions } = useAppSelector(state => state.user)
+  const user = useAppSelector(state => state.user)
   const isInRoom = useAppSelector(state => state.user.roomId !== null)
   const status = useAppSelector(state => state.status)
 
@@ -46,82 +46,82 @@ const PlaybackCtrl = () => {
     setDisplayCtrlVisible(!isDisplayCtrlVisible)
   }
 
-  const hasPerm = (perm: string): boolean => isAdmin || (permissions?.[perm] ?? false)
-
   if (!status.isPlayerPresent) {
-    return (isAdmin || hasPerm('playerAccess')) && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
+    return hasPermission(user, 'playerAccess') && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
   }
 
-  return (isAdmin || hasPerm('playerControls')) && isInRoom && screenfull.isEnabled ? (
-    <div className={styles.container}>
-      <Button
-        animateClassName={styles.btnAnimate}
-        className={clsx(styles.btn, status.isPlaying ? styles.pause : styles.play)}
-        icon={status.isPlaying ? 'PAUSE' : 'PLAY'}
-        onClick={status.isPlaying ? handlePause : handlePlay}
-        aria-label={status.isPlaying ? 'Pause' : 'Play'}
-      />
+  return hasPermission(user, 'playerControls') && isInRoom && screenfull.isEnabled
+    ? (
+        <div className={styles.container}>
+          <Button
+            animateClassName={styles.btnAnimate}
+            className={clsx(styles.btn, status.isPlaying ? styles.pause : styles.play)}
+            icon={status.isPlaying ? 'PAUSE' : 'PLAY'}
+            onClick={status.isPlaying ? handlePause : handlePlay}
+            aria-label={status.isPlaying ? 'Pause' : 'Play'}
+          />
 
-      <Button
-        animateClassName={styles.btnAnimate}
-        className={clsx(styles.btn, styles.next)}
-        icon='PLAY_NEXT'
-        onClick={handlePlayNext}
-        aria-label='Play Next'
-      />
+          <Button
+            animateClassName={styles.btnAnimate}
+            className={clsx(styles.btn, styles.next)}
+            icon='PLAY_NEXT'
+            onClick={handlePlayNext}
+            aria-label='Play Next'
+          />
 
-      {(hasPerm('queueReplay')) && (
-        <Button
-          animateClassName={styles.btnAnimate}
-          className={clsx(styles.btn, styles.next)}
-          icon='REPLAY_SMALL'
-          onClick={handleReplay}
-          aria-label='Replay'
-        />
-      )}
+          {(hasPermission(user, 'queueReplay')) && (
+            <Button
+              animateClassName={styles.btnAnimate}
+              className={clsx(styles.btn, styles.next)}
+              icon='REPLAY_SMALL'
+              onClick={handleReplay}
+              aria-label='Replay'
+            />
+          )}
 
-      <VolumeSlider
-        volume={status.volume}
-        onVolumeChange={handleVolume}
-      />
+          <VolumeSlider
+            volume={status.volume}
+            onVolumeChange={handleVolume}
+          />
 
-      <Button
-        className={clsx(styles.btn, styles.displayCtrl)}
-        icon='TUNE'
-        onClick={toggleDisplayCtrl}
-        size={48}
-        aria-label='Display Options'
-      />
+          <Button
+            className={clsx(styles.btn, styles.displayCtrl)}
+            icon='TUNE'
+            onClick={toggleDisplayCtrl}
+            size={48}
+            aria-label='Display Options'
+          />
 
-      {isPlayer && screenfull.isEnabled && (
-        <Button
-          className={clsx(styles.btn, styles.fullscreen)}
-          icon='FULLSCREEN'
-          onClick={handleFullscreen}
-          aria-label='Enter Fullscreen'
-        />
-      )}
+          {isPlayer && screenfull.isEnabled && (
+            <Button
+              className={clsx(styles.btn, styles.fullscreen)}
+              icon='FULLSCREEN'
+              onClick={handleFullscreen}
+              aria-label='Enter Fullscreen'
+            />
+          )}
 
-      {isDisplayCtrlVisible && (
-        <DisplayCtrl
-          cdgAlpha={status.cdgAlpha}
-          cdgSize={status.cdgSize}
-          isPitchAdjustable={hasPerm('playerControls')}
-          isPitchSupported={status.pitchSupported}
-          isVideoKeyingEnabled={status.isVideoKeyingEnabled}
-          isVisualizerEnabled={status.visualizer.isEnabled}
-          isWebGLSupported={status.isWebGLSupported}
-          mediaType={status.mediaType}
-          mp4Alpha={status.mp4Alpha}
-          onClose={toggleDisplayCtrl}
-          onRequestOptions={handleOptions}
-          pitchSemitones={status.pitchSemitones}
-          sensitivity={status.visualizer.sensitivity}
-          visualizerPresetName={status.visualizer.presetName}
-        />
-      )}
-    </div>
-  ) : null;
+          {isDisplayCtrlVisible && (
+            <DisplayCtrl
+              cdgAlpha={status.cdgAlpha}
+              cdgSize={status.cdgSize}
+              isPitchAdjustable={hasPermission(user, 'playerControls')}
+              isPitchSupported={status.pitchSupported}
+              isVideoKeyingEnabled={status.isVideoKeyingEnabled}
+              isVisualizerEnabled={status.visualizer.isEnabled}
+              isWebGLSupported={status.isWebGLSupported}
+              mediaType={status.mediaType}
+              mp4Alpha={status.mp4Alpha}
+              onClose={toggleDisplayCtrl}
+              onRequestOptions={handleOptions}
+              pitchSemitones={status.pitchSemitones}
+              sensitivity={status.visualizer.sensitivity}
+              visualizerPresetName={status.visualizer.presetName}
+            />
+          )}
+        </div>
+      )
+    : null
 }
 
 export default PlaybackCtrl

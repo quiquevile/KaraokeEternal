@@ -4,6 +4,7 @@ import { db } from '../lib/Database.js'
 import sql from 'sqlate'
 import jsonWebToken from 'jsonwebtoken'
 import crypto from '../lib/crypto.js'
+import { parsePermissions } from '../lib/permissions.js'
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
@@ -44,7 +45,7 @@ const createUserCtx = (user, roomId) => {
     isAdmin: user.role === 'admin',
     isGuest: user.role === 'guest',
     name: user.name,
-    permissions: user.permissions ? JSON.parse(user.permissions) : {},
+    permissions: parsePermissions(user.permissions) ?? {},
     roomId: parseInt(roomId, 10) || null,
     userId: user.userId,
     username: user.username,
@@ -281,17 +282,16 @@ router.put('/user/:userId', async (ctx) => {
     fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${req.body.role})`)
   }
 
-  // changing permissions?
+  // changing permissions? (admins only, and never one's own: admins
+  // bypass permission checks anyway)
   if (req.body.permissions) {
-    let perms = req.body.permissions
-    if (typeof perms === 'string') {
-      try {
-        perms = JSON.parse(perms)
-      } catch {
-        perms = null
-      }
+    if (user.role !== 'admin' || targetId === user.userId) {
+      ctx.throw(403)
     }
-    if (typeof perms === 'object' && perms !== null) {
+
+    const perms = parsePermissions(req.body.permissions)
+
+    if (perms) {
       fields.set('permissions', JSON.stringify(perms))
     }
   }
@@ -399,9 +399,9 @@ router.post('/user', async (ctx) => {
     await deleteFile(imageFile.filepath)
   }
 
-  // create user
+  // create user (only admins may preset permissions)
   try {
-    const userId = await User.create({ ...req.body, image } as any, req.body.role)
+    const userId = await User.create({ ...req.body, permissions: ctx.user.isAdmin ? req.body.permissions : undefined, image } as any, req.body.role)
 
     // if admin creating another user, we're done
     if (ctx.user.isAdmin) {

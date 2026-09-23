@@ -25,6 +25,8 @@ import {
 // ------------------------------------
 const ACTION_HANDLERS = {
   [PLAYER_REQ_OPTIONS]: (sock, { payload }) => {
+    if (!can(sock.user, 'playerControls')) return
+
     // @todo: emit to players only
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {
       type: PLAYER_CMD_OPTIONS,
@@ -32,18 +34,24 @@ const ACTION_HANDLERS = {
     })
   },
   [PLAYER_REQ_NEXT]: (sock) => {
+    if (!can(sock.user, 'playerControls')) return
+
     // @todo: emit to players only
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {
       type: PLAYER_CMD_NEXT,
     })
   },
   [PLAYER_REQ_PAUSE]: (sock) => {
+    if (!can(sock.user, 'playerControls')) return
+
     // @todo: emit to players only
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {
       type: PLAYER_CMD_PAUSE,
     })
   },
   [PLAYER_REQ_PLAY]: (sock) => {
+    if (!can(sock.user, 'playerControls')) return
+
     // @todo: emit to players only
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {
       type: PLAYER_CMD_PLAY,
@@ -60,6 +68,8 @@ const ACTION_HANDLERS = {
     })
   },
   [PLAYER_REQ_VOLUME]: (sock, { payload }) => {
+    if (!can(sock.user, 'playerControls')) return
+
     // @todo: emit to players only
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {
       type: PLAYER_CMD_VOLUME,

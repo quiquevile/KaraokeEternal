@@ -76,11 +76,11 @@ const RequireAuth = ({
   const user = useAppSelector(state => state.user)
   const location = useLocation()
 
-  if (path === '/player' && !user.isAdmin && !hasPermission(user, 'playerAccess')) {
+  if (path === '/player' && !hasPermission(user, 'playerAccess')) {
     return <Navigate to='/' replace />
   }
 
-  if (path === '/youtube' && !user.isAdmin && !user.permissions?.youtubeDownload) {
+  if (path === '/youtube' && !hasPermission(user, 'youtubeDownload')) {
     return <Navigate to='/' replace />
   }
 

@@ -1,22 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
-import { isStaff, can } from './permissions.js'
-
-describe('isStaff', () => {
-  it('returns true for admin', () => {
-    expect(isStaff({ isAdmin: true })).toBe(true)
-  })
-
-  it('returns false for non-admin', () => {
-    expect(isStaff({ isAdmin: false })).toBe(false)
-  })
-})
+import { can, parsePermissions } from './permissions.js'
 
 describe('can', () => {
   it('returns true for admin regardless of permissions', () => {
     expect(can({ isAdmin: true, permissions: {} }, 'youtubeDownload')).toBe(true)
     expect(can({ isAdmin: true, permissions: { youtubeDownload: false } }, 'youtubeDownload')).toBe(true)
-    expect(can({ isAdmin: true }, 'anything')).toBe(true)
+    expect(can({ isAdmin: true }, 'queueDelete')).toBe(true)
   })
 
   it('returns true when permission is granted', () => {
@@ -33,5 +23,22 @@ describe('can', () => {
 
   it('returns false for non-admin without permissions field', () => {
     expect(can({ isAdmin: false }, 'youtubeDownload')).toBe(false)
+  })
+})
+
+describe('parsePermissions', () => {
+  it('passes objects through', () => {
+    expect(parsePermissions({ queueDelete: true })).toEqual({ queueDelete: true })
+  })
+
+  it('parses JSON strings', () => {
+    expect(parsePermissions('{"queueDelete":true}')).toEqual({ queueDelete: true })
+  })
+
+  it('returns null for invalid JSON and non-objects', () => {
+    expect(parsePermissions('{invalid')).toBeNull()
+    expect(parsePermissions(null)).toBeNull()
+    expect(parsePermissions(undefined)).toBeNull()
+    expect(parsePermissions(42)).toBeNull()
   })
 })

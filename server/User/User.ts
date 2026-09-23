@@ -3,6 +3,7 @@ import sql from 'sqlate'
 import crypto from '../lib/crypto.js'
 import Queue from '../Queue/Queue.js'
 import { randomChars } from '../lib/util.js'
+import { parsePermissions } from '../lib/permissions.js'
 import { User as UserType } from '../../shared/types.js'
 
 export type ServerUser = UserType & {
@@ -149,15 +150,9 @@ class User {
     fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${role})`)
 
     if (permissions) {
-      let perms = permissions
-      if (typeof perms === 'string') {
-        try {
-          perms = JSON.parse(perms)
-        } catch {
-          perms = null
-        }
-      }
-      if (typeof perms === 'object' && perms !== null) {
+      const perms = parsePermissions(permissions)
+
+      if (perms) {
         fields.set('permissions', JSON.stringify(perms))
       }
     }

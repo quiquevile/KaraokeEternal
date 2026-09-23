@@ -75,6 +75,14 @@ export interface Path {
   }
 }
 
+export type Permission
+  = | 'queueDelete'
+    | 'queueMove'
+    | 'queueReplay'
+    | 'playerAccess'
+    | 'playerControls'
+    | 'youtubeDownload'
+
 export interface User {
   userId: number
   username: string

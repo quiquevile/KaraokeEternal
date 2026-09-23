@@ -55,7 +55,7 @@ import Media from '../Media/Media.js'
 import Prefs from '../Prefs/Prefs.js'
 import Library from '../Library/Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
-import { NotFoundError } from '../lib/Errors.js'
+import { NotFoundError, ValidationError } from '../lib/Errors.js'
 
 const mockSong = {
   result: [123],
@@ -149,5 +149,56 @@ describe('Media version deletion', () => {
     const ctx = deleteCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+  })
+})
+
+describe('Media prefer flag', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const preferCtx = (user: object) => ({
+    ...makeCtx(user),
+    method: 'PUT',
+    path: '/api/media/123/prefer',
+    request: { method: 'PUT' },
+    io: { emit: vi.fn(), to: vi.fn(() => ({ emit: vi.fn() })) },
+  })
+
+  it('sets the flag and pushes queues (admin)', async () => {
+    vi.mocked(Media.setPreferred).mockReturnValueOnce(7)
+    const ctx = preferCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(Media.setPreferred).toHaveBeenCalledWith(123, true)
+    expect(ctx.status).toBe(200)
+  })
+
+  it('rejects invalid mediaIds with 422', async () => {
+    const ctx = {
+      ...preferCtx({ isAdmin: true }),
+      path: '/api/media/abc/prefer',
+    }
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 422 })
+    expect(Media.setPreferred).not.toHaveBeenCalled()
+  })
+
+  it('maps NotFoundError to 404', async () => {
+    vi.mocked(Media.setPreferred).mockImplementationOnce(() => {
+      throw new NotFoundError('mediaId not found: 123')
+    })
+    const ctx = preferCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('maps ValidationError to 422', async () => {
+    vi.mocked(Media.setPreferred).mockImplementationOnce(() => {
+      throw new ValidationError('invalid mediaId or value')
+    })
+    const ctx = preferCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 422 })
   })
 })

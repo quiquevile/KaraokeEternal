@@ -269,7 +269,7 @@ class Library {
     const song = db.get<{ oldArtistId: number }>(String(existingQuery), existingQuery.parameters)
 
     if (!song) {
-      throw new ValidationError(`songId ${songId} not found`)
+      throw new NotFoundError(`songId ${songId} not found`)
     }
 
     // resolve the target artist without creating it yet, so that a

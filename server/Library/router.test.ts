@@ -112,6 +112,15 @@ describe('handleUpdateSong', () => {
 
     await expect(handleUpdateSong(ctx)).rejects.toMatchObject({ status: 409 })
   })
+
+  it('maps NotFoundError to 404', async () => {
+    vi.mocked(Library.updateSong).mockImplementationOnce(() => {
+      throw new NotFoundError('songId 1 not found')
+    })
+    const { ctx } = makeCtx({ isAdmin: true }, { songId: '1' }, { artist: 'A', title: 'T' })
+
+    await expect(handleUpdateSong(ctx)).rejects.toMatchObject({ status: 404 })
+  })
 })
 
 describe('handleDeleteSong', () => {

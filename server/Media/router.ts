@@ -126,7 +126,16 @@ router.all('/:mediaId/prefer', (ctx) => {
     ctx.throw(422)
   }
 
-  const songId = Media.setPreferred(mediaId, ctx.request.method === 'PUT')
+  let songId: number
+
+  try {
+    songId = Media.setPreferred(mediaId, ctx.request.method === 'PUT')
+  } catch (err) {
+    if (err instanceof NotFoundError) ctx.throw(404, err.message)
+    if (err instanceof ValidationError) ctx.throw(422, err.message)
+    throw err
+  }
+
   ctx.status = 200
 
   // emit (potentially) updated queues to each room

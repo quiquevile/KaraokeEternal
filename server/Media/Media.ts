@@ -2,6 +2,7 @@ import sql from 'sqlate'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import Queue from '../Queue/Queue.js'
+import { NotFoundError, ValidationError } from '../lib/Errors.js'
 
 const log = getLogger('Media')
 
@@ -50,7 +51,7 @@ class Media {
       || !Number.isInteger(media.duration)
       || !Number.isInteger(media.pathId)
       || !media.relPath
-    ) throw new Error('invalid media data: ' + JSON.stringify(media))
+    ) throw new ValidationError('invalid media data: ' + JSON.stringify(media))
 
     // currently uses an Object instead of Map
     const query = sql`
@@ -73,7 +74,7 @@ class Media {
     const { mediaId } = media
 
     if (!Number.isInteger(mediaId)) {
-      throw new Error(`invalid mediaId: ${mediaId}`)
+      throw new ValidationError(`invalid mediaId: ${mediaId}`)
     }
 
     // currently uses an Object instead of Map
@@ -154,14 +155,14 @@ class Media {
    */
   static setPreferred (mediaId: number, isPreferred: boolean): number {
     if (!Number.isInteger(mediaId) || typeof isPreferred !== 'boolean') {
-      throw new Error('invalid mediaId or value')
+      throw new ValidationError('invalid mediaId or value')
     }
 
     // get songId
     const res = Media.search({ mediaId })
 
     if (!res.result.length) {
-      throw new Error(`mediaId not found: ${mediaId}`)
+      throw new NotFoundError(`mediaId not found: ${mediaId}`)
     }
 
     const songId = res.entities[mediaId].songId

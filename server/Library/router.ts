@@ -16,7 +16,7 @@ router.get('/song/:songId', async (ctx) => {
   const songId = parseInt(ctx.params.songId, 10)
 
   if (Number.isNaN(songId)) {
-    ctx.throw(401, 'Invalid songId')
+    ctx.throw(422, 'Invalid songId')
   }
 
   const res = Media.search({ songId })
@@ -47,6 +47,7 @@ export async function handleUpdateSong (ctx) {
     Library.updateSong(songId, { artist, title, ...deriveNorms(artist, title) })
   } catch (err) {
     if (err instanceof ConflictError) ctx.throw(409, err.message)
+    if (err instanceof NotFoundError) ctx.throw(404, err.message)
     if (err instanceof ValidationError) ctx.throw(422, err.message)
     throw err
   }

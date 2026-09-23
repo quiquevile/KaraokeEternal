@@ -141,11 +141,14 @@ describe('Library.updateSong', () => {
     expect(existsSync(abs('set1', 'Roxette - Clash.mp3'))).toBe(true)
   })
 
-  it('throws ValidationError for empty artist/title, unknown songId and NaN', () => {
+  it('throws ValidationError for empty artist/title and NaN', () => {
     expect(() => Library.updateSong(1, norms('', 'Title'))).toThrowError(ValidationError)
     expect(() => Library.updateSong(1, norms('ABBA', '  '))).toThrowError(ValidationError)
-    expect(() => Library.updateSong(999, norms('ABBA', 'Title'))).toThrowError(ValidationError)
     expect(() => Library.updateSong(Number.NaN, norms('ABBA', 'Title'))).toThrowError(ValidationError)
+  })
+
+  it('throws NotFoundError for unknown songIds', () => {
+    expect(() => Library.updateSong(999, norms('ABBA', 'Title'))).toThrowError(NotFoundError)
   })
 
   it('invalidates the library cache and getSong reflects the change', () => {

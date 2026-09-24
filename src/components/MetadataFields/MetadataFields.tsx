@@ -32,7 +32,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
       </label>
 
       <Button
-        icon='SWAP_HORIZONTAL'
+        icon='SWAP_VERT'
         size={24}
         variant='default'
         className={styles.swap}

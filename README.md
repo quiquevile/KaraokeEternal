@@ -20,11 +20,13 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 
 ### Permissions
 - Granular per-user capabilities instead of a single admin-or-not model: delete/move/restart queue songs, open the player, control playback and download from YouTube (e.g. a download-only user profile).
+- Player access alone lets a user start playback (projection use case), without playback controls.
 - Room admins and a managed account editor with roles and a permissions dialog.
 
 ### Player
 - Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported).
 - Replay/restart button in the top playback bar.
+- Automatic loudness leveling of untagged files (measured on download/scan) plus manual per-version trim (admin), applied via the existing ReplayGain setting. Note: the first rescan of a large library can take much longer than usual.
 
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.

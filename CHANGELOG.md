@@ -16,12 +16,20 @@
 ### Permissions
 
 - Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor
+- Users with player access can start playback (projection use case) without playback controls
 - Closed privilege-escalation paths around permission editing and player control
 
 ### Player
 
 - Live pitch control in semitones, replay/restart button, and automatic advance when the playing item disappears
+- Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted
+
+### Loudness leveling
+
+- Files without loudness tags are measured with ffmpeg on download and on scan (only when nothing is stored yet), so the existing ReplayGain setting levels them too
+- Per-version gain can be adjusted manually from Song Info (admin); manual values always prevail and are never re-measured
+- Note: the first rescan of a large library can take much longer than usual, once per file
 
 ### Queue and rooms
 

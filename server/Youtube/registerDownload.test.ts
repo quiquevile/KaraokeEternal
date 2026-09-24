@@ -80,10 +80,11 @@ describe('registerDownload', () => {
     vi.clearAllMocks()
     vi.mocked(Media.search).mockReturnValue({ result: [], entities: {} })
     vi.mocked(Library.matchSong).mockReturnValue({ songId: 1, artistId: 2 })
-    vi.mocked(execFile).mockImplementation((_bin, _args, cb) => {
-      (cb as (err: Error | null, stdout: string) => void)(null, '240.4\n')
+    vi.mocked(execFile).mockImplementation(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
+      const callback = (typeof options === 'function' ? options : cb) as (err: Error | null, stdout: string, stderr: string) => void
+      callback(null, bin === 'ffmpeg' ? '' : '240.4\n', '')
       return undefined as never
-    })
+    }) as typeof execFile)
   })
 
   it('matches the song, probes duration and registers the media', async () => {
@@ -107,14 +108,34 @@ describe('registerDownload', () => {
   })
 
   it('registers with duration 0 when ffprobe fails', async () => {
-    vi.mocked(execFile).mockImplementation((_bin, _args, cb) => {
-      (cb as (err: Error | null, stdout: string) => void)(new Error('no ffprobe'), '')
+    vi.mocked(execFile).mockImplementation(((_bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
+      const callback = (typeof options === 'function' ? options : cb) as (err: Error | null, stdout: string, stderr: string) => void
+      callback(new Error('no ffprobe'), '', '')
       return undefined as never
-    })
+    }) as typeof execFile)
 
     await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
 
     expect(Media.add).toHaveBeenCalledWith(expect.objectContaining({ duration: 0 }))
+  })
+
+  it('stores measured loudness so the player can level the download', async () => {
+    vi.mocked(execFile).mockImplementation(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
+      const callback = (typeof options === 'function' ? options : cb) as (err: Error | null, stdout: string, stderr: string) => void
+      if (bin === 'ffmpeg') {
+        callback(null, '', '{\n"measured_I" : "-16.42",\n"measured_TP" : "-1.50"\n}')
+      } else {
+        callback(null, '240.4\n', '')
+      }
+      return undefined as never
+    }) as typeof execFile)
+
+    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
+
+    expect(Media.add).toHaveBeenCalledWith(expect.objectContaining({
+      rgTrackGain: 2.4,
+      rgTrackPeak: expect.closeTo(Math.pow(10, -1.5 / 20), 5),
+    }))
   })
 
   it('throws when the downloaded file is missing', async () => {

@@ -12,6 +12,7 @@ import {
   SONG_INFO_DELETE,
   SONG_INFO_FETCH_MEDIA,
   SONG_INFO_DELETE_MEDIA,
+  SONG_INFO_SET_MEDIA_GAIN,
 } from 'shared/actionTypes'
 import { Media } from 'shared/types'
 
@@ -54,6 +55,16 @@ export const deleteMedia = createAsyncThunk(
     }
 
     thunkAPI.dispatch(closeDeleteSong())
+  },
+)
+
+export const setMediaGain = createAsyncThunk(
+  SONG_INFO_SET_MEDIA_GAIN,
+  async ({ songId, mediaId, rgTrackGain }: { songId: number, mediaId: number, rgTrackGain: number }, thunkAPI) => {
+    await api.put(`media/${mediaId}`, {
+      body: { rgTrackGain },
+    })
+    thunkAPI.dispatch(showSongInfo(songId))
   },
 )
 

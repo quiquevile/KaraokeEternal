@@ -24,6 +24,7 @@ vi.mock('../Media/Media.js', () => ({
   default: {
     search: vi.fn(),
     setPreferred: vi.fn(),
+    update: vi.fn(),
   },
 }))
 
@@ -289,5 +290,64 @@ describe('Media prefer flag', () => {
     const ctx = preferCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 422 })
+  })
+})
+
+describe('Media loudness gain', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const gainCtx = (user: object, body: object = { rgTrackGain: 2.5 }) => ({
+    ...makeCtx(user),
+    method: 'PUT',
+    path: '/api/media/123',
+    request: { method: 'PUT', body },
+    io: { emit: vi.fn(), to: vi.fn(() => ({ emit: vi.fn() })) },
+  })
+
+  it('updates the gain rescaling the peak (admin)', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { mediaId: 123, rgTrackGain: 0, rgTrackPeak: 0.5 } },
+    })
+    const ctx = gainCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(Media.update).toHaveBeenCalledWith(expect.objectContaining({
+      mediaId: 123,
+      rgTrackGain: 2.5,
+      rgTrackPeak: expect.closeTo(0.5 * Math.pow(10, 2.5 / 20), 5),
+    }))
+    expect(ctx.status).toBe(200)
+    expect(ctx.body).toEqual({ mediaId: 123, rgTrackGain: 2.5 })
+  })
+
+  it('rejects non-admins with 401', async () => {
+    const ctx = gainCtx({ isAdmin: false })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+    expect(Media.update).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid mediaIds and gains with 422', async () => {
+    const badId = { ...gainCtx({ isAdmin: true }), path: '/api/media/abc' }
+    await expect(dispatch(badId, () => {})).rejects.toMatchObject({ status: 422 })
+
+    const badGain = gainCtx({ isAdmin: true }, { rgTrackGain: 99 })
+    await expect(dispatch(badGain, () => {})).rejects.toMatchObject({ status: 422 })
+
+    const missingGain = gainCtx({ isAdmin: true }, {})
+    await expect(dispatch(missingGain, () => {})).rejects.toMatchObject({ status: 422 })
+
+    expect(Media.update).not.toHaveBeenCalled()
+  })
+
+  it('maps unknown media to 404', async () => {
+    vi.mocked(Media.search).mockReturnValue({ result: [], entities: {} })
+    const ctx = gainCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+    expect(Media.update).not.toHaveBeenCalled()
   })
 })

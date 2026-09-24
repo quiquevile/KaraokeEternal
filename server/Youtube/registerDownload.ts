@@ -5,6 +5,7 @@ import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import getLogger from '../lib/Log.js'
+import { measureLoudness } from '../lib/loudness.js'
 import { getErrorMessage } from '../lib/util.js'
 import type { DownloadJob } from './downloadManager.js'
 
@@ -78,6 +79,20 @@ export default async function registerDownload (options: { job: DownloadJob, io:
     log.warn('could not probe duration of %s: %s', filePath, getErrorMessage(err))
   }
 
+  // downloads never carry replaygain tags: measure loudness so the
+  // player can level them like tagged files
+  let rgTrackGain: number | null = null
+  let rgTrackPeak: number | null = null
+
+  const loudness = await measureLoudness(filePath)
+
+  if (loudness) {
+    rgTrackGain = loudness.gainDb
+    rgTrackPeak = loudness.peakRatio
+  } else {
+    log.warn('could not measure loudness of %s', filePath)
+  }
+
   const match = Library.matchSong({
     artist: job.artist,
     artistNorm: job.artistNorm,
@@ -101,6 +116,8 @@ export default async function registerDownload (options: { job: DownloadJob, io:
     duration,
     pathId: job.pathId,
     relPath,
+    rgTrackGain,
+    rgTrackPeak,
     dateAdded: Math.round(Date.now() / 1000),
   })
 

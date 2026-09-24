@@ -7,6 +7,7 @@ import { getExt } from '../../lib/util.js'
 import getFiles from './getFiles.js'
 import getConfig from './getConfig.js'
 import getCdgName from '../../lib/getCdgName.js'
+import { measureLoudness } from '../../lib/loudness.js'
 import Media from '../../Media/Media.js'
 import MetaParser from '../MetaParser/MetaParser.js'
 import Scanner from '../Scanner.js'
@@ -158,8 +159,25 @@ class FileScanner extends Scanner {
 
     log.verbose('  => %s db result(s)', res.result.length)
 
-    if (res.result.length) {
-      const row = res.entities[res.result[0]]
+    const row = res.result.length ? res.entities[res.result[0]] : null
+
+    // no replaygain tags: keep stored values (measured or manually
+    // adjusted, never re-measured), or measure once when missing
+    if (media.rgTrackGain == null) {
+      if (row?.rgTrackGain != null) {
+        media.rgTrackGain = row.rgTrackGain
+        media.rgTrackPeak = row.rgTrackPeak
+      } else {
+        const loudness = await measureLoudness(file)
+
+        if (loudness) {
+          media.rgTrackGain = loudness.gainDb
+          media.rgTrackPeak = loudness.peakRatio
+        }
+      }
+    }
+
+    if (row) {
       const diff = {}
 
       // did anything change?

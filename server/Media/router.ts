@@ -104,6 +104,54 @@ export async function handleDeleteMedia (ctx) {
 
 router.delete('/:mediaId', handleDeleteMedia)
 
+// adjust a version's loudness gain in dB (admin only); the peak is
+// rescaled by the same delta so clip-safe playback stays correct
+export async function handleUpdateMedia (ctx) {
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401)
+  }
+
+  const mediaId = parseInt(ctx.params.mediaId, 10)
+
+  if (Number.isNaN(mediaId)) {
+    ctx.throw(422, 'Invalid mediaId')
+  }
+
+  const rgTrackGain = Number(ctx.request.body?.rgTrackGain)
+
+  if (!Number.isFinite(rgTrackGain) || Math.abs(rgTrackGain) > 24) {
+    ctx.throw(422, 'rgTrackGain must be a number within ±24 dB')
+  }
+
+  const found = Media.search({ mediaId })
+
+  if (!found.result.length) {
+    ctx.throw(404, `mediaId ${mediaId} not found`)
+  }
+
+  const current = found.entities[mediaId]
+  const oldGain = current.rgTrackGain
+  const oldPeak = current.rgTrackPeak
+  const rgTrackPeak = typeof oldGain === 'number' && typeof oldPeak === 'number'
+    ? oldPeak * Math.pow(10, (rgTrackGain - oldGain) / 20)
+    : (typeof oldPeak === 'number' ? oldPeak : undefined)
+
+  Media.update({
+    mediaId,
+    rgTrackGain,
+    ...(Number.isFinite(rgTrackPeak) ? { rgTrackPeak } : {}),
+    dateUpdated: Math.round(Date.now() / 1000),
+  })
+
+  ctx.status = 200
+  ctx.body = { mediaId, rgTrackGain }
+
+  // push the full library and queues so every client (and player) updates
+  pushQueuesAndLibrary(ctx.io)
+}
+
+router.put('/:mediaId', handleUpdateMedia)
+
 // set isPreferred flag
 router.all('/:mediaId/prefer', (ctx) => {
   requireAdmin(ctx)

@@ -105,7 +105,8 @@ export async function handleDeleteMedia (ctx) {
 router.delete('/:mediaId', handleDeleteMedia)
 
 // adjust a version's loudness gain in dB (admin only); the peak is
-// rescaled by the same delta so clip-safe playback stays correct
+// rescaled by the same delta so clip-safe playback stays correct.
+// A null gain clears both columns so the next scan measures again.
 export async function handleUpdateMedia (ctx) {
   if (!ctx.user.isAdmin) {
     ctx.throw(401)
@@ -117,9 +118,10 @@ export async function handleUpdateMedia (ctx) {
     ctx.throw(422, 'Invalid mediaId')
   }
 
-  const rgTrackGain = Number(ctx.request.body?.rgTrackGain)
+  const rawGain = ctx.request.body?.rgTrackGain
+  const rgTrackGain = rawGain === null ? null : Number(rawGain)
 
-  if (!Number.isFinite(rgTrackGain) || Math.abs(rgTrackGain) > 24) {
+  if (rgTrackGain !== null && (!Number.isFinite(rgTrackGain) || Math.abs(rgTrackGain) > 24)) {
     ctx.throw(422, 'rgTrackGain must be a number within ±24 dB')
   }
 
@@ -132,14 +134,16 @@ export async function handleUpdateMedia (ctx) {
   const current = found.entities[mediaId]
   const oldGain = current.rgTrackGain
   const oldPeak = current.rgTrackPeak
-  const rgTrackPeak = typeof oldGain === 'number' && typeof oldPeak === 'number'
-    ? oldPeak * Math.pow(10, (rgTrackGain - oldGain) / 20)
-    : (typeof oldPeak === 'number' ? oldPeak : undefined)
+  const rgTrackPeak = rgTrackGain === null
+    ? null
+    : (typeof oldGain === 'number' && typeof oldPeak === 'number'
+        ? oldPeak * Math.pow(10, (rgTrackGain - oldGain) / 20)
+        : (typeof oldPeak === 'number' ? oldPeak : undefined))
 
   Media.update({
     mediaId,
     rgTrackGain,
-    ...(Number.isFinite(rgTrackPeak) ? { rgTrackPeak } : {}),
+    ...(rgTrackPeak === undefined ? {} : { rgTrackPeak }),
     dateUpdated: Math.round(Date.now() / 1000),
   })
 

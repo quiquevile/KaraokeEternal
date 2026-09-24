@@ -3,21 +3,18 @@
   align-items: center;
   gap: var(--space-m);
   padding: var(--space-s) 0;
+  cursor: pointer;
 }
 
 .thumbnailButton {
   position: relative;
   flex: 0 0 auto;
-  padding: 0;
   border: none;
   border-radius: var(--border-radius);
   background: transparent;
   overflow: hidden;
   cursor: pointer;
-
-  &:focus-visible {
-    outline: var(--focus-outline);
-  }
+  padding: 0;
 }
 
 .thumbnail {
@@ -34,7 +31,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   color: #fff;
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.8));
+  pointer-events: none;
 }
 
 .info {
@@ -44,29 +42,27 @@
 }
 
 .title {
-  font-size: var(--font-size-m);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--color-gray-9);
+  font-size: 1.25rem;
 }
 
-.meta {
-  color: var(--color-gray-5);
+.artist {
+  color: var(--color-gray-7);
+  font-size: 1.125rem;
+}
+
+.user {
   font-size: var(--font-size-s);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--color-gray-5);
+  margin-bottom: 0.25rem;
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.actions button {
-  width: auto;
-  padding: var(--space-s);
-  border-radius: var(--border-radius);
-}
-
-.actions .download {
-  padding: var(--space-s) var(--space-l);
+.title,
+.artist {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }

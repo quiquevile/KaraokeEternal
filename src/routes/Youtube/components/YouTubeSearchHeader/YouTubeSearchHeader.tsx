@@ -21,6 +21,7 @@ const parseVideoId = (value: string): string | null => {
 const YouTubeSearchHeader = () => {
   const query = useAppSelector(state => state.youtube.query)
   const isSearching = useAppSelector(state => state.youtube.isSearching)
+  const hasResults = useAppSelector(state => state.youtube.results.length > 0)
   const dispatch = useAppDispatch()
 
   const searchInput = useRef<HTMLInputElement>(null)
@@ -34,11 +35,6 @@ const YouTubeSearchHeader = () => {
   const clearSearch = () => {
     setValue('')
     dispatch(clearYoutubeResults())
-  }
-
-  const handleMagnifierClick = () => {
-    if (value.trim()) clearSearch()
-    else searchInput.current?.focus()
   }
 
   const handleSearch = async () => {
@@ -64,44 +60,45 @@ const YouTubeSearchHeader = () => {
     }
   }
 
+  const handleMagnifierClick = () => {
+    if (isSearching) return
+
+    // with results on screen the magnifier clears, like the old X did
+    if (hasResults) {
+      clearSearch()
+
+      return
+    }
+
+    handleSearch()
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') handleSearch()
   }
 
   return (
     <div className={styles.container}>
-      <Button
-        className={clsx(styles.btnMagnifier, query.trim() && styles.active)}
-        icon='MAGNIFIER'
-        onClick={handleMagnifierClick}
-        aria-label='Clear search'
-      />
       <input
         type='search'
         className={styles.searchInput}
-        placeholder='search'
+        placeholder='search / YouTube URL'
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         ref={searchInput}
       />
-      {query.trim()
-        && (
-          <Button
-            icon='CLEAR'
-            onClick={clearSearch}
-            className={clsx(styles.btnClear, styles.active)}
-            aria-label='Clear search'
-          />
-        )}
       <Button
-        variant='primary'
-        className={styles.btnSearch}
-        onClick={handleSearch}
-        disabled={isSearching || !value.trim()}
-      >
-        {isSearching ? 'Searching...' : 'Search'}
-      </Button>
+        className={clsx(
+          styles.btnMagnifier,
+          hasResults && !isSearching && styles.active,
+          isSearching && styles.searching,
+        )}
+        icon='MAGNIFIER'
+        onClick={handleMagnifierClick}
+        disabled={isSearching || (!value.trim() && !hasResults)}
+        aria-label={hasResults && !isSearching ? 'Clear search' : 'Search'}
+      />
     </div>
   )
 }

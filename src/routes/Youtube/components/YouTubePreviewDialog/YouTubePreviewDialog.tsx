@@ -24,15 +24,32 @@ const YouTubePreviewDialog = () => {
       onClose={handleClose}
       title='Preview'
       buttons={(
-        <Button variant='primary' onClick={handleDownload}>
-          Download
-        </Button>
+        <div className={styles.btnContainer}>
+          <Button
+            variant='default'
+            onClick={handleClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant='primary'
+            onClick={handleDownload}
+          >
+            Download
+          </Button>
+        </div>
       )}
     >
       {preview
         && (
           <div className={styles.container}>
-            <video className={styles.video} src={preview.streamUrl} controls autoPlay />
+            {preview.streamUrl
+              ? (
+                  <video className={styles.video} src={preview.streamUrl} controls autoPlay />
+                )
+              : (
+                  <div className={styles.loading} aria-label='Loading preview' />
+                )}
           </div>
         )}
     </Modal>

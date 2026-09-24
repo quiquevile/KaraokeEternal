@@ -31,18 +31,24 @@
   height: 2.5rem;
 }
 
-.btnClear {
-  height: 2.75rem;
-
-  svg {
-    height: 3rem;
-  }
+.btnMagnifier.searching {
+  animation: searching-pulse 1s ease-in-out infinite;
 }
 
-.btnSearch {
-  flex: 0 0 auto;
-  margin-right: var(--space-s);
-  width: auto;
-  padding: var(--space-s) var(--space-m);
-  white-space: nowrap;
+@keyframes searching-pulse {
+  0% {
+    color: var(--btn-bg-color);
+    transform: scale(1);
+  }
+
+  50% {
+    color: var(--btn-active-bg-color);
+    filter: var(--btn-active-filter);
+    transform: scale(1.15);
+  }
+
+  100% {
+    color: var(--btn-bg-color);
+    transform: scale(1);
+  }
 }

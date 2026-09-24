@@ -1,20 +1,28 @@
 import React from 'react'
 import { useAppDispatch } from 'store/hooks'
-import Button from 'components/Button/Button'
-import Icon from 'components/Icon/Icon'
 import { openPreview, selectYoutubeResult } from 'store/modules/youtube'
 import type { YouTubeResult } from 'store/modules/youtube'
+import Icon from 'components/Icon/Icon'
 import styles from './YouTubeSearchResult.css'
 
 const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
   const dispatch = useAppDispatch()
 
+  const handlePreview = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    dispatch(openPreview(item))
+  }
+
+  const handleDownload = () => {
+    dispatch(selectYoutubeResult(item))
+  }
+
   return (
-    <li className={styles.container}>
+    <li className={styles.container} onClick={handleDownload}>
       <button
         type='button'
         className={styles.thumbnailButton}
-        onClick={() => dispatch(openPreview(item))}
+        onClick={handlePreview}
         aria-label='Preview'
       >
         <img className={styles.thumbnail} src={item.thumbnail} alt='' />
@@ -23,24 +31,8 @@ const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
 
       <div className={styles.info}>
         <div className={styles.title}>{item.title}</div>
-        <div className={styles.meta}>
-          {item.artist}
-          {' '}
-          ·
-          {' '}
-          {item.durationLabel}
-        </div>
-      </div>
-
-      <div className={styles.actions}>
-        <Button
-          icon='DOWNLOAD'
-          size={24}
-          variant='primary'
-          className={styles.download}
-          onClick={() => dispatch(selectYoutubeResult(item))}
-          aria-label='Download'
-        />
+        <div className={styles.artist}>{item.artist}</div>
+        <div className={styles.user}>{item.durationLabel}</div>
       </div>
     </li>
   )

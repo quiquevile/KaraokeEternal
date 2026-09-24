@@ -5,6 +5,7 @@ import { formatDateTime } from 'lib/dateTime'
 import Panel from 'components/Panel/Panel'
 import Button from 'components/Button/Button'
 import EditUser from './EditUser/EditUser'
+import UserRow from './UserRow'
 import getUsers from '../../selectors/getUsers'
 import styles from './Users.css'
 
@@ -37,9 +38,9 @@ const Users = () => {
   const rows = users.result.map((userId) => {
     const user = users.entities[userId]
 
-    return (
-      <tr key={userId}>
-        {userId === curUserId && (
+    if (userId === curUserId) {
+      return (
+        <tr key={userId}>
           <td translate='no'>
             <strong>{user.username}</strong>
             {' '}
@@ -47,18 +48,17 @@ const Users = () => {
             {user.name}
             )
           </td>
-        )}
-        {userId !== curUserId && (
-          <td>
-            <a data-user-id={userId} onClick={handleOpen}>{user.username}</a>
-            {' '}
-            (
-            {user.name}
-            )
-          </td>
-        )}
-        <td>{user.role}</td>
-        <td>{formatDateTime(new Date(user.dateCreated * 1000))}</td>
+          <td>{user.role}</td>
+          <td>{formatDateTime(new Date(user.dateCreated * 1000))}</td>
+        </tr>
+      )
+    }
+
+    return (
+      <tr key={userId}>
+        <td colSpan={3}>
+          <UserRow key={`${userId}-${user.dateUpdated}`} user={user} />
+        </td>
       </tr>
     )
   })

@@ -164,7 +164,7 @@ interface YouTubeState {
   error: string | null
   isSearching: boolean
   metadata: ConvertedMetadata | null
-  preview: { streamUrl: string, item: YouTubeResult } | null
+  preview: { streamUrl: string | null, item: YouTubeResult } | null
   query: string
   results: YouTubeResult[]
   selected: YouTubeResult | null
@@ -247,16 +247,25 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       ...state,
       metadata: payload,
     }))
-    .addCase(openPreview.fulfilled, (state, { payload }) => ({
+    .addCase(openPreview.pending, (state, { meta }) => ({
       ...state,
       error: null,
-      preview: payload,
+      preview: { item: meta.arg, streamUrl: null },
     }))
-    .addCase(openPreview.rejected, (state, action) => ({
-      ...state,
-      error: action.error.message ?? 'could not resolve stream',
-      preview: null,
-    }))
+    .addCase(openPreview.fulfilled, (state, { payload }) => {
+      // a newer preview (or none) may have taken over meanwhile
+      if (state.preview?.item.id !== payload.item.id) return
+
+      state.error = null
+      state.preview = payload
+    })
+    .addCase(openPreview.rejected, (state, action) => {
+      // ignore stale failures after close or a newer preview
+      if (state.preview?.item.id !== action.meta.arg.id) return
+
+      state.error = action.error.message ?? 'could not resolve stream'
+      state.preview = null
+    })
     .addCase(downloadVideo.fulfilled, state => ({
       ...state,
       metadata: null,

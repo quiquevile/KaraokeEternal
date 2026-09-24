@@ -350,4 +350,20 @@ describe('Media loudness gain', () => {
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
     expect(Media.update).not.toHaveBeenCalled()
   })
+
+  it('clears gain and peak on null (re-measured on next scan)', async () => {
+    vi.mocked(Media.search).mockReturnValue({
+      result: [123],
+      entities: { 123: { mediaId: 123, rgTrackGain: 2.5, rgTrackPeak: 0.5 } },
+    })
+    const ctx = gainCtx({ isAdmin: true }, { rgTrackGain: null })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(Media.update).toHaveBeenCalledWith(expect.objectContaining({
+      mediaId: 123,
+      rgTrackGain: null,
+      rgTrackPeak: null,
+    }))
+    expect(ctx.body).toEqual({ mediaId: 123, rgTrackGain: null })
+  })
 })

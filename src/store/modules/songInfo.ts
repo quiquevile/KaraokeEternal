@@ -60,7 +60,7 @@ export const deleteMedia = createAsyncThunk(
 
 export const setMediaGain = createAsyncThunk(
   SONG_INFO_SET_MEDIA_GAIN,
-  async ({ songId, mediaId, rgTrackGain }: { songId: number, mediaId: number, rgTrackGain: number }, thunkAPI) => {
+  async ({ songId, mediaId, rgTrackGain }: { songId: number, mediaId: number, rgTrackGain: number | null }, thunkAPI) => {
     await api.put(`media/${mediaId}`, {
       body: { rgTrackGain },
     })

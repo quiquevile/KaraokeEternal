@@ -23,6 +23,8 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
     }
   }
 
+  const handleClose = () => dispatch(closeYoutubeDialog())
+
   const handleDownload = () => {
     if (!artist.value.trim() || !title.value.trim()) return
 
@@ -37,18 +39,24 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   return (
     <>
       <p className={styles.hint}>
-        The track is downloaded into your media folder and added to the library automatically.
+        Check artist and title
       </p>
 
       <MetadataFields artist={artist} title={title} />
 
       <div className={styles.buttons}>
         <Button
+          variant='default'
+          onClick={handleClose}
+        >
+          Cancel
+        </Button>
+        <Button
           variant='primary'
           onClick={handleDownload}
           disabled={!artist.value.trim() || !title.value.trim()}
         >
-          Download
+          Save
         </Button>
       </div>
     </>
@@ -69,7 +77,7 @@ const YouTubeMetadataDialog = () => {
   const handleClose = () => dispatch(closeYoutubeDialog())
 
   return (
-    <Modal visible={!!selected} onClose={handleClose} title='Download from YouTube'>
+    <Modal visible={!!selected} onClose={handleClose} title='Download song'>
       {selected
         && <MetadataForm key={selected.id} selected={selected} metadata={metadata} />}
     </Modal>

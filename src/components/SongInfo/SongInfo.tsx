@@ -14,9 +14,14 @@ const SongInfo = () => {
   const handleCloseSongInfo = () => dispatch(closeSongInfo())
   const handlePrefer = (mediaId: number) => dispatch(setPreferredSong({ songId, mediaId, isPreferred: true }))
   const handleRemovePrefer = (mediaId: number) => dispatch(setPreferredSong({ songId, mediaId, isPreferred: false }))
-  const handleGain = (mediaId: number, rgTrackGain: number) => {
-    const clamped = Math.min(24, Math.max(-24, Math.round(rgTrackGain * 2) / 2))
-    dispatch(setMediaGain({ songId, mediaId, rgTrackGain: clamped }))
+  const handleGain = (mediaId: number, rgTrackGain: number | null) => {
+    if (rgTrackGain === null) {
+      if (!confirm('Clear the level? It will be measured again on the next scan.')) return
+    } else {
+      rgTrackGain = Math.min(24, Math.max(-24, Math.round(rgTrackGain * 2) / 2))
+    }
+
+    dispatch(setMediaGain({ songId, mediaId, rgTrackGain }))
   }
 
   const mediaDetails = media.result.map((mediaId) => {
@@ -37,11 +42,17 @@ const SongInfo = () => {
         <span className={styles.label}>Level: </span>
         {gain === null ? '—' : `${gain > 0 ? '+' : ''}${gain.toFixed(1)} dB`}
         {isAdmin && (
-          <span>
+          <span className={styles.stepper}>
             {' '}
             <a onClick={() => handleGain(mediaId, (gain ?? 0) - 0.5)}>(−)</a>
             {' '}
             <a onClick={() => handleGain(mediaId, (gain ?? 0) + 0.5)}>(+)</a>
+            {gain !== null && (
+              <>
+                {' '}
+                <a onClick={() => handleGain(mediaId, null)}>(reset)</a>
+              </>
+            )}
           </span>
         )}
         <br />

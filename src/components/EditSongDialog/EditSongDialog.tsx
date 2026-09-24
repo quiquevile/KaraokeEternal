@@ -20,6 +20,8 @@ const EditSongForm = ({
   const title = useCaseField(initialTitle)
   const dispatch = useAppDispatch()
 
+  const handleClose = () => dispatch(closeSongEditor())
+
   const handleSave = () => {
     if (!artist.value.trim() || !title.value.trim()) return
 
@@ -33,12 +35,18 @@ const EditSongForm = ({
   return (
     <>
       <p className={styles.hint}>
-        Changes apply to the library and every queue immediately.
+        Check artist and title
       </p>
 
       <MetadataFields artist={artist} title={title} />
 
       <div className={styles.buttons}>
+        <Button
+          variant='default'
+          onClick={handleClose}
+        >
+          Cancel
+        </Button>
         <Button
           variant='primary'
           onClick={handleSave}

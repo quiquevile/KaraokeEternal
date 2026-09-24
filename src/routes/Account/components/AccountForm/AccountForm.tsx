@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
+import Accordion from 'components/Accordion/Accordion'
 import Button from 'components/Button/Button'
 import InputImage from 'components/InputImage/InputImage'
-import PermissionsDialog from './PermissionsDialog'
 import { PERMISSIONS } from './permissions'
 import { Permission, UserWithRole } from 'shared/types'
 import styles from './AccountForm.css'
@@ -40,7 +40,6 @@ const AccountForm = ({
     perms: Object.fromEntries(
       PERMISSIONS.filter(p => user?.permissions?.[p.value]).map(p => [p.value, true]),
     ) as Record<string, boolean>,
-    permsOpen: false,
   })
 
   const prevIsDirty = useRef(state.isDirty)
@@ -196,21 +195,26 @@ const AccountForm = ({
       )}
 
       {showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && (
-        <>
-          <Button
-            className={styles.permsBtn}
-            onClick={() => setState(prev => ({ ...prev, permsOpen: true }))}
-            aria-haspopup='dialog'
-          >
-            Permissions
-          </Button>
-          <PermissionsDialog
-            visible={state.permsOpen}
-            perms={state.perms}
-            onToggle={handleTogglePerm}
-            onClose={() => setState(prev => ({ ...prev, permsOpen: false }))}
-          />
-        </>
+        <Accordion
+          headingComponent={(
+            <div className={styles.permsHeading}>Permissions</div>
+          )}
+        >
+          <div className={styles.permsList}>
+            {PERMISSIONS.map(p => (
+              <Button
+                key={p.value}
+                variant={state.perms[p.value] ? 'primary' : undefined}
+                className={state.perms[p.value] ? styles.permOn : styles.permOff}
+                onClick={() => handleTogglePerm(p.value)}
+                aria-pressed={!!state.perms[p.value]}
+                aria-label={p.label}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
+        </Accordion>
       )}
 
       {children}

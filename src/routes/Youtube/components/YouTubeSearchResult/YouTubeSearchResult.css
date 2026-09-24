@@ -19,8 +19,8 @@
 
 .thumbnail {
   display: block;
-  width: 160px;
-  height: 90px;
+  width: 128px;
+  height: 72px;
   object-fit: cover;
   border-radius: var(--border-radius);
 }

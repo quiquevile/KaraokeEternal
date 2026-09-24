@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Accordion from 'components/Accordion/Accordion'
-import Button from 'components/Button/Button'
+import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import InputImage from 'components/InputImage/InputImage'
 import { PERMISSIONS } from './permissions'
 import { Permission, UserWithRole } from 'shared/types'
@@ -197,21 +197,19 @@ const AccountForm = ({
       {showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && (
         <Accordion
           headingComponent={(
-            <div className={styles.permsHeading}>Permissions</div>
+            <div className={styles.permsHeading}>
+              <div className={styles.permsTitle}>Permissions</div>
+            </div>
           )}
         >
-          <div className={styles.permsList}>
+          <div className={styles.permsContent}>
             {PERMISSIONS.map(p => (
-              <Button
+              <InputCheckbox
                 key={p.value}
-                variant={state.perms[p.value] ? 'primary' : undefined}
-                className={state.perms[p.value] ? styles.permOn : styles.permOff}
-                onClick={() => handleTogglePerm(p.value)}
-                aria-pressed={!!state.perms[p.value]}
-                aria-label={p.label}
-              >
-                {p.label}
-              </Button>
+                label={p.label}
+                checked={!!state.perms[p.value]}
+                onChange={() => handleTogglePerm(p.value)}
+              />
             ))}
           </div>
         </Accordion>

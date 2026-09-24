@@ -68,6 +68,10 @@ const DisplayCtrl = ({
 
   const formattedPitch = `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
 
+  // AudioWorklet needs a secure context: plain HTTP over LAN can never
+  // support pitch, while localhost and HTTPS can
+  const insecureContext = typeof window !== 'undefined' && window.isSecureContext === false
+
   const handleToggleVisualizer = () => onRequestOptions({
     visualizer: { isEnabled: !isVisualizerEnabled },
   })
@@ -203,7 +207,11 @@ const DisplayCtrl = ({
                 </Button>
               </div>
               {isPitchSupported === false && (
-                <p className={styles.unsupported}>Pitch engine unavailable in this browser</p>
+                <p className={styles.unsupported}>
+                  {insecureContext
+                    ? 'Pitch needs a secure context: use HTTPS or localhost.'
+                    : 'Pitch engine unavailable in this browser'}
+                </p>
               )}
             </fieldset>
           </div>

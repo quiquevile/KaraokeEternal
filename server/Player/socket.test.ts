@@ -67,3 +67,21 @@ describe.each(cases)('Player $req', ({ req, cmd, payload, perm }) => {
     expect(emit).not.toHaveBeenCalled()
   })
 })
+
+describe('Player PLAY with mere player access', () => {
+  it('emits play for projection-only users', () => {
+    const { sock, emit } = makeSock({ isAdmin: false, permissions: { playerAccess: true } })
+
+    handlers[PLAYER_REQ_PLAY](sock, { payload: undefined }, vi.fn())
+
+    expect(emit).toHaveBeenCalledWith('action', { type: PLAYER_CMD_PLAY })
+  })
+
+  it('keeps pause restricted to player controls', () => {
+    const { sock, emit } = makeSock({ isAdmin: false, permissions: { playerAccess: true } })
+
+    handlers[PLAYER_REQ_PAUSE](sock, { payload: undefined }, vi.fn())
+
+    expect(emit).not.toHaveBeenCalled()
+  })
+})

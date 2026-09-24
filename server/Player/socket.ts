@@ -50,7 +50,10 @@ const ACTION_HANDLERS = {
     })
   },
   [PLAYER_REQ_PLAY]: (sock) => {
-    if (!can(sock.user, 'playerControls')) return
+    // starting playback is allowed with mere player access (e.g. a
+    // projection-only user pressing the big play button); everything
+    // else still requires full player controls
+    if (!can(sock.user, 'playerAccess') && !can(sock.user, 'playerControls')) return
 
     // @todo: emit to players only
     sock.server.to(Rooms.prefix(sock.user.roomId)).emit('action', {

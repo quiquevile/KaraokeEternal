@@ -4,6 +4,7 @@ import {
   PITCH_SEMITONE_MIN,
   clampPitchSemitones,
   isPitchShiftSupported,
+  retryAsync,
 } from './pitchShift'
 
 describe('pitchShift', () => {
@@ -66,5 +67,42 @@ describe('pitchShift', () => {
         globalWindow.window = previousWindow
       }
     }
+  })
+
+  it('retries failures and returns the first success', async () => {
+    const sleeps: number[] = []
+    let calls = 0
+
+    const result = await retryAsync(async () => {
+      calls += 1
+      if (calls < 3) throw new Error(`boom ${calls}`)
+      return 'ok'
+    }, 3, [500, 2000], async (ms) => { sleeps.push(ms) })
+
+    expect(result).toBe('ok')
+    expect(calls).toBe(3)
+    expect(sleeps).toEqual([500, 2000])
+  })
+
+  it('throws the last error when attempts run out', async () => {
+    let calls = 0
+
+    await expect(retryAsync(async () => {
+      calls += 1
+      throw new Error(`boom ${calls}`)
+    }, 2, [100], async () => {})).rejects.toThrow('boom 2')
+    expect(calls).toBe(2)
+  })
+
+  it('succeeds first try without sleeping', async () => {
+    let slept = false
+    const sleep = async () => {
+      slept = true
+    }
+
+    const result = await retryAsync(async () => 'fast', 3, [500], sleep)
+
+    expect(result).toBe('fast')
+    expect(slept).toBe(false)
   })
 })

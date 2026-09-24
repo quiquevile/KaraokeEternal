@@ -2,7 +2,7 @@ import React from 'react'
 import CDGPlayer from './CDGPlayer/CDGPlayer'
 import MP4Player from './MP4Player/MP4Player'
 import MP4AlphaPlayer from './MP4Player/MP4AlphaPlayer'
-import { clampPitchSemitones, createPitchNode, setPitchNodeSemitones } from '../../lib/pitchShift'
+import { clampPitchSemitones, createPitchNode, isPitchShiftSupported, setPitchNodeSemitones } from '../../lib/pitchShift'
 import type { SoundTouchNode } from '@soundtouchjs/audio-worklet'
 import { type PlayerState } from '../../modules/player'
 import { type PlayerVisualizerState } from '../../modules/playerVisualizer'
@@ -123,7 +123,8 @@ class Player extends React.Component<PlayerProps> {
     if (!this.pitchNode) {
       try {
         this.pitchNode = await createPitchNode(audioCtx)
-      } catch {
+      } catch (err) {
+        console.error('[pitch] setup failed', err)
         this.pitchNode = null
       }
 
@@ -133,8 +134,13 @@ class Player extends React.Component<PlayerProps> {
     if (this.pitchNode) {
       this.reportPitchSupport(true)
       this.connectAudioGraph(true)
-    } else {
+    } else if (!isPitchShiftSupported()) {
+      // definitively unsupported: lock the pitch UI with a message
       this.reportPitchSupport(false)
+      this.connectAudioGraph(false)
+    } else {
+      // transient failure (e.g. slow device): stay silent so the user
+      // can retry by pressing the buttons again
       this.connectAudioGraph(false)
     }
   }

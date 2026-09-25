@@ -183,6 +183,7 @@ interface YouTubeState {
   preview: { streamUrl: string | null, item: YouTubeResult } | null
   query: string
   results: YouTubeResult[]
+  searchRequestId: string | null
   selected: YouTubeResult | null
   ytdlpVersion: string | null
   ytdlpMode: YtdlMode | null
@@ -204,6 +205,7 @@ const initialState: YouTubeState = {
   preview: null,
   query: '',
   results: [],
+  searchRequestId: null,
   selected: null,
   ytdlpVersion: null,
   ytdlpMode: null,
@@ -240,30 +242,43 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       ...state,
       error: null,
       hasSearched: false,
+      isSearching: false,
       metadata: null,
       preview: null,
       query: '',
       results: [],
+      searchRequestId: null,
       selected: null,
     }))
-    .addCase(searchYoutubeVideos.pending, state => ({
+    .addCase(searchYoutubeVideos.pending, (state, { meta }) => ({
       ...state,
       error: null,
       isSearching: true,
+      searchRequestId: meta.requestId,
     }))
-    .addCase(searchYoutubeVideos.fulfilled, (state, { payload }) => ({
-      ...state,
-      hasSearched: true,
-      isSearching: false,
-      results: payload,
-    }))
-    .addCase(searchYoutubeVideos.rejected, (state, action) => ({
-      ...state,
-      error: action.error.message ?? 'search failed',
-      hasSearched: true,
-      isSearching: false,
-      results: [],
-    }))
+    .addCase(searchYoutubeVideos.fulfilled, (state, { meta, payload }) => {
+      // ignore stale responses from cancelled or superseded searches
+      if (state.searchRequestId !== meta.requestId) return state
+
+      return {
+        ...state,
+        hasSearched: true,
+        isSearching: false,
+        results: payload,
+      }
+    })
+    .addCase(searchYoutubeVideos.rejected, (state, action) => {
+      // ignore stale failures from cancelled or superseded searches
+      if (state.searchRequestId !== action.meta.requestId) return state
+
+      return {
+        ...state,
+        error: action.error.message ?? 'search failed',
+        hasSearched: true,
+        isSearching: false,
+        results: [],
+      }
+    })
     .addCase(identifyVideo.fulfilled, (state, { payload }) => ({
       ...state,
       metadata: payload,
@@ -309,6 +324,7 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       preview: null,
       query: '',
       results: [],
+      searchRequestId: null,
       selected: null,
     }))
     .addCase(clearYoutube.fulfilled, (state, { payload }) => ({
@@ -324,6 +340,7 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       preview: null,
       query: '',
       results: [],
+      searchRequestId: null,
       selected: null,
     }))
     .addCase(removeDownload.pending, (state, { meta }) => {

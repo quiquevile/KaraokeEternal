@@ -53,10 +53,45 @@ describe('hasSearched', () => {
 
     expect(store.getState().youtube.hasSearched).toBe(false)
 
+    store.dispatch(searchYoutubeVideos.pending('req1', 'abba'))
     store.dispatch(searchYoutubeVideos.fulfilled([], 'req1', 'abba'))
     expect(store.getState().youtube.hasSearched).toBe(true)
 
     store.dispatch(clearYoutubeResults())
+    expect(store.getState().youtube.hasSearched).toBe(false)
+  })
+
+  it('ignores stale responses from cancelled searches', () => {
+    const store = makeStore()
+
+    store.dispatch(searchYoutubeVideos.pending('req1', 'abba'))
+    store.dispatch(clearYoutubeResults())
+    store.dispatch(searchYoutubeVideos.fulfilled([{ id: 'x' }], 'req1', 'abba'))
+
+    expect(store.getState().youtube.results).toEqual([])
+    expect(store.getState().youtube.hasSearched).toBe(false)
+    expect(store.getState().youtube.isSearching).toBe(false)
+  })
+
+  it('ignores stale responses from superseded searches', () => {
+    const store = makeStore()
+
+    store.dispatch(searchYoutubeVideos.pending('req1', 'abba'))
+    store.dispatch(searchYoutubeVideos.pending('req2', 'queen'))
+    store.dispatch(searchYoutubeVideos.fulfilled([{ id: 'x' }], 'req1', 'abba'))
+
+    expect(store.getState().youtube.results).toEqual([])
+    expect(store.getState().youtube.hasSearched).toBe(false)
+  })
+
+  it('ignores stale failures from cancelled searches', () => {
+    const store = makeStore()
+
+    store.dispatch(searchYoutubeVideos.pending('req1', 'abba'))
+    store.dispatch(clearYoutubeResults())
+    store.dispatch(searchYoutubeVideos.rejected(new Error('boom'), 'req1', 'abba'))
+
+    expect(store.getState().youtube.error).toBeNull()
     expect(store.getState().youtube.hasSearched).toBe(false)
   })
 })

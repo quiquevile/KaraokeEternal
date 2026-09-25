@@ -76,7 +76,7 @@ const YouTubeSearchHeader = () => {
         onKeyDown={handleKeyDown}
         ref={searchInput}
       />
-      {hasSearched && !isSearching
+      {value.trim()
         && (
           <Button
             icon='CLEAR'
@@ -88,6 +88,7 @@ const YouTubeSearchHeader = () => {
       <Button
         className={clsx(
           styles.btnMagnifier,
+          hasSearched && !isSearching && styles.active,
           isSearching && styles.searching,
         )}
         icon='MAGNIFIER'

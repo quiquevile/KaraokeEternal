@@ -40,7 +40,7 @@ describe('fetchDownloadUsers', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
 
     const store = makeStore()
-    await store.dispatch(fetchDownloadUsers())
+    await store.dispatch(fetchDownloadUsers(null))
 
     expect(store.getState().youtube.downloadUsers).toEqual([])
     expect(store.getState().youtube.error).toBeNull()

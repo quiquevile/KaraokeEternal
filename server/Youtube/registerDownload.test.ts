@@ -98,7 +98,7 @@ describe('registerDownload', () => {
       const callback = (typeof options === 'function' ? options : cb) as (err: Error | null, stdout: string, stderr: string) => void
       callback(null, bin === 'ffmpeg' ? '' : '240.4\n', '')
       return undefined as never
-    }) as typeof execFile)
+    }) as unknown as typeof execFile)
   })
 
   it('matches the song, probes duration and registers the media', async () => {
@@ -126,7 +126,7 @@ describe('registerDownload', () => {
       const callback = (typeof options === 'function' ? options : cb) as (err: Error | null, stdout: string, stderr: string) => void
       callback(new Error('no ffprobe'), '', '')
       return undefined as never
-    }) as typeof execFile)
+    }) as unknown as typeof execFile)
 
     await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
 
@@ -142,7 +142,7 @@ describe('registerDownload', () => {
         callback(null, '240.4\n', '')
       }
       return undefined as never
-    }) as typeof execFile)
+    }) as unknown as typeof execFile)
 
     await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
 

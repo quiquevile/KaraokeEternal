@@ -125,6 +125,8 @@ export interface Media {
   path: string
   relPath: string
   duration: number
+  rgTrackGain: number | null
+  rgTrackPeak: number | null
 }
 
 export interface Prefs {

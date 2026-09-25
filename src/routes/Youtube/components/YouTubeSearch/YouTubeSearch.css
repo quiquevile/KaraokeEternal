@@ -4,6 +4,12 @@
   margin: var(--space-s) 0 0;
 }
 
+.noResults {
+  color: var(--color-gray-5);
+  font-size: var(--font-size-s);
+  margin: var(--space-s) 0 0;
+}
+
 .results {
   list-style: none;
   margin: 0;

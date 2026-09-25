@@ -177,6 +177,7 @@ interface YouTubeState {
   downloads: DownloadReport | null
   downloadUsers: Array<{ userId: number, username: string, name: string }>
   error: string | null
+  hasSearched: boolean
   isSearching: boolean
   metadata: ConvertedMetadata | null
   preview: { streamUrl: string | null, item: YouTubeResult } | null
@@ -197,6 +198,7 @@ const initialState: YouTubeState = {
   downloads: null,
   downloadUsers: [],
   error: null,
+  hasSearched: false,
   isSearching: false,
   metadata: null,
   preview: null,
@@ -237,6 +239,7 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(clearYoutubeResults, state => ({
       ...state,
       error: null,
+      hasSearched: false,
       metadata: null,
       preview: null,
       query: '',
@@ -250,12 +253,14 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     }))
     .addCase(searchYoutubeVideos.fulfilled, (state, { payload }) => ({
       ...state,
+      hasSearched: true,
       isSearching: false,
       results: payload,
     }))
     .addCase(searchYoutubeVideos.rejected, (state, action) => ({
       ...state,
       error: action.error.message ?? 'search failed',
+      hasSearched: true,
       isSearching: false,
       results: [],
     }))
@@ -298,6 +303,7 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(clearYoutube.pending, state => ({
       ...state,
       error: null,
+      hasSearched: false,
       isSearching: false,
       metadata: null,
       preview: null,
@@ -312,6 +318,7 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(clearYoutube.rejected, state => ({
       ...state,
       error: null,
+      hasSearched: false,
       isSearching: false,
       metadata: null,
       preview: null,

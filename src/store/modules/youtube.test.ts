@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
-import reducer, { fetchDownloadUsers } from './youtube'
+import reducer, { clearYoutubeResults, fetchDownloadUsers, searchYoutubeVideos } from './youtube'
 
 const users = [
   { userId: 1, username: 'admin', name: 'Admin' },
@@ -44,5 +44,19 @@ describe('fetchDownloadUsers', () => {
 
     expect(store.getState().youtube.downloadUsers).toEqual([])
     expect(store.getState().youtube.error).toBeNull()
+  })
+})
+
+describe('hasSearched', () => {
+  it('tracks completed searches and resets on clear', () => {
+    const store = makeStore()
+
+    expect(store.getState().youtube.hasSearched).toBe(false)
+
+    store.dispatch(searchYoutubeVideos.fulfilled([], 'req1', 'abba'))
+    expect(store.getState().youtube.hasSearched).toBe(true)
+
+    store.dispatch(clearYoutubeResults())
+    expect(store.getState().youtube.hasSearched).toBe(false)
   })
 })

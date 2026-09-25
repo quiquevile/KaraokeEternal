@@ -51,7 +51,18 @@ const QueueList = () => {
   // build children array
   const items = queue.result.map((qId) => {
     const item = queue.entities[qId]
-    const duration = songs.entities[item.songId].duration
+    const song = songs.entities[item.songId]
+    const artist = song && artists.entities[song.artistId]
+
+    // the queue and the library arrive in separate pushes: the song may
+    // not be known yet (e.g. a download just queued by someone else)
+    if (!song || !artist) {
+      console.warn('skipping queue item with unknown song', qId, item.songId)
+
+      return null
+    }
+
+    const duration = song.duration
     const isCurrent = (qId === queueId) && !isAtQueueEnd
     const isUpcoming = qId !== queueId && !playerHistory.includes(qId)
     const isPlayed = !isUpcoming && !isCurrent
@@ -62,7 +73,7 @@ const QueueList = () => {
     return (
       <QueueItem
         {...item}
-        artist={artists.entities[songs.entities[item.songId].artistId].name}
+        artist={artist.name}
         errorMessage={isCurrent && errorMessage ? errorMessage : ''}
         isCurrent={isCurrent}
         key={qId}
@@ -80,7 +91,7 @@ const QueueList = () => {
         isUpcoming={isUpcoming}
         pctPlayed={isCurrent ? position / duration * 100 : 0}
         starCount={starCounts.songs[item.songId] || 0}
-        title={songs.entities[item.songId].title}
+        title={song.title}
         wait={formatSeconds(waits[qId], true)} // fuzzy
         // actions
         onMoveClick={handleMoveClick}
@@ -90,7 +101,7 @@ const QueueList = () => {
     )
   })
 
-  return <QueueListAnimator queueItems={items} />
+  return <QueueListAnimator queueItems={items.filter((item): item is React.ReactElement => item !== null)} />
 }
 
 export default QueueList

@@ -28,24 +28,36 @@ const SongList = (props: SongListProps) => {
   const handleSongDelete = (songId: number) => dispatch(showDeleteSong(songId))
   const handleSongStar = (songId: number) => dispatch(toggleSongStarred(songId))
 
-  return props.songIds.map(songId => (
-    <SongItem
-      {...songs[songId]}
-      artist={props.showArtist ? artists[songs[songId].artistId].name : ''}
-      filterKeywords={props.filterKeywords}
-      isPlayed={played.includes(songId)}
-      isUpcoming={upcoming.includes(songId) || current === songId}
-      isStarred={starredSongs.includes(songId)}
-      isAdmin={isAdmin}
-      key={songId}
-      numStars={starredSongCounts[songId] || 0}
-      onSongQueue={handleSongQueue}
-      onSongStarClick={handleSongStar}
-      onSongInfo={handleSongInfo}
-      onSongEdit={handleSongEdit}
-      onSongDelete={handleSongDelete}
-    />
-  ))
+  return props.songIds.map((songId) => {
+    const song = songs[songId]
+    const artist = song && artists[song.artistId]
+
+    // the library arrives in a separate push and may lag behind
+    if (!song || !artist) {
+      console.warn('skipping song with unknown entities', songId)
+
+      return null
+    }
+
+    return (
+      <SongItem
+        {...song}
+        artist={props.showArtist ? artist.name : ''}
+        filterKeywords={props.filterKeywords}
+        isPlayed={played.includes(songId)}
+        isUpcoming={upcoming.includes(songId) || current === songId}
+        isStarred={starredSongs.includes(songId)}
+        isAdmin={isAdmin}
+        key={songId}
+        numStars={starredSongCounts[songId] || 0}
+        onSongQueue={handleSongQueue}
+        onSongStarClick={handleSongStar}
+        onSongInfo={handleSongInfo}
+        onSongEdit={handleSongEdit}
+        onSongDelete={handleSongDelete}
+      />
+    )
+  })
 }
 
 export default SongList

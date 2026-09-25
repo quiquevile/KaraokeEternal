@@ -18,7 +18,7 @@ afterEach(() => {
 })
 
 describe('fetchDownloadUsers', () => {
-  it('requests the root users endpoint and stores the list', async () => {
+  it('requests the room-filtered users endpoint and stores the list', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'Content-Type': 'application/json' }),
@@ -27,10 +27,10 @@ describe('fetchDownloadUsers', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const store = makeStore()
-    await store.dispatch(fetchDownloadUsers())
+    await store.dispatch(fetchDownloadUsers(1))
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost/api/users/names',
+      'http://localhost/api/users/names?roomId=1',
       expect.anything(),
     )
     expect(store.getState().youtube.downloadUsers).toEqual(users)

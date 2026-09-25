@@ -150,19 +150,45 @@ router.get('/users', async (ctx) => {
   ctx.body = users
 })
 
-// slim user list for download targeting (admins and downloadForOthers holders)
+// slim user list for download targeting (admins and downloadForOthers holders),
+// optionally filtered by live room presence like the user management
 export async function handleUsersNames (ctx) {
   if (!ctx.user.isAdmin && !can(ctx.user, 'downloadForOthers')) {
     ctx.throw(401)
   }
 
+  const roomId = ctx.query.roomId === undefined ? null : parseInt(ctx.query.roomId, 10)
+  const onlineOnly = ctx.query.online !== undefined && ctx.query.online !== 'false' && ctx.query.online !== '0'
+
+  if (ctx.query.roomId !== undefined && (roomId === null || Number.isNaN(roomId))) {
+    ctx.throw(422, 'Invalid roomId')
+  }
+
+  const userRooms: Record<number, number[]> = {}
+  const sockets = await ctx.io.fetchSockets()
+
+  for (const s of sockets) {
+    if (s.user && typeof s.user.roomId === 'number') {
+      if (userRooms[s.user.userId]) {
+        userRooms[s.user.userId].push(s.user.roomId)
+      } else {
+        userRooms[s.user.userId] = [s.user.roomId]
+      }
+    }
+  }
+
   const users = User.get()
 
-  ctx.body = users.result.map((userId) => {
-    const { userId: id, username, name } = users.entities[userId]
+  ctx.body = users.result
+    .filter(userId => (
+      (roomId === null || (userRooms[userId] ?? []).includes(roomId))
+      && (!onlineOnly || (userRooms[userId] ?? []).length > 0)
+    ))
+    .map((userId) => {
+      const { userId: id, username, name } = users.entities[userId]
 
-    return { userId: id, username, name }
-  })
+      return { userId: id, username, name }
+    })
 }
 
 router.get('/users/names', handleUsersNames)

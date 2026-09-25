@@ -22,8 +22,8 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'downloadForOthers')
 
   useEffect(() => {
-    if (canQueueForOthers) dispatch(fetchDownloadUsers())
-  }, [dispatch, canQueueForOthers])
+    if (canQueueForOthers) dispatch(fetchDownloadUsers(user.roomId ?? null))
+  }, [dispatch, canQueueForOthers, user.roomId])
 
   if (metadata !== savedMetadata) {
     setSavedMetadata(metadata)

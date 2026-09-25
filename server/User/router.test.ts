@@ -15,10 +15,16 @@ vi.mock('./User.js', () => ({
 import { handleUsersNames } from './router.js'
 import User from './User.js'
 
-const makeCtx = (user: object) => ({
+const makeSockets = (users: Array<{ userId: number, roomId: number | null }>) => (
+  users.map(({ userId, roomId }) => ({ user: { userId, roomId } }))
+)
+
+const makeCtx = (user: object, query: object = {}, sockets: Array<{ userId: number, roomId: number | null }> = []) => ({
   user,
+  query,
   body: undefined,
   status: 200,
+  io: { fetchSockets: async () => makeSockets(sockets) },
   throw: (status: number, message?: string) => {
     const err = new Error(message || String(status))
     Object.assign(err, { status })
@@ -55,6 +61,38 @@ describe('handleUsersNames', () => {
     const ctx = makeCtx({ isAdmin: false, permissions: { youtubeDownload: true } })
 
     await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(User.get).not.toHaveBeenCalled()
+  })
+
+  it('filters by room presence', async () => {
+    const sockets = [
+      { userId: 1, roomId: 1 },
+      { userId: 2, roomId: 2 },
+    ]
+    const ctx = makeCtx({ isAdmin: true }, { roomId: '1' }, sockets)
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 1, username: 'admin', name: 'Admin' },
+    ])
+  })
+
+  it('filters by online presence', async () => {
+    const sockets = [{ userId: 2, roomId: 2 }]
+    const ctx = makeCtx({ isAdmin: true }, { online: '1' }, sockets)
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 2, username: 'pepe', name: 'Pepe' },
+    ])
+  })
+
+  it('rejects invalid roomIds with 422', async () => {
+    const ctx = makeCtx({ isAdmin: true }, { roomId: 'abc' }, [])
+
+    await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 422 })
     expect(User.get).not.toHaveBeenCalled()
   })
 })

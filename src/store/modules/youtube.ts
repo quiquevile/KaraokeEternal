@@ -91,11 +91,11 @@ export const downloadVideo = createAsyncThunk<DownloadJob, {
   },
 )
 
-export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, void>(
+export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, number | null | undefined>(
   'youtube/fetchDownloadUsers',
-  async () => {
+  async (roomId) => {
     try {
-      return await rootApi.get('users/names')
+      return await rootApi.get(roomId == null ? 'users/names' : `users/names?roomId=${roomId}`)
     } catch {
       // the select falls back to the current user alone
       return []

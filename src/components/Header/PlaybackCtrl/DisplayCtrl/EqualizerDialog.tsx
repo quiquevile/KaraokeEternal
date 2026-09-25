@@ -80,7 +80,7 @@ const EqualizerDialog = ({
                   vertical
                   min={EQ_GAIN_MIN}
                   max={EQ_GAIN_MAX}
-                  step={0.5}
+                  step={0.1}
                   value={gain}
                   onChange={(value: number) => handleBand(index, value)}
                   aria-label={`${formatFreq(freq)} Hz`}

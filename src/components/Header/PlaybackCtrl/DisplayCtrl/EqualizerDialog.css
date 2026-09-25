@@ -24,6 +24,8 @@
   height: 50vh;
   min-height: 220px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
 }
 
 .band {
@@ -55,10 +57,11 @@
 @media (min-width: 600px) {
   .bands {
     gap: var(--space-l);
-    overflow-x: visible;
+    overflow-x: auto;
   }
 
   .band {
-    flex-basis: 48px;
+    flex: 1 1 0;
+    min-width: 44px;
   }
 }

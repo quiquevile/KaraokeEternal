@@ -2,6 +2,7 @@ import { createAction, createAsyncThunk, createReducer } from '@reduxjs/toolkit'
 import HttpApi from 'lib/HttpApi'
 
 const api = new HttpApi('youtube')
+const rootApi = new HttpApi()
 
 // ------------------------------------
 // Types
@@ -92,7 +93,14 @@ export const downloadVideo = createAsyncThunk<DownloadJob, {
 
 export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, void>(
   'youtube/fetchDownloadUsers',
-  async () => await api.get('/users/names'),
+  async () => {
+    try {
+      return await rootApi.get('users/names')
+    } catch {
+      // the select falls back to the current user alone
+      return []
+    }
+  },
 )
 
 export const openPreview = createAsyncThunk<{ streamUrl: string, item: YouTubeResult }, YouTubeResult>(

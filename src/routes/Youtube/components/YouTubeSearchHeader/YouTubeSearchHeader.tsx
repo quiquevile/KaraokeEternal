@@ -26,6 +26,7 @@ const YouTubeSearchHeader = () => {
 
   const searchInput = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(query)
+  const [searchedQuery, setSearchedQuery] = useState('')
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setValue(event.target.value)
@@ -34,6 +35,7 @@ const YouTubeSearchHeader = () => {
 
   const clearSearch = () => {
     setValue('')
+    setSearchedQuery('')
     dispatch(clearYoutubeResults())
   }
 
@@ -46,6 +48,7 @@ const YouTubeSearchHeader = () => {
 
     try {
       const results = await dispatch(searchYoutubeVideos(q)).unwrap()
+      setSearchedQuery(q)
 
       // a pasted YouTube URL opens the artist <-> title dialog directly
       if (parseVideoId(q) && !/\s/.test(q)) {
@@ -63,9 +66,10 @@ const YouTubeSearchHeader = () => {
   const handleMagnifierClick = () => {
     if (isSearching) return
 
-    // with results on screen the magnifier clears, like the old X did
-    if (hasResults) {
+    // results for the current text: clear like the old X did
+    if (hasResults && (!value.trim() || value.trim() === searchedQuery)) {
       clearSearch()
+      searchInput.current?.focus()
 
       return
     }
@@ -76,6 +80,9 @@ const YouTubeSearchHeader = () => {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') handleSearch()
   }
+
+  // clearing applies when results belong to the current text (or it is empty)
+  const canClear = hasResults && !isSearching && (!value.trim() || value.trim() === searchedQuery)
 
   return (
     <div className={styles.container}>
@@ -91,13 +98,13 @@ const YouTubeSearchHeader = () => {
       <Button
         className={clsx(
           styles.btnMagnifier,
-          hasResults && !isSearching && styles.active,
+          canClear && styles.active,
           isSearching && styles.searching,
         )}
         icon='MAGNIFIER'
         onClick={handleMagnifierClick}
-        disabled={isSearching || (!value.trim() && !hasResults)}
-        aria-label={hasResults && !isSearching ? 'Clear search' : 'Search'}
+        disabled={isSearching || (!value.trim() && !canClear)}
+        aria-label={canClear ? 'Clear search' : 'Search'}
       />
     </div>
   )

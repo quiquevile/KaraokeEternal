@@ -20,13 +20,14 @@
 
 .bands {
   display: flex;
-  gap: var(--space-xs);
-  height: 180px;
+  gap: var(--space-m);
+  height: 50vh;
+  min-height: 220px;
   overflow-x: auto;
 }
 
 .band {
-  flex: 1 0 28px;
+  flex: 1 0 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -43,4 +44,21 @@
   font-size: var(--font-size-s);
   color: var(--color-gray-5);
   white-space: nowrap;
+}
+
+.value {
+  font-size: var(--font-size-s);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (min-width: 600px) {
+  .bands {
+    gap: var(--space-l);
+    overflow-x: visible;
+  }
+
+  .band {
+    flex-basis: 48px;
+  }
 }

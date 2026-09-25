@@ -35,6 +35,10 @@
   }
 }
 
+.small {
+  --handle-height: 2rem;
+}
+
 .handle {
   cursor: pointer;
   color: var(--btn-active-bg-color);

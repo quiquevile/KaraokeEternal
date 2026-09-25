@@ -3,6 +3,7 @@ import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Modal, { ModalProps } from 'components/Modal/Modal'
 import Slider from 'components/Slider/Slider'
+import sliderStyles from 'components/Slider/Slider.css'
 import { EQ_FREQUENCIES, EQ_GAIN_MAX, EQ_GAIN_MIN, EQ_PRESETS } from 'routes/Player/lib/equalizer'
 import styles from './EqualizerDialog.css'
 import { PlaybackOptions } from 'shared/types'
@@ -70,21 +71,29 @@ const EqualizerDialog = ({
         </div>
 
         <div className={styles.bands}>
-          {EQ_FREQUENCIES.map((freq, index) => (
-            <div key={freq} className={styles.band}>
-              <Slider
-                vertical
-                min={EQ_GAIN_MIN}
-                max={EQ_GAIN_MAX}
-                step={0.5}
-                value={eqGains[index] ?? 0}
-                onChange={(value: number) => handleBand(index, value)}
-                aria-label={`${formatFreq(freq)} Hz`}
-                className={styles.slider}
-              />
-              <span className={styles.freq}>{formatFreq(freq)}</span>
-            </div>
-          ))}
+          {EQ_FREQUENCIES.map((freq, index) => {
+            const gain = eqGains[index] ?? 0
+
+            return (
+              <div key={freq} className={styles.band}>
+                <Slider
+                  vertical
+                  min={EQ_GAIN_MIN}
+                  max={EQ_GAIN_MAX}
+                  step={0.5}
+                  value={gain}
+                  onChange={(value: number) => handleBand(index, value)}
+                  aria-label={`${formatFreq(freq)} Hz`}
+                  className={`${styles.slider} ${sliderStyles.small}`}
+                />
+                <span className={styles.freq}>{formatFreq(freq)}</span>
+                <span className={styles.value}>
+                  {gain > 0 ? '+' : ''}
+                  {gain.toFixed(1)}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
     </Modal>

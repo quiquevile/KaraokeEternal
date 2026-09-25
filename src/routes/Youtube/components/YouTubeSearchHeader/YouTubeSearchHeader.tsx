@@ -67,6 +67,17 @@ const YouTubeSearchHeader = () => {
 
   return (
     <div className={styles.container}>
+      <Button
+        className={clsx(
+          styles.btnMagnifier,
+          hasSearched && !isSearching && styles.active,
+          isSearching && styles.searching,
+        )}
+        icon='MAGNIFIER'
+        onClick={handleSearch}
+        disabled={isSearching || !value.trim()}
+        aria-label='Search'
+      />
       <input
         type='search'
         className={styles.searchInput}
@@ -85,17 +96,6 @@ const YouTubeSearchHeader = () => {
             aria-label='Clear search'
           />
         )}
-      <Button
-        className={clsx(
-          styles.btnMagnifier,
-          hasSearched && !isSearching && styles.active,
-          isSearching && styles.searching,
-        )}
-        icon='MAGNIFIER'
-        onClick={handleSearch}
-        disabled={isSearching || !value.trim()}
-        aria-label='Search'
-      />
     </div>
   )
 }

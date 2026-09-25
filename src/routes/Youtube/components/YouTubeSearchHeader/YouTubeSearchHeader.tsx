@@ -21,12 +21,11 @@ const parseVideoId = (value: string): string | null => {
 const YouTubeSearchHeader = () => {
   const query = useAppSelector(state => state.youtube.query)
   const isSearching = useAppSelector(state => state.youtube.isSearching)
-  const hasResults = useAppSelector(state => state.youtube.results.length > 0)
+  const hasSearched = useAppSelector(state => state.youtube.hasSearched)
   const dispatch = useAppDispatch()
 
   const searchInput = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(query)
-  const [searchedQuery, setSearchedQuery] = useState('')
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setValue(event.target.value)
@@ -35,8 +34,8 @@ const YouTubeSearchHeader = () => {
 
   const clearSearch = () => {
     setValue('')
-    setSearchedQuery('')
     dispatch(clearYoutubeResults())
+    searchInput.current?.focus()
   }
 
   const handleSearch = async () => {
@@ -48,7 +47,6 @@ const YouTubeSearchHeader = () => {
 
     try {
       const results = await dispatch(searchYoutubeVideos(q)).unwrap()
-      setSearchedQuery(q)
 
       // a pasted YouTube URL opens the artist <-> title dialog directly
       if (parseVideoId(q) && !/\s/.test(q)) {
@@ -63,26 +61,9 @@ const YouTubeSearchHeader = () => {
     }
   }
 
-  const handleMagnifierClick = () => {
-    if (isSearching) return
-
-    // results for the current text: clear like the old X did
-    if (hasResults && (!value.trim() || value.trim() === searchedQuery)) {
-      clearSearch()
-      searchInput.current?.focus()
-
-      return
-    }
-
-    handleSearch()
-  }
-
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') handleSearch()
   }
-
-  // clearing applies when results belong to the current text (or it is empty)
-  const canClear = hasResults && !isSearching && (!value.trim() || value.trim() === searchedQuery)
 
   return (
     <div className={styles.container}>
@@ -95,16 +76,24 @@ const YouTubeSearchHeader = () => {
         onKeyDown={handleKeyDown}
         ref={searchInput}
       />
+      {hasSearched && !isSearching
+        && (
+          <Button
+            icon='CLEAR'
+            onClick={clearSearch}
+            className={clsx(styles.btnClear, styles.active)}
+            aria-label='Clear search'
+          />
+        )}
       <Button
         className={clsx(
           styles.btnMagnifier,
-          canClear && styles.active,
           isSearching && styles.searching,
         )}
         icon='MAGNIFIER'
-        onClick={handleMagnifierClick}
-        disabled={isSearching || (!value.trim() && !canClear)}
-        aria-label={canClear ? 'Clear search' : 'Search'}
+        onClick={handleSearch}
+        disabled={isSearching || !value.trim()}
+        aria-label='Search'
       />
     </div>
   )

@@ -31,6 +31,14 @@
   height: 2.5rem;
 }
 
+.btnClear {
+  height: 2.75rem;
+
+  svg {
+    height: 3rem;
+  }
+}
+
 .btnMagnifier.searching {
   animation: searching-pulse 1s ease-in-out infinite;
 }

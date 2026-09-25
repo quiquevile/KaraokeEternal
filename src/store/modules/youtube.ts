@@ -2,6 +2,7 @@ import { createAction, createAsyncThunk, createReducer } from '@reduxjs/toolkit'
 import HttpApi from 'lib/HttpApi'
 
 const api = new HttpApi('youtube')
+const rootApi = new HttpApi()
 
 // ------------------------------------
 // Types
@@ -81,11 +82,24 @@ export const downloadVideo = createAsyncThunk<DownloadJob, {
   artist: string
   title: string
   thumbnail: string | null
+  queueUserId: number | null
 }>(
   'youtube/download',
   async (payload) => {
     const job = await api.post<DownloadJob>('/download', { body: payload })
     return job
+  },
+)
+
+export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, number | null | undefined>(
+  'youtube/fetchDownloadUsers',
+  async (roomId) => {
+    try {
+      return await rootApi.get(roomId == null ? 'users/names' : `users/names?roomId=${roomId}`)
+    } catch {
+      // the select falls back to the current user alone
+      return []
+    }
   },
 )
 
@@ -161,6 +175,7 @@ export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
 // ------------------------------------
 interface YouTubeState {
   downloads: DownloadReport | null
+  downloadUsers: Array<{ userId: number, username: string, name: string }>
   error: string | null
   isSearching: boolean
   metadata: ConvertedMetadata | null
@@ -180,6 +195,7 @@ interface YouTubeState {
 
 const initialState: YouTubeState = {
   downloads: null,
+  downloadUsers: [],
   error: null,
   isSearching: false,
   metadata: null,
@@ -274,6 +290,10 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(fetchDownloads.fulfilled, (state, { payload }) => ({
       ...state,
       downloads: payload,
+    }))
+    .addCase(fetchDownloadUsers.fulfilled, (state, { payload }) => ({
+      ...state,
+      downloadUsers: payload,
     }))
     .addCase(clearYoutube.pending, state => ({
       ...state,

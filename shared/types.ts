@@ -82,6 +82,7 @@ export type Permission
     | 'playerAccess'
     | 'playerControls'
     | 'youtubeDownload'
+    | 'downloadForOthers'
 
 export interface User {
   userId: number

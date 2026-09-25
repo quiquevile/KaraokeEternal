@@ -7,6 +7,8 @@ export type DownloadJobStatus = 'queued' | 'downloading' | 'merging' | 'register
 export interface DownloadJobInput {
   url: string
   userId: number
+  queueUserId: number | null
+  queueRoomId: number | null
   artist: string
   artistNorm: string
   title: string

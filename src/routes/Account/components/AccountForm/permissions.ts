@@ -7,4 +7,5 @@ export const PERMISSIONS: Array<{ value: Permission, label: string }> = [
   { value: 'playerAccess', label: 'Can open the player' },
   { value: 'playerControls', label: 'Can control playback' },
   { value: 'youtubeDownload', label: 'Can download from YouTube' },
+  { value: 'downloadForOthers', label: 'Can queue downloads for others' },
 ]

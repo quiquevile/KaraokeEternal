@@ -8,6 +8,8 @@ type FakeRegister = (opts: { job: DownloadJob, io: unknown }) => Promise<void>
 interface JobOverrides {
   url?: string
   userId?: number
+  queueUserId?: number | null
+  queueRoomId?: number | null
   artist?: string
   title?: string
   baseName?: string
@@ -18,6 +20,8 @@ function makeJob (overrides: JobOverrides = {}) {
   return {
     url: overrides.url ?? 'https://www.youtube.com/watch?v=abc',
     userId: overrides.userId ?? 1,
+    queueUserId: overrides.queueUserId ?? null,
+    queueRoomId: overrides.queueRoomId ?? null,
     artist: overrides.artist ?? 'ABBA',
     title: overrides.title ?? 'Dancing Queen',
     artistNorm: 'ABBA',

@@ -98,10 +98,15 @@ class Player extends React.Component<PlayerProps> {
       void this.refreshPitchGraph()
     }
 
-    // equalizer gains apply live, no reload needed
-    if (this.eqNodes && (prevProps.eqEnabled !== this.props.eqEnabled
-      || prevProps.eqGains !== this.props.eqGains)) {
-      setEqualizerGains(this.eqNodes, this.props.eqEnabled ? this.props.eqGains : [])
+    // equalizer gains apply live, no reload needed; report back so
+    // controllers update even while silent (no media events otherwise)
+    if (prevProps.eqEnabled !== this.props.eqEnabled
+      || prevProps.eqGains !== this.props.eqGains) {
+      if (this.eqNodes) {
+        setEqualizerGains(this.eqNodes, this.props.eqEnabled ? this.props.eqGains : [])
+      }
+
+      this.props.onStatus({})
     }
   }
 

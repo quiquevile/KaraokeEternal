@@ -63,6 +63,7 @@ const EqualizerDialog = ({
               variant={eqPreset === preset.name && eqEnabled ? 'primary' : 'default'}
               className={styles.preset}
               onClick={() => handlePreset(preset.name)}
+              disabled={!eqEnabled}
               aria-pressed={eqPreset === preset.name}
             >
               {preset.name}
@@ -83,6 +84,7 @@ const EqualizerDialog = ({
                   step={0.1}
                   value={gain}
                   onChange={(value: number) => handleBand(index, value)}
+                  disabled={!eqEnabled}
                   aria-label={`${formatFreq(freq)} Hz`}
                   className={`${styles.slider} ${sliderStyles.small}`}
                 />

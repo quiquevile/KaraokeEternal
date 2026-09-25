@@ -39,7 +39,7 @@
     width: auto;
   }
 
-  & :global(.rc-slider-vertical.rc-slider-rail) {
+  &:global(.rc-slider-vertical) :global(.rc-slider-rail) {
     width: var(--track-height);
     height: 100%;
     left: 50%;
@@ -48,7 +48,7 @@
     background-color: var(--btn-bg-color);
   }
 
-  & :global(.rc-slider-vertical.rc-slider-track) {
+  &:global(.rc-slider-vertical) :global(.rc-slider-track) {
     width: var(--track-height);
     left: 50%;
     top: auto;

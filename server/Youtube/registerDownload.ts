@@ -3,6 +3,8 @@ import path from 'path'
 import { readdir } from 'fs/promises'
 import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
+import Queue from '../Queue/Queue.js'
+import Rooms from '../Rooms/Rooms.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import getLogger from '../lib/Log.js'
 import { measureLoudness } from '../lib/loudness.js'
@@ -122,6 +124,20 @@ export default async function registerDownload (options: { job: DownloadJob, io:
   })
 
   log.info('registered download: %s (%s)', relPath, job.id)
+
+  // auto-queue on request, but only while the target user is still
+  // in the downloader's room; never fail the registration over this
+  if (job.queueUserId != null && job.queueRoomId != null && io) {
+    try {
+      if (Rooms.isUserPresent(io, job.queueRoomId, job.queueUserId)) {
+        Queue.add({ roomId: job.queueRoomId, songId: match.songId, userId: job.queueUserId })
+      } else {
+        log.info('skipping auto-queue: user %s not in room %s', job.queueUserId, job.queueRoomId)
+      }
+    } catch (err) {
+      log.warn('could not auto-queue download %s: %s', job.id, getErrorMessage(err))
+    }
+  }
 
   if (io) pushQueuesAndLibrary(io)
 }

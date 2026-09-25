@@ -220,6 +220,19 @@ class Rooms {
   }
 
   /**
+   * Utility method to determine if a user is currently in a room
+   */
+  static isUserPresent (io: any, roomId: number, userId: number): boolean {
+    for (const sock of io.of('/').sockets.values()) {
+      if (sock.user && sock.user.roomId === roomId && sock.user.userId === userId) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  /**
    * Remember that a user has been in a room
    */
   static trackUser (roomId: number, userId: number) {

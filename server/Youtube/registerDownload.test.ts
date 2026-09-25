@@ -20,6 +20,18 @@ vi.mock('../Media/Media.js', () => ({
   },
 }))
 
+vi.mock('../Queue/Queue.js', () => ({
+  default: {
+    add: vi.fn(),
+  },
+}))
+
+vi.mock('../Rooms/Rooms.js', () => ({
+  default: {
+    isUserPresent: vi.fn(() => true),
+  },
+}))
+
 vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
   default: vi.fn(),
 }))
@@ -27,6 +39,8 @@ vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
 import { execFile } from 'child_process'
 import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
+import Queue from '../Queue/Queue.js'
+import Rooms from '../Rooms/Rooms.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import registerDownload, { findDownloadedFile } from './registerDownload.js'
 import type { DownloadJob } from './downloadManager.js'
@@ -157,5 +171,42 @@ describe('registerDownload', () => {
       io: {},
     })).rejects.toThrow('already registered')
     expect(Media.add).not.toHaveBeenCalled()
+  })
+
+  it('queues the download for a present user on success', async () => {
+    const io = {}
+
+    await registerDownload({
+      job: { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 },
+      io,
+    })
+
+    expect(Rooms.isUserPresent).toHaveBeenCalledWith(io, 3, 7)
+    expect(Queue.add).toHaveBeenCalledWith({ roomId: 3, songId: 1, userId: 7 })
+  })
+
+  it('skips the queue when the user left the room', async () => {
+    vi.mocked(Rooms.isUserPresent).mockReturnValueOnce(false)
+
+    await registerDownload({
+      job: { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 },
+      io: {},
+    })
+
+    expect(Media.add).toHaveBeenCalled()
+    expect(Queue.add).not.toHaveBeenCalled()
+  })
+
+  it('registers even when auto-queue fails', async () => {
+    vi.mocked(Queue.add).mockImplementationOnce(() => {
+      throw new Error('queue went away')
+    })
+
+    await registerDownload({
+      job: { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 },
+      io: {},
+    })
+
+    expect(Media.add).toHaveBeenCalled()
   })
 })

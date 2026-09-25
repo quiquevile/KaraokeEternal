@@ -43,6 +43,13 @@ vi.mock('./registerDownload.js', () => ({
 vi.mock('../Library/Library.js', () => ({
   default: {
     findSong: vi.fn(() => null),
+    getSong: vi.fn(),
+  },
+}))
+
+vi.mock('../User/User.js', () => ({
+  default: {
+    getById: vi.fn(() => ({ userId: 9 })),
   },
 }))
 
@@ -73,6 +80,7 @@ import Prefs from '../Prefs/Prefs.js'
 import { downloadManager } from './downloadManager.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
+import User from '../User/User.js'
 import type { DownloadJob, DownloadReport } from './downloadManager.js'
 import type { RouterContext } from './router.js'
 import type { YouTubeResult } from './ytdlp.js'
@@ -408,6 +416,66 @@ describe('router', () => {
       await handleDownload(ctx)
 
       expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({ userId: 7 }))
+    })
+
+    it('enqueues auto-queue ids for the room and target user', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 9 } },
+      })
+      await handleDownload(ctx)
+
+      expect(User.getById).toHaveBeenCalledWith(9)
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+        queueUserId: 9,
+        queueRoomId: 5,
+      }))
+    })
+
+    it('rejects 403 queueing for others without the permission', async () => {
+      const ctx = makeCtx({
+        user: { isAdmin: false, permissions: { youtubeDownload: true }, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 9 } },
+      })
+      await expect(handleDownload(ctx)).rejects.toMatchObject({ status: 403 })
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('allows queueing for others with downloadForOthers', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+
+      const ctx = makeCtx({
+        user: { isAdmin: false, permissions: { youtubeDownload: true, downloadForOthers: true }, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 9 } },
+      })
+      await handleDownload(ctx)
+
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+        queueUserId: 9,
+        queueRoomId: 5,
+      }))
+    })
+
+    it('rejects 422 for unknown queue users', async () => {
+      vi.mocked(User.getById).mockReturnValueOnce(false)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 999 } },
+      })
+      await expect(handleDownload(ctx)).rejects.toMatchObject({ status: 422 })
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('rejects 422 when queueing outside a room', async () => {
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe' },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 7 } },
+      })
+      await expect(handleDownload(ctx)).rejects.toMatchObject({ status: 422 })
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
 
     it('rejects 422 without a userId', async () => {

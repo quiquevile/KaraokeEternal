@@ -9,6 +9,24 @@
   margin-top: 0;
 }
 
+.queueRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  font-size: var(--font-size-s);
+  cursor: pointer;
+}
+
+.queueRow .label {
+  font-weight: var(--font-weight-bold);
+}
+
+.queueRow select {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-m);
+}
+
 .buttons {
   display: flex;
   justify-content: flex-end;

@@ -81,12 +81,18 @@ export const downloadVideo = createAsyncThunk<DownloadJob, {
   artist: string
   title: string
   thumbnail: string | null
+  queueUserId: number | null
 }>(
   'youtube/download',
   async (payload) => {
     const job = await api.post<DownloadJob>('/download', { body: payload })
     return job
   },
+)
+
+export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, void>(
+  'youtube/fetchDownloadUsers',
+  async () => await api.get('/users/names'),
 )
 
 export const openPreview = createAsyncThunk<{ streamUrl: string, item: YouTubeResult }, YouTubeResult>(
@@ -161,6 +167,7 @@ export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
 // ------------------------------------
 interface YouTubeState {
   downloads: DownloadReport | null
+  downloadUsers: Array<{ userId: number, username: string, name: string }>
   error: string | null
   isSearching: boolean
   metadata: ConvertedMetadata | null
@@ -180,6 +187,7 @@ interface YouTubeState {
 
 const initialState: YouTubeState = {
   downloads: null,
+  downloadUsers: [],
   error: null,
   isSearching: false,
   metadata: null,
@@ -274,6 +282,10 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(fetchDownloads.fulfilled, (state, { payload }) => ({
       ...state,
       downloads: payload,
+    }))
+    .addCase(fetchDownloadUsers.fulfilled, (state, { payload }) => ({
+      ...state,
+      downloadUsers: payload,
     }))
     .addCase(clearYoutube.pending, state => ({
       ...state,

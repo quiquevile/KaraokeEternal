@@ -21,9 +21,10 @@ import { requireAdmin } from '../lib/http.js'
 import { getErrorMessage } from '../lib/util.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
+import User from '../User/User.js'
 
 export interface RouterContext {
-  user: { isAdmin: boolean, permissions?: Record<string, boolean>, userId?: number, username?: string } | undefined
+  user: { isAdmin: boolean, permissions?: Record<string, boolean>, userId?: number, username?: string, roomId?: number | null } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown> }
@@ -163,6 +164,28 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   if (typeof userId !== 'number') ctx.throw(422, 'userId is required')
 
+  // optional auto-queue once the download completes
+  const rawQueueUserId = body.queueUserId
+  const queueUserId = rawQueueUserId === undefined || rawQueueUserId === null
+    ? null
+    : Number(rawQueueUserId)
+
+  let queueRoomId: number | null = null
+
+  if (queueUserId !== null) {
+    if (!Number.isInteger(queueUserId)) ctx.throw(422, 'invalid queue user')
+
+    if (queueUserId !== userId && !can(ctx.user, 'downloadForOthers')) {
+      ctx.throw(403, 'cannot queue downloads for other users')
+    }
+
+    if (!User.getById(queueUserId)) ctx.throw(422, 'queue user not found')
+
+    queueRoomId = typeof ctx.user?.roomId === 'number' ? ctx.user.roomId : null
+
+    if (queueRoomId === null) ctx.throw(422, 'join a room to queue the download')
+  }
+
   const norms = deriveNorms(artist, title)
   const baseName = toFilename(artist, title)
 
@@ -184,6 +207,8 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   const job = downloadManager.enqueue({
     url,
     userId,
+    queueUserId,
+    queueRoomId,
     artist,
     artistNorm: norms.artistNorm,
     title,

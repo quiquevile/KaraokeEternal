@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import clsx from 'clsx'
 import Modal, { ModalProps } from 'components/Modal/Modal'
 import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
+import EqualizerDialog from './EqualizerDialog'
 import { PITCH_SEMITONE_MAX, PITCH_SEMITONE_MIN, clampPitchSemitones } from 'routes/Player/lib/pitchShift'
 import styles from './DisplayCtrl.css'
 import { MediaType, PlaybackOptions } from 'shared/types'
@@ -20,6 +21,9 @@ interface DisplayCtrlProps {
   mediaType?: MediaType
   mp4Alpha: number
   pitchSemitones: number
+  eqEnabled: boolean
+  eqGains: number[]
+  eqPreset: string
   sensitivity: number
   visualizerPresetName: string
   // actions
@@ -38,11 +42,15 @@ const DisplayCtrl = ({
   mediaType = '',
   mp4Alpha,
   pitchSemitones,
+  eqEnabled,
+  eqGains,
+  eqPreset,
   sensitivity,
   visualizerPresetName,
   onRequestOptions,
   onClose,
 }: DisplayCtrlProps) => {
+  const [isEqualizerOpen, setEqualizerOpen] = useState(false)
   const handleAlpha = (val: number) => {
     if (mediaType === '') return
     onRequestOptions({ [mediaType + 'Alpha']: val })
@@ -215,6 +223,25 @@ const DisplayCtrl = ({
               )}
             </fieldset>
           </div>
+        )}
+
+        <div className={styles.container}>
+          <Button
+            variant='default'
+            onClick={() => setEqualizerOpen(true)}
+          >
+            Equalizer
+          </Button>
+        </div>
+
+        {isEqualizerOpen && (
+          <EqualizerDialog
+            eqEnabled={eqEnabled}
+            eqGains={eqGains}
+            eqPreset={eqPreset}
+            onRequestOptions={onRequestOptions}
+            onClose={() => setEqualizerOpen(false)}
+          />
         )}
 
         <div className={clsx(styles.section, styles.lyrics)}>

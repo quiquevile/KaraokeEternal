@@ -183,6 +183,8 @@ const PlayerController = (props: PlayerControllerProps) => {
         onPlay={handlePlay}
         onStatus={handleStatus}
         pitchSemitones={player.pitchSemitones}
+        eqEnabled={player.eqEnabled}
+        eqGains={player.eqGains}
         rgTrackGain={queueItem ? queueItem.rgTrackGain : null}
         rgTrackPeak={queueItem ? queueItem.rgTrackPeak : null}
         visualizer={playerVisualizer}

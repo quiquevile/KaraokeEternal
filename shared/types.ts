@@ -103,6 +103,9 @@ export interface PlaybackOptions {
   cdgSize?: number
   mp4Alpha?: number
   pitchSemitones?: number
+  eqEnabled?: boolean
+  eqGains?: number[]
+  eqPreset?: string
   visualizer?: {
     sensitivity?: number
     isEnabled?: boolean

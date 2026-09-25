@@ -51,6 +51,9 @@ export const requestOptions = createAction(PLAYER_REQ_OPTIONS, (opts: PlaybackOp
 interface StatusState {
   cdgAlpha: number
   cdgSize: number
+  eqEnabled: boolean
+  eqGains: number[]
+  eqPreset: string
   errorMessage: string
   historyJSON: string // queueIds in JSON array
   isAtQueueEnd: boolean
@@ -73,6 +76,9 @@ interface StatusState {
 const initialState: StatusState = {
   cdgAlpha: 0,
   cdgSize: 0.8,
+  eqEnabled: false,
+  eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  eqPreset: 'Flat',
   errorMessage: '',
   historyJSON: '[]', // queueIds in JSON array
   isAtQueueEnd: false,

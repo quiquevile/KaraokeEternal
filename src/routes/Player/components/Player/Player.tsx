@@ -3,6 +3,7 @@ import CDGPlayer from './CDGPlayer/CDGPlayer'
 import MP4Player from './MP4Player/MP4Player'
 import MP4AlphaPlayer from './MP4Player/MP4AlphaPlayer'
 import { clampPitchSemitones, createPitchNode, isPitchShiftSupported, setPitchNodeSemitones } from '../../lib/pitchShift'
+import { createEqualizer, setEqualizerGains } from '../../lib/equalizer'
 import type { SoundTouchNode } from '@soundtouchjs/audio-worklet'
 import { type PlayerState } from '../../modules/player'
 import { type PlayerVisualizerState } from '../../modules/playerVisualizer'
@@ -23,6 +24,8 @@ interface PlayerProps {
   mediaType?: string
   mp4Alpha: number
   pitchSemitones: number
+  eqEnabled: boolean
+  eqGains: number[]
   rgTrackGain?: number
   rgTrackPeak?: number
   visualizer: PlayerVisualizerState
@@ -46,6 +49,7 @@ class Player extends React.Component<PlayerProps> {
   audioGainNode: GainNode | null = null
   audioSourceNode: MediaElementAudioSourceNode | null = null
   pitchNode: SoundTouchNode | null = null
+  eqNodes: BiquadFilterNode[] | null = null
   pitchRequestId = 0
   lastReportedPitchSupport: boolean | null = null
   isFetching = false // internal
@@ -67,6 +71,7 @@ class Player extends React.Component<PlayerProps> {
   componentWillUnmount () {
     this.audioSourceNode?.disconnect()
     this.pitchNode?.disconnect()
+    this.eqNodes?.forEach(node => node.disconnect())
     this.audioGainNode?.disconnect()
   }
 
@@ -91,6 +96,12 @@ class Player extends React.Component<PlayerProps> {
 
     if (prevProps.pitchSemitones !== this.props.pitchSemitones) {
       void this.refreshPitchGraph()
+    }
+
+    // equalizer gains apply live, no reload needed
+    if (this.eqNodes && (prevProps.eqEnabled !== this.props.eqEnabled
+      || prevProps.eqGains !== this.props.eqGains)) {
+      setEqualizerGains(this.eqNodes, this.props.eqEnabled ? this.props.eqGains : [])
     }
   }
 
@@ -157,17 +168,28 @@ class Player extends React.Component<PlayerProps> {
 
     if (!audioCtx || !audioGainNode || !audioSourceNode) return
 
+    if (!this.eqNodes) {
+      this.eqNodes = createEqualizer(audioCtx)
+    }
+
+    setEqualizerGains(this.eqNodes, this.props.eqEnabled ? this.props.eqGains : [])
     audioSourceNode.disconnect()
     pitchNode?.disconnect()
+    this.eqNodes.forEach(node => node.disconnect())
     audioGainNode.disconnect()
+
+    const head: AudioNode = (usePitch && pitchNode) ? pitchNode : audioSourceNode
 
     if (usePitch && pitchNode) {
       setPitchNodeSemitones(pitchNode, this.props.pitchSemitones)
       audioSourceNode.connect(pitchNode)
-      pitchNode.connect(audioGainNode)
-    } else {
-      audioSourceNode.connect(audioGainNode)
     }
+
+    head.connect(this.eqNodes[0])
+    this.eqNodes.forEach((node, index) => {
+      if (index < this.eqNodes.length - 1) node.connect(this.eqNodes[index + 1])
+    })
+    this.eqNodes[this.eqNodes.length - 1].connect(audioGainNode)
 
     audioGainNode.connect(audioCtx.destination)
   }

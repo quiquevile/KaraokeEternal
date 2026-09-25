@@ -11,6 +11,8 @@ const ACTION_HANDLERS = {
         type: PREFS_SET + _ERROR,
         error: 'Unauthorized',
       })
+
+      return
     }
 
     Prefs.set(payload.key, payload.data)
@@ -24,6 +26,8 @@ const ACTION_HANDLERS = {
         type: PREFS_PATH_SET_PRIORITY + _ERROR,
         error: 'Unauthorized',
       })
+
+      return
     }
 
     Prefs.setPathPriority(payload)
@@ -43,20 +47,13 @@ const ACTION_HANDLERS = {
 
 // helper to push prefs to admins
 const pushPrefs = (sock) => {
-  const admins = []
-
   for (const s of sock.server.sockets.sockets.values()) {
     if (s.user && s.user.isAdmin) {
-      admins.push(s.id)
-      sock.server.to(s.id)
+      s.emit('action', {
+        type: PREFS_PUSH,
+        payload: Prefs.get(),
+      })
     }
-  }
-
-  if (admins.length) {
-    sock.server.emit('action', {
-      type: PREFS_PUSH,
-      payload: Prefs.get(),
-    })
   }
 }
 

@@ -25,7 +25,7 @@ export const setHeaderHeight = createAsyncThunk<void, number, { state: RootState
   })
 })
 
-export const setFooterHeight = createAsyncThunk<void, number, { state: RootState }>('ui/SET_HEADER_HEIGHT', async (height: number, { dispatch, getState }) => {
+export const setFooterHeight = createAsyncThunk<void, number, { state: RootState }>('ui/SET_FOOTER_HEIGHT', async (height: number, { dispatch, getState }) => {
   if (getState().ui.footerHeight === height) return
   dispatch({
     type: FOOTER_HEIGHT_CHANGE,

@@ -85,3 +85,35 @@ describe('Queue.move', () => {
     expect(orderOf(1)).toEqual([1, 2, 3])
   })
 })
+
+describe('Queue.get with corrupt chains', () => {
+  beforeAll(() => {
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['Cycle', 'Cycle'])
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?), (?, ?, ?)',
+      [1, 'Song A', 'Song A', 1, 'Song B', 'Song B'])
+    db.run('INSERT INTO paths (path, priority, data) VALUES (?, ?, ?)', ['/music', 1, '{}'])
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+      [1, 1, 'a.mp3', 200, 2, 1, 'b.mp3', 200])
+    db.run('INSERT INTO rooms (name, status) VALUES (?, ?)', ['Room 2', 'open'])
+  })
+
+  beforeEach(() => {
+    db.run('DELETE FROM queue WHERE roomId = 2')
+  })
+
+  it('stops at a fork instead of crashing', () => {
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [20, 2, 1, 1, null])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [21, 2, 2, 1, 20])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [22, 2, 1, 1, 20])
+
+    expect(Queue.get(2).result).toEqual([20, 22])
+  })
+
+  it('terminates on a cycle instead of hanging', () => {
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [30, 2, 1, 1, null])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [31, 2, 2, 1, 30])
+    db.run('UPDATE queue SET prevQueueId = 31 WHERE queueId = 30')
+
+    expect(Queue.get(2).result).toEqual([])
+  }, 5000)
+})

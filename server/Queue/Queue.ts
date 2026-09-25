@@ -101,9 +101,13 @@ class Queue {
     }
 
     while (result.length < rows.length) {
-      // get the item whose prevQueueId references the current one
-      const nextQueueId = entities[map.get(curQueueId)].queueId
-      result.push(nextQueueId)
+      // get the item whose prevQueueId references the current one;
+      // a corrupt chain ends the walk instead of crashing or spinning
+      const nextQueueId = map.get(curQueueId)
+
+      if (nextQueueId === undefined || !entities[nextQueueId]) break
+
+      result.push(entities[nextQueueId].queueId)
       curQueueId = nextQueueId
     }
 

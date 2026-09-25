@@ -85,6 +85,7 @@ const EqualizerDialog = ({
                   value={gain}
                   onChange={(value: number) => handleBand(index, value)}
                   disabled={!eqEnabled}
+                  handleIcon='HANDLE_VERT'
                   aria-label={`${formatFreq(freq)} Hz`}
                   className={`${styles.slider} ${sliderStyles.small}`}
                 />

@@ -33,6 +33,27 @@
     filter: var(--transport-volume-track-active-filter);
     cursor: pointer;
   }
+
+  &:global(.rc-slider-vertical) {
+    height: 100%;
+    width: auto;
+  }
+
+  & :global(.rc-slider-vertical.rc-slider-rail) {
+    width: var(--track-height);
+    height: 100%;
+    left: 50%;
+    top: auto;
+    transform: translateX(-50%);
+    background-color: var(--btn-bg-color);
+  }
+
+  & :global(.rc-slider-vertical.rc-slider-track) {
+    width: var(--track-height);
+    left: 50%;
+    top: auto;
+    transform: translateX(-50%);
+  }
 }
 
 .small {

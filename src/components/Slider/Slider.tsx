@@ -10,6 +10,7 @@ interface SliderProps extends RCSliderProps {
   'aria-labelledby'?: string
   'className'?: string
   'handle'?: RCSliderProps['handleRender']
+  'handleIcon'?: React.ComponentProps<typeof Icon>['icon']
   'min': number
   'max': number
   'onChange': RCSliderProps['onChange']
@@ -29,6 +30,7 @@ const Slider = ({
   'aria-labelledby': ariaLabelledby,
   className,
   handle,
+  handleIcon = 'CIRCLE',
   min,
   max,
   onChange,
@@ -74,7 +76,7 @@ const Slider = ({
         (e.currentTarget as HTMLDivElement).blur()
       },
     }, (
-      <Icon icon='CIRCLE' />
+      <Icon icon={handleIcon} />
     ))
   }
 

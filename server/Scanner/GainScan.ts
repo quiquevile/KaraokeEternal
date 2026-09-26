@@ -2,7 +2,7 @@ import path from 'node:path'
 import throttle from '@jcoreio/async-throttle'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
-import { measureLoudness } from '../lib/loudness.js'
+import { measureLoudness, readTagGain } from '../lib/loudness.js'
 import Media from '../Media/Media.js'
 import Prefs from '../Prefs/Prefs.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
@@ -17,6 +17,7 @@ let state: GainState = 'idle'
 let cancelRequested = false
 let attempted: Set<number> = new Set()
 let measured = 0
+let tagged = 0
 let skipped = 0
 let total = 0
 let emit: ((action: object) => void) | null = null
@@ -50,6 +51,7 @@ export function startGainScan (io): boolean {
   cancelRequested = false
   attempted = new Set()
   measured = 0
+  tagged = 0
   skipped = 0
 
   const row = db.get<{ count: number }>(
@@ -104,10 +106,14 @@ export function stopGainScan (): void {
   log.info('gain scan stopping')
 }
 
+function done (): number {
+  return measured + tagged + skipped
+}
+
 function pct (): number {
   if (total <= 0) return 100
 
-  return Math.min(99, Math.round(((measured + skipped) / total) * 100))
+  return Math.min(99, Math.round((done() / total) * 100))
 }
 
 function nextBatch (): { mediaId: number, fullPath: string }[] {
@@ -156,23 +162,38 @@ async function run (io): Promise<void> {
         await waitIfPaused()
         if (cancelRequested) break
 
-        const loudness = await measureLoudness(item.fullPath)
+        // files with ReplayGain tags use them; only tagless files are
+        // measured. Rows with stored values are never selected, so
+        // manual edits are never overwritten.
+        const tags = await readTagGain(item.fullPath)
 
-        if (loudness) {
+        if (tags) {
           Media.update({
             mediaId: item.mediaId,
-            rgTrackGain: loudness.gainDb,
-            rgTrackPeak: loudness.peakRatio,
+            rgTrackGain: tags.gainDb,
+            rgTrackPeak: tags.peakRatio,
             dateUpdated: Math.round(Date.now() / 1000),
           })
-          measured += 1
+          tagged += 1
         } else {
-          log.verbose('could not measure %s, skipping', item.fullPath)
-          skipped += 1
+          const loudness = await measureLoudness(item.fullPath)
+
+          if (loudness) {
+            Media.update({
+              mediaId: item.mediaId,
+              rgTrackGain: loudness.gainDb,
+              rgTrackPeak: loudness.peakRatio,
+              dateUpdated: Math.round(Date.now() / 1000),
+            })
+            measured += 1
+          } else {
+            log.verbose('could not measure %s, skipping', item.fullPath)
+            skipped += 1
+          }
         }
 
         attempted.add(item.mediaId)
-        sendStatus({ isScanning: true, pct: pct(), text: progressText(measured + skipped), job: 'gain' })
+        sendStatus({ isScanning: true, pct: pct(), text: progressText(done()), job: 'gain' })
       }
     }
   } catch (err) {
@@ -184,8 +205,8 @@ async function run (io): Promise<void> {
   cancelRequested = false
   emit = null
 
-  log.info('gain scan %s (%s measured, %s skipped)',
-    cancelled ? 'stopped' : 'finished', measured, skipped)
+  log.info('gain scan %s (%s measured, %s from tags, %s skipped)',
+    cancelled ? 'stopped' : 'finished', measured, tagged, skipped)
 
   if (measured > 0) pushQueuesAndLibrary(io)
 
@@ -196,8 +217,8 @@ async function run (io): Promise<void> {
       isScanning: false,
       pct: 100,
       text: cancelled
-        ? `Gain scan stopped (${measured} measured, ${skipped} skipped)`
-        : `Gain scan finished (${measured} measured, ${skipped} skipped)`,
+        ? `Gain scan stopped (${measured} measured, ${tagged} from tags, ${skipped} skipped)`
+        : `Gain scan finished (${measured} measured, ${tagged} from tags, ${skipped} skipped)`,
       job: 'gain',
     },
   })

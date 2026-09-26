@@ -160,6 +160,13 @@ class FileScanner extends Scanner {
 
     const row = res.result.length ? res.entities[res.result[0]] : null
 
+    // stored gain wins: tags are only picked up when the database has no
+    // values yet; manual edits are never overwritten by scans
+    if (row?.rgTrackGain != null) {
+      media.rgTrackGain = row.rgTrackGain
+      media.rgTrackPeak = row.rgTrackPeak
+    }
+
     if (row) {
       const diff = {}
 

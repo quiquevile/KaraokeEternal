@@ -4,6 +4,7 @@ const {
   dbAllMock,
   dbGetMock,
   measureMock,
+  readTagGainMock,
   updateMock,
   prefsGetMock,
   pushMock,
@@ -11,6 +12,7 @@ const {
   dbAllMock: vi.fn(),
   dbGetMock: vi.fn(),
   measureMock: vi.fn(),
+  readTagGainMock: vi.fn(),
   updateMock: vi.fn(),
   prefsGetMock: vi.fn(),
   pushMock: vi.fn(),
@@ -22,6 +24,7 @@ vi.mock('../lib/Database.js', () => ({
 
 vi.mock('../lib/loudness.js', () => ({
   measureLoudness: measureMock,
+  readTagGain: readTagGainMock,
 }))
 
 vi.mock('../Media/Media.js', () => ({
@@ -72,6 +75,7 @@ describe('GainScan', () => {
     vi.clearAllMocks()
     prefsGetMock.mockReturnValue(prefsWithPath())
     dbGetMock.mockReturnValue({ count: 2 })
+    readTagGainMock.mockResolvedValue(null)
   })
 
   it('measures rows without gain and reports completion', async () => {
@@ -100,7 +104,7 @@ describe('GainScan', () => {
       pct: 100,
       job: 'gain',
     })
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 from tags, 0 skipped)')
   })
 
   it('skips unmeasurable files and unknown paths', async () => {
@@ -118,7 +122,7 @@ describe('GainScan', () => {
 
     expect(updateMock).not.toHaveBeenCalled()
     expect(pushMock).not.toHaveBeenCalled()
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (0 measured, 2 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (0 measured, 0 from tags, 2 skipped)')
   })
 
   it('refuses a second concurrent job', async () => {
@@ -171,7 +175,7 @@ describe('GainScan', () => {
     await waitForIdle()
 
     expect(updateMock).toHaveBeenCalledTimes(2)
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 from tags, 0 skipped)')
   })
 
   it('retries files cleared by an interrupting scan on resume', async () => {
@@ -202,7 +206,28 @@ describe('GainScan', () => {
 
     // measured again instead of being skipped as already attempted
     expect(updateMock).toHaveBeenCalledTimes(1)
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 from tags, 0 skipped)')
+  })
+
+  it('uses file tags without measuring', async () => {
+    dbAllMock
+      .mockReturnValueOnce([
+        { mediaId: 1, pathId: 1, relPath: 'a.mp3' },
+      ])
+      .mockReturnValue([])
+    readTagGainMock.mockResolvedValue({ gainDb: -4, peakRatio: 0.9 })
+
+    const sock = io()
+    startGainScan(sock)
+    await waitForIdle()
+
+    expect(measureMock).not.toHaveBeenCalled()
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+      mediaId: 1,
+      rgTrackGain: -4,
+      rgTrackPeak: 0.9,
+    }))
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (0 measured, 1 from tags, 0 skipped)')
   })
 
   it('reports stop when cancelled', async () => {

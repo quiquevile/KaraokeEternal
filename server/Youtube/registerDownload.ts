@@ -7,7 +7,7 @@ import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import getLogger from '../lib/Log.js'
-import { measureLoudness } from '../lib/loudness.js'
+import { measureLoudness, readTagGain } from '../lib/loudness.js'
 import { getErrorMessage } from '../lib/util.js'
 import type { DownloadJob } from './downloadManager.js'
 
@@ -81,18 +81,25 @@ export default async function registerDownload (options: { job: DownloadJob, io:
     log.warn('could not probe duration of %s: %s', filePath, getErrorMessage(err))
   }
 
-  // downloads never carry replaygain tags: measure loudness so the
-  // player can level them like tagged files
+  // files with ReplayGain tags use them; only tagless downloads are
+  // measured so the player can level them like tagged files
   let rgTrackGain: number | null = null
   let rgTrackPeak: number | null = null
 
-  const loudness = await measureLoudness(filePath)
+  const tags = await readTagGain(filePath)
 
-  if (loudness) {
-    rgTrackGain = loudness.gainDb
-    rgTrackPeak = loudness.peakRatio
+  if (tags) {
+    rgTrackGain = tags.gainDb
+    rgTrackPeak = tags.peakRatio
   } else {
-    log.warn('could not measure loudness of %s', filePath)
+    const loudness = await measureLoudness(filePath)
+
+    if (loudness) {
+      rgTrackGain = loudness.gainDb
+      rgTrackPeak = loudness.peakRatio
+    } else {
+      log.warn('could not measure loudness of %s', filePath)
+    }
   }
 
   const match = Library.matchSong({

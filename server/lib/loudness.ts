@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { parseFile } from 'music-metadata'
 import getLogger from './Log.js'
 
 const log = getLogger('loudness')
@@ -10,6 +11,37 @@ export const LOUDNESS_TARGET_LUFS = -14
 export interface Loudness {
   gainDb: number
   peakRatio: number
+}
+
+export interface TagGain {
+  gainDb: number
+  peakRatio: number | null
+}
+
+/**
+ * Reads ReplayGain tags from a file (same scale as measured values, no
+ * conversion). Returns null when the file has no usable tags or cannot
+ * be parsed.
+ */
+export async function readTagGain (filePath: string): Promise<TagGain | null> {
+  let common
+
+  try {
+    ({ common } = await parseFile(filePath, { duration: false, skipCovers: true }))
+  } catch {
+    return null
+  }
+
+  const gainDb = common?.replaygain_track_gain?.dB
+
+  if (typeof gainDb !== 'number' || !Number.isFinite(gainDb)) return null
+
+  const peak = common?.replaygain_track_peak?.ratio
+
+  return {
+    gainDb,
+    peakRatio: typeof peak === 'number' && Number.isFinite(peak) ? peak : null,
+  }
 }
 
 /**

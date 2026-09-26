@@ -16,7 +16,7 @@ const SongInfo = () => {
   const handleRemovePrefer = (mediaId: number) => dispatch(setPreferredSong({ songId, mediaId, isPreferred: false }))
   const handleGain = (mediaId: number, rgTrackGain: number | null) => {
     if (rgTrackGain === null) {
-      if (!confirm('Clear the level? It will be measured again on the next gain scan.')) return
+      if (!confirm('Clear the level? It will be picked up again on the next scan.')) return
     } else {
       rgTrackGain = Math.min(24, Math.max(-24, Math.round(rgTrackGain * 2) / 2))
     }

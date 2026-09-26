@@ -37,6 +37,13 @@ vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
   default: vi.fn(),
 }))
 
+const { readTagGainMock } = vi.hoisted(() => ({ readTagGainMock: vi.fn() }))
+
+vi.mock('../lib/loudness.js', async importOriginal => ({
+  ...(await importOriginal<typeof import('../lib/loudness.js')>()),
+  readTagGain: readTagGainMock,
+}))
+
 import { execFile } from 'child_process'
 import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
@@ -93,6 +100,7 @@ describe('registerDownload', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    readTagGainMock.mockResolvedValue(null)
     vi.mocked(Media.search).mockReturnValue({ result: [], entities: {} })
     vi.mocked(Library.matchSong).mockReturnValue({ songId: 1, artistId: 2 })
     vi.mocked(execFile).mockImplementation(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
@@ -151,6 +159,18 @@ describe('registerDownload', () => {
       rgTrackGain: 2.4,
       rgTrackPeak: expect.closeTo(Math.pow(10, -1.5 / 20), 5),
     }))
+  })
+
+  it('uses file tags instead of measuring when present', async () => {
+    readTagGainMock.mockResolvedValue({ gainDb: -4, peakRatio: 0.9 })
+
+    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
+
+    expect(Media.add).toHaveBeenCalledWith(expect.objectContaining({
+      rgTrackGain: -4,
+      rgTrackPeak: 0.9,
+    }))
+    expect(vi.mocked(execFile).mock.calls.some(call => call[0] === 'ffmpeg')).toBe(false)
   })
 
   it('throws when the downloaded file is missing', async () => {

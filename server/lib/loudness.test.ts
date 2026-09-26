@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { LOUDNESS_TARGET_LUFS, parseLoudnorm } from './loudness.js'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('music-metadata', () => ({
+  parseFile: vi.fn(),
+}))
+
+import { parseFile } from 'music-metadata'
+import { LOUDNESS_TARGET_LUFS, parseLoudnorm, readTagGain } from './loudness.js'
 
 const LOUDNORM_JSON = `{
   "input_i" : "-16.42",
@@ -35,5 +41,40 @@ describe('parseLoudnorm', () => {
     expect(parseLoudnorm('{}')).toBeNull()
     expect(parseLoudnorm('{"measured_I":"-inf","measured_TP":"-1.5"}')).toBeNull()
     expect(parseLoudnorm('{"measured_I":"-16.42"}')).toBeNull()
+  })
+})
+
+describe('readTagGain', () => {
+  it('reads gain and peak from ReplayGain tags', async () => {
+    vi.mocked(parseFile).mockResolvedValueOnce({
+      common: {
+        replaygain_track_gain: { dB: -3.5 },
+        replaygain_track_peak: { ratio: 0.9 },
+      },
+    } as never)
+
+    await expect(readTagGain('/media/a.mp3')).resolves.toEqual({
+      gainDb: -3.5,
+      peakRatio: 0.9,
+    })
+  })
+
+  it('allows missing peak', async () => {
+    vi.mocked(parseFile).mockResolvedValueOnce({
+      common: { replaygain_track_gain: { dB: 2 } },
+    } as never)
+
+    await expect(readTagGain('/media/a.mp3')).resolves.toEqual({
+      gainDb: 2,
+      peakRatio: null,
+    })
+  })
+
+  it('returns null without usable tags or on parse errors', async () => {
+    vi.mocked(parseFile).mockResolvedValueOnce({ common: {} } as never)
+    await expect(readTagGain('/media/a.mp3')).resolves.toBeNull()
+
+    vi.mocked(parseFile).mockRejectedValueOnce(new Error('no such file'))
+    await expect(readTagGain('/media/missing.mp3')).resolves.toBeNull()
   })
 })

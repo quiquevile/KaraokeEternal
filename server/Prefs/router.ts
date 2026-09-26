@@ -7,9 +7,24 @@ import getWindowsDrives from '../lib/getWindowsDrives.js'
 import Prefs from './Prefs.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
+import { isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
 import { parseIdParam, requireAdmin } from '../lib/http.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
+
+export interface RouterContext {
+  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null } | undefined
+  params: Record<string, string>
+  query: Record<string, string | undefined>
+  request: { body: Record<string, unknown> }
+  body: unknown
+  status: number
+  throw: (status: number, message?: string) => never
+  io: { emit: (...args: unknown[]) => void }
+  startScanner: (pathIds: unknown) => void
+  stopScanner: () => void
+  isScannerActive: () => boolean
+}
 
 interface RequestWithBody {
   body: Record<string, unknown>
@@ -103,30 +118,55 @@ router.delete('/path/:pathId', (ctx) => {
 })
 
 // scan a media path
-router.get('/path/:pathId/scan', async (ctx) => {
+export async function handleScanPath (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
+
+  if (isGainActive()) ctx.throw(409, 'Gain measurement in progress')
 
   const pathId = parseIdParam(ctx, 'pathId')
 
   ctx.status = 200
   ctx.startScanner(pathId)
-})
+}
+
+router.get('/path/:pathId/scan', ctx => handleScanPath(ctx as unknown as RouterContext))
 
 // scan all media paths
-router.get('/paths/scan', async (ctx) => {
+export async function handleScanAll (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
+
+  if (isGainActive()) ctx.throw(409, 'Gain measurement in progress')
 
   ctx.status = 200
   ctx.startScanner(true)
-})
+}
 
-// stop scanning
-router.get('/paths/scan/stop', async (ctx) => {
+router.get('/paths/scan', ctx => handleScanAll(ctx as unknown as RouterContext))
+
+// stop scanning (also cancels a running gain measurement)
+export async function handleScanStop (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
 
   ctx.status = 200
   ctx.stopScanner()
-})
+  stopGainScan()
+}
+
+router.get('/paths/scan/stop', ctx => handleScanStop(ctx as unknown as RouterContext))
+
+// measure loudness of songs without a stored level (admin only);
+// paused automatically while a library scan runs, resumed afterwards
+export async function handleGainScan (ctx: RouterContext): Promise<void> {
+  requireAdmin(ctx)
+
+  if (ctx.isScannerActive()) ctx.throw(409, 'Library scan in progress')
+  if (isGainActive()) ctx.throw(409, 'Gain measurement already running')
+
+  ctx.status = 200
+  startGainScan(ctx.io)
+}
+
+router.get('/gain/scan', ctx => handleGainScan(ctx as unknown as RouterContext))
 
 // get folder listing for path browser
 router.get('/path/ls', async (ctx) => {

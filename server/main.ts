@@ -25,6 +25,8 @@ const log = initLogger('server', {
 
 const refs: { scanner?: childProcess.ChildProcess, watcher?: childProcess.ChildProcess } = {}
 const shutdownHandlers: Array<() => Promise<void>> = []
+let pauseGainScan: () => boolean = () => false
+let resumeGainScan: () => void = () => {}
 let IPC
 
 process.on(PREFS_PATHS_CHANGED, startWatcher)
@@ -79,8 +81,11 @@ process.on('unhandledRejection', (reason) => {
   })
 
   // start web server
+  const GainScan = await import('./Scanner/GainScan.js')
+  pauseGainScan = GainScan.pauseGainScan
+  resumeGainScan = GainScan.resumeGainScan
   const serverWorker = await import('./serverWorker.js')
-  serverWorker.default({ env, startScanner, stopScanner, shutdownHandlers })
+  serverWorker.default({ env, startScanner, stopScanner, isScannerActive, shutdownHandlers })
 
   // scanning on startup?
   const pathIds = parsePathIds(env.KES_SCAN)
@@ -121,6 +126,8 @@ function startWatcher (paths) {
 
 function startScanner (pathIds) {
   if (refs.scanner === undefined) {
+    // pause gain measurement while the library scan runs (resumed on exit)
+    pauseGainScan()
     log.info('Starting media scanner process')
 
     refs.scanner = childProcess.fork(path.join(import.meta.dirname, 'scannerWorker.js'), [pathIds.toString()], {
@@ -132,6 +139,9 @@ function startScanner (pathIds) {
     refs.scanner.on('exit', (code, signal) => {
       IPC.removeChild(refs.scanner)
       delete refs.scanner
+
+      // resume gain measurement paused for this scan, if any
+      resumeGainScan()
 
       ;(process as any).emit(SCANNER_WORKER_EXITED, { signal, code })
       log.info(`Media scanner process exited (${signal || code})`)
@@ -147,6 +157,10 @@ function stopScanner () {
   if (refs.scanner) {
     IPC.send({ type: REQUEST_SCAN_STOP })
   }
+}
+
+function isScannerActive () {
+  return refs.scanner !== undefined
 }
 
 async function shutdown (signal) {

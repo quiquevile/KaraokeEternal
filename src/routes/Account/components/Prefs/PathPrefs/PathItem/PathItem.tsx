@@ -7,12 +7,13 @@ import styles from './PathItem.css'
 
 interface PathItemProps {
   index: number
+  isScanDisabled?: boolean
   onInfo: (pathId: number) => void
   onRefresh: (pathId: number) => void
   path: Path
 }
 
-const PathItem = ({ index, onInfo, onRefresh, path }: PathItemProps) => {
+const PathItem = ({ index, isScanDisabled, onInfo, onRefresh, path }: PathItemProps) => {
   const handleInfo = (e: React.SyntheticEvent<HTMLElement>) => onInfo(parseInt(e.currentTarget.dataset.pathId))
   const handleRefresh = (e: React.SyntheticEvent<HTMLElement>) => onRefresh(parseInt(e.currentTarget.dataset.pathId))
 
@@ -35,6 +36,7 @@ const PathItem = ({ index, onInfo, onRefresh, path }: PathItemProps) => {
           <Button
             className={styles.btnRefresh}
             data-path-id={path.pathId}
+            disabled={isScanDisabled}
             icon='REFRESH'
             onClick={handleRefresh}
           />

@@ -10,6 +10,7 @@ import {
   PREFS_PUSH,
   PREFS_REQ_SCANNER_START,
   PREFS_REQ_SCANNER_STOP,
+  PREFS_REQ_GAIN_START,
   SCANNER_WORKER_STATUS,
   LOGOUT,
 } from 'shared/actionTypes'
@@ -25,7 +26,7 @@ export const setPref = createAction<{ key: string, data: unknown }>(PREFS_SET)
 export const receivePrefs = createAction<object>(PREFS_RECEIVE)
 export const setPathPriority = createAction<number[]>(PREFS_PATH_SET_PRIORITY)
 const prefsPush = createAction<PrefsState>(PREFS_PUSH)
-const scannerWorkerStatus = createAction<{ isScanning: boolean, pct: number, text: string }>(SCANNER_WORKER_STATUS)
+const scannerWorkerStatus = createAction<{ isScanning: boolean, pct: number, text: string, job?: string }>(SCANNER_WORKER_STATUS)
 
 export const setPathPrefs = createAsyncThunk(
   PREFS_PATH_UPDATE,
@@ -73,6 +74,11 @@ export const requestScanStop = createAsyncThunk(
   async () => await api.get('/paths/scan/stop'),
 )
 
+export const requestGainScan = createAsyncThunk(
+  PREFS_REQ_GAIN_START,
+  async () => await api.get('/gain/scan'),
+)
+
 // ------------------------------------
 // Reducer
 // ------------------------------------
@@ -90,6 +96,7 @@ interface PrefsState {
   }
   scannerPct: number
   scannerText: string
+  scannerJob: string | null
   youtubeDownloadPathId?: number
   youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
@@ -108,6 +115,7 @@ const initialState: PrefsState = {
   },
   scannerPct: 0,
   scannerText: '',
+  scannerJob: null,
 }
 
 const prefsReducer = createReducer(initialState, (builder) => {
@@ -129,6 +137,7 @@ const prefsReducer = createReducer(initialState, (builder) => {
       isScanning: payload.isScanning,
       scannerPct: payload.pct,
       scannerText: payload.text,
+      scannerJob: payload.job ?? null,
     }))
 })
 

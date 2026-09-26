@@ -34,7 +34,7 @@ import { SCANNER_WORKER_EXITED, SERVER_WORKER_STATUS, SERVER_WORKER_ERROR } from
 const log = getLogger('server')
 const { verify: jwtVerify } = jsonWebToken
 
-async function serverWorker ({ env, startScanner, stopScanner, shutdownHandlers }) {
+async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, shutdownHandlers }) {
   const indexFile = path.join(env.KES_PATH_WEBROOT, 'index.html')
   const urlPath = env.KES_URL_PATH.replace(/\/?$/, '/') // force trailing slash
   const jwtKey = Prefs.getJwtKey(env.KES_ROTATE_KEY)
@@ -172,6 +172,7 @@ async function serverWorker ({ env, startScanner, stopScanner, shutdownHandlers 
     ctx.io = io
     ctx.startScanner = startScanner
     ctx.stopScanner = stopScanner
+    ctx.isScannerActive = isScannerActive
 
     await next()
   })

@@ -264,4 +264,28 @@ describe('GainScan', () => {
 
     expect(finishedPayload(sock.emit).text).toContain('Gain scan stopped')
   })
+
+  it('emits no active status after the final one on fast runs', async () => {
+    // both files complete within the throttle window, so the second
+    // progress update is a pending trailing call when the job finishes
+    dbAllMock
+      .mockReturnValueOnce([
+        { mediaId: 1, pathId: 1, relPath: 'a.mp3' },
+        { mediaId: 2, pathId: 1, relPath: 'b.mp3' },
+      ])
+      .mockReturnValue([])
+    measureMock.mockResolvedValue({ gainDb: -1, peakRatio: 1 })
+
+    const sock = io()
+    startGainScan(sock)
+    await waitForIdle()
+
+    // past the throttle window: a stale trailing emit would have fired by now
+    await new Promise(resolve => setTimeout(resolve, 1300))
+
+    const payloads = sock.emit.mock.calls.map(call => call[1]?.payload).filter(Boolean)
+    const finalIndex = payloads.findIndex(payload => payload.isScanning === false)
+    expect(finalIndex).toBeGreaterThan(-1)
+    expect(payloads.slice(finalIndex + 1)).toEqual([])
+  }, 10000)
 })

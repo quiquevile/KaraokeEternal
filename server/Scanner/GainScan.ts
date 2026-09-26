@@ -1,5 +1,5 @@
 import path from 'node:path'
-import throttle from '@jcoreio/async-throttle'
+import throttle, { type ThrottledFunction } from '@jcoreio/async-throttle'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import { measureLoudness, readTagGain } from '../lib/loudness.js'
@@ -21,7 +21,7 @@ let measured = 0
 let tagged = 0
 let skipped = 0
 let total = 0
-let emit: ((action: object) => void) | null = null
+let emit: ThrottledFunction<[object], void> | null = null
 
 export function isGainActive (): boolean {
   return state !== 'idle'
@@ -32,7 +32,8 @@ export function isGainPaused (): boolean {
 }
 
 function sendStatus (payload: object): void {
-  if (emit) emit({ type: SCANNER_WORKER_STATUS, payload })
+  // fire-and-forget by design: no dangling promises, CanceledError-proof
+  if (emit) emit.invokeIgnoreResult({ type: SCANNER_WORKER_STATUS, payload })
 }
 
 function progressText (done: number): string {
@@ -212,6 +213,10 @@ async function run (io): Promise<void> {
   state = 'idle'
   cancelRequested = false
   aborter = null
+
+  // drop any pending throttled progress so no stale active status can
+  // land after the final one and re-activate the UI
+  await emit?.cancel()
   emit = null
 
   log.info('gain scan %s (%s measured, %s from tags, %s skipped)',

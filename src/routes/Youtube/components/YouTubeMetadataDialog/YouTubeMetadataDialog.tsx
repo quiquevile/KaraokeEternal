@@ -5,7 +5,7 @@ import Modal from 'components/Modal/Modal'
 import MetadataFields from 'components/MetadataFields/MetadataFields'
 import { useCaseField } from 'components/MetadataFields/useCaseField'
 import { closeYoutubeDialog, downloadVideo, fetchDownloadUsers, identifyVideo } from 'store/modules/youtube'
-import { fetchRooms } from 'store/modules/rooms'
+import { fetchCurrentRoomStatus, fetchRooms } from 'store/modules/rooms'
 import { hasPermission } from 'store/modules/user'
 import type { ConvertedMetadata, YouTubeResult } from 'store/modules/youtube'
 import styles from './YouTubeMetadataDialog.css'
@@ -16,7 +16,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   const [savedMetadata, setSavedMetadata] = useState<ConvertedMetadata | null>(metadata)
   const user = useAppSelector(state => state.user)
   const downloadUsers = useAppSelector(state => state.youtube.downloadUsers)
-  const rooms = useAppSelector(state => state.rooms.entities)
+  const currentRoomStatus = useAppSelector(state => state.rooms.currentStatus)
   const [queueChecked, setQueueChecked] = useState(false)
   const [queueUserId, setQueueUserId] = useState<number | null>(null)
   const dispatch = useAppDispatch()
@@ -25,12 +25,13 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
 
   useEffect(() => {
     dispatch(fetchRooms())
+    dispatch(fetchCurrentRoomStatus())
     if (canQueueForOthers) dispatch(fetchDownloadUsers(user.roomId ?? null))
   }, [dispatch, canQueueForOthers])
 
   // hide queueing only when the current room is positively closed;
-  // unknown rooms fail open and the server validates on download
-  const roomClosed = user.roomId != null && rooms[user.roomId]?.status === 'closed'
+  // unknown status fails open and the server validates on download
+  const roomClosed = currentRoomStatus === 'closed'
 
   if (metadata !== savedMetadata) {
     setSavedMetadata(metadata)

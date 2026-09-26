@@ -28,6 +28,11 @@ export const fetchRooms = createAsyncThunk(
   async () => await api.get(''),
 )
 
+export const fetchCurrentRoomStatus = createAsyncThunk(
+  'rooms/fetchCurrentRoomStatus',
+  async () => await api.get('/current/status') as { roomId: number, status: string },
+)
+
 export const fetchCurrentRoom = createAsyncThunk<object, void, { state: RootState }>(
   ROOMS_REQUEST,
   async (_, thunkAPI) => {
@@ -110,6 +115,7 @@ export function requestPrefsPush (roomId: number, prefs: IRoomPrefs): AppThunk {
 interface RoomsState {
   result: number[]
   entities: Record<number, Room>
+  currentStatus: string | null
   filterStatus: boolean | string
   isEditorOpen: boolean
 }
@@ -117,6 +123,7 @@ interface RoomsState {
 const initialState: RoomsState = {
   result: [],
   entities: {},
+  currentStatus: null,
   filterStatus: 'open',
   isEditorOpen: false,
 }
@@ -132,6 +139,12 @@ const roomsReducer = createReducer(initialState, (builder) => {
       ...state,
       ...payload,
     }))
+    .addCase(fetchCurrentRoomStatus.fulfilled, (state, { payload }) => {
+      state.currentStatus = (payload as { status?: string })?.status ?? null
+    })
+    .addCase(fetchCurrentRoomStatus.rejected, (state) => {
+      state.currentStatus = null
+    })
     .addCase(openRoomEditor, (state) => {
       state.isEditorOpen = true
     })

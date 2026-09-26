@@ -14,6 +14,34 @@ const router = new KoaRouter({ prefix: '/api/rooms' })
 
 import { ROOM_PREFS_PUSH } from '../../shared/actionTypes.js'
 
+export interface RouterContext {
+  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null } | undefined
+  params: Record<string, string>
+  query: Record<string, string | undefined>
+  request: { body: Record<string, unknown> }
+  body: unknown
+  status: number
+  throw: (status: number, message?: string) => never
+}
+
+// status of the requesting user's current room; any logged-in user may query
+// their own room (including closed ones, which are hidden from GET /api/rooms)
+export function handleCurrentRoomStatus (ctx: RouterContext): void {
+  if (ctx.user?.userId == null) ctx.throw(401)
+
+  const roomId = ctx.user?.roomId
+  if (roomId == null) ctx.throw(404, 'Not in a room')
+
+  const res = Rooms.get(roomId, { status: STATUSES })
+  const room = res.entities[roomId]
+  if (!room) ctx.throw(404, 'Room not found')
+
+  ctx.body = { roomId, status: room.status }
+}
+
+// current room status (registered before '/:roomId' for clarity)
+router.get('/current/status', ctx => handleCurrentRoomStatus(ctx as unknown as RouterContext))
+
 // list rooms
 router.get(['/', '/:roomId'], (ctx) => {
   const roomId = ctx.params.roomId ? parseInt(ctx.params.roomId, 10) : undefined

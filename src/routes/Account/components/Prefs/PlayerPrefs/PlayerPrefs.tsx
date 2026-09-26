@@ -29,7 +29,7 @@ const PlayerPrefs = () => {
         {isAdmin && (
           <div>
             <Button onClick={handleGainScan} variant='default' disabled={isScanning}>
-              Measure missing loudness (for ReplayGain)
+              Measure ReplayGain
             </Button>
           </div>
         )}

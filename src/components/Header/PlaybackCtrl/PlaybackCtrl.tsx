@@ -115,6 +115,7 @@ const PlaybackCtrl = () => {
               onClose={toggleDisplayCtrl}
               onRequestOptions={handleOptions}
               pitchSemitones={status.pitchSemitones}
+              isReplayGainEnabled={status.isReplayGainEnabled}
               eqEnabled={status.eqEnabled}
               eqGains={status.eqGains}
               eqPreset={status.eqPreset}

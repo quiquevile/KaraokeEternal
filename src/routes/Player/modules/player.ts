@@ -38,6 +38,7 @@ const playerCmdOptions = createAction<{
   cdgSize: number
   mp4Alpha: number
   pitchSemitones: number
+  isReplayGainEnabled: boolean
   eqEnabled: boolean
   eqGains: number[]
   eqPreset: string
@@ -110,6 +111,7 @@ export interface PlayerState {
   isAtQueueEnd: boolean
   isErrored: boolean
   isPlaying: boolean
+  isReplayGainEnabled: boolean
   isVideoKeyingEnabled: boolean
   isWebGLSupported: boolean
   mediaType: string | null
@@ -139,6 +141,7 @@ const initialState: PlayerState = {
   isAtQueueEnd: false,
   isErrored: false,
   isPlaying: false,
+  isReplayGainEnabled: true,
   isVideoKeyingEnabled: false,
   isWebGLSupported: getWebGLSupport(),
   mediaType: null,
@@ -169,6 +172,7 @@ const playerReducer = createReducer(initialState, (builder) => {
       cdgSize: typeof payload.cdgSize === 'number' ? payload.cdgSize : state.cdgSize,
       mp4Alpha: typeof payload.mp4Alpha === 'number' ? payload.mp4Alpha : state.mp4Alpha,
       pitchSemitones: typeof payload.pitchSemitones === 'number' ? payload.pitchSemitones : state.pitchSemitones,
+      isReplayGainEnabled: typeof payload.isReplayGainEnabled === 'boolean' ? payload.isReplayGainEnabled : state.isReplayGainEnabled,
       eqEnabled: typeof payload.eqEnabled === 'boolean' ? payload.eqEnabled : state.eqEnabled,
       eqGains: Array.isArray(payload.eqGains) && payload.eqGains.length === EQ_FREQUENCIES.length
         ? payload.eqGains.map(clampEqGain)

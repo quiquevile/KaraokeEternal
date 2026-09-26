@@ -21,6 +21,7 @@ interface DisplayCtrlProps {
   mediaType?: MediaType
   mp4Alpha: number
   pitchSemitones: number
+  isReplayGainEnabled: boolean
   eqEnabled: boolean
   eqGains: number[]
   eqPreset: string
@@ -42,6 +43,7 @@ const DisplayCtrl = ({
   mediaType = '',
   mp4Alpha,
   pitchSemitones,
+  isReplayGainEnabled,
   eqEnabled,
   eqGains,
   eqPreset,
@@ -82,6 +84,10 @@ const DisplayCtrl = ({
 
   const handleToggleVisualizer = () => onRequestOptions({
     visualizer: { isEnabled: !isVisualizerEnabled },
+  })
+
+  const handleToggleReplayGain = () => onRequestOptions({
+    isReplayGainEnabled: !isReplayGainEnabled,
   })
 
   const handlePresetNext = () => onRequestOptions({
@@ -232,6 +238,14 @@ const DisplayCtrl = ({
           >
             Equalizer
           </Button>
+        </div>
+
+        <div className={styles.container}>
+          <InputCheckbox
+            label='ReplayGain'
+            checked={isReplayGainEnabled}
+            onChange={handleToggleReplayGain}
+          />
         </div>
 
         {isEqualizerOpen && (

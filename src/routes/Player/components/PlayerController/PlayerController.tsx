@@ -17,7 +17,6 @@ const PlayerController = (props: PlayerControllerProps) => {
   const queue = useAppSelector(getRoundRobinQueue)
   const player = useAppSelector(state => state.player)
   const playerVisualizer = useAppSelector(state => state.playerVisualizer)
-  const prefs = useAppSelector(state => state.prefs)
   const roomPrefs = useAppSelector(getRoomPrefs)
   const queueItem = queue.entities[player.queueId]
   // current item deleted (e.g. its song was removed from the library)?
@@ -169,7 +168,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         cdgSize={player.cdgSize}
         isPlaying={player.isPlaying}
         isVisible={!!queueItem && !player.isErrored && !player.isAtQueueEnd}
-        isReplayGainEnabled={prefs.isReplayGainEnabled}
+        isReplayGainEnabled={player.isReplayGainEnabled}
         isVideoKeyingEnabled={!!queueItem?.isVideoKeyingEnabled}
         isWebGLSupported={player.isWebGLSupported}
         mediaId={queueItem ? queueItem.mediaId : null}

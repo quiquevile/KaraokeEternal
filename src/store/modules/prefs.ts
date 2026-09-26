@@ -84,7 +84,6 @@ export const requestGainScan = createAsyncThunk(
 // ------------------------------------
 interface PrefsState {
   isFirstRun?: boolean
-  isReplayGainEnabled: boolean
   isScanning: boolean
   paths: {
     result: number[]
@@ -103,7 +102,6 @@ interface PrefsState {
 }
 
 const initialState: PrefsState = {
-  isReplayGainEnabled: false,
   isScanning: false,
   paths: {
     result: [],

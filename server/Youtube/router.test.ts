@@ -53,6 +53,12 @@ vi.mock('../User/User.js', () => ({
   },
 }))
 
+vi.mock('../Rooms/Rooms.js', () => ({
+  default: {
+    validate: vi.fn(async () => true),
+  },
+}))
+
 import {
   handleSearch,
   handleIdentify,
@@ -81,6 +87,7 @@ import { downloadManager } from './downloadManager.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
 import User from '../User/User.js'
+import Rooms from '../Rooms/Rooms.js'
 import type { DownloadJob, DownloadReport } from './downloadManager.js'
 import type { RouterContext } from './router.js'
 import type { YouTubeResult } from './ytdlp.js'
@@ -475,6 +482,20 @@ describe('router', () => {
         request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 7 } },
       })
       await expect(handleDownload(ctx)).rejects.toMatchObject({ status: 422 })
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('rejects 422 when the room is closed at enqueue time', async () => {
+      // Rooms.get filters out closed rooms by default, like the library flow
+      vi.mocked(Rooms.validate).mockRejectedValueOnce(new Error('Room not found'))
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 7 } },
+      })
+      const err = await handleDownload(ctx).then(() => null, (e: Error) => e)
+
+      expect(err).toMatchObject({ status: 422, message: 'Room not found' })
       expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
 

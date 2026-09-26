@@ -21,6 +21,7 @@ import { requireAdmin } from '../lib/http.js'
 import { getErrorMessage } from '../lib/util.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
+import Rooms from '../Rooms/Rooms.js'
 import User from '../User/User.js'
 
 export interface RouterContext {
@@ -184,6 +185,12 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
     queueRoomId = typeof ctx.user?.roomId === 'number' ? ctx.user.roomId : null
 
     if (queueRoomId === null) ctx.throw(422, 'join a room to queue the download')
+
+    try {
+      await Rooms.validate(queueRoomId, null, { validatePassword: false })
+    } catch (err) {
+      ctx.throw(422, err instanceof Error ? err.message : 'Room not found')
+    }
   }
 
   const norms = deriveNorms(artist, title)

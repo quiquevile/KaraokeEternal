@@ -5,6 +5,7 @@ import Modal from 'components/Modal/Modal'
 import MetadataFields from 'components/MetadataFields/MetadataFields'
 import { useCaseField } from 'components/MetadataFields/useCaseField'
 import { closeYoutubeDialog, downloadVideo, fetchDownloadUsers, identifyVideo } from 'store/modules/youtube'
+import { fetchRooms } from 'store/modules/rooms'
 import { hasPermission } from 'store/modules/user'
 import type { ConvertedMetadata, YouTubeResult } from 'store/modules/youtube'
 import styles from './YouTubeMetadataDialog.css'
@@ -15,6 +16,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   const [savedMetadata, setSavedMetadata] = useState<ConvertedMetadata | null>(metadata)
   const user = useAppSelector(state => state.user)
   const downloadUsers = useAppSelector(state => state.youtube.downloadUsers)
+  const rooms = useAppSelector(state => state.rooms.entities)
   const [queueChecked, setQueueChecked] = useState(false)
   const [queueUserId, setQueueUserId] = useState<number | null>(null)
   const dispatch = useAppDispatch()
@@ -22,8 +24,13 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'downloadForOthers')
 
   useEffect(() => {
+    dispatch(fetchRooms())
     if (canQueueForOthers) dispatch(fetchDownloadUsers(user.roomId ?? null))
-  }, [dispatch, canQueueForOthers, user.roomId])
+  }, [dispatch, canQueueForOthers])
+
+  // hide queueing only when the current room is positively closed;
+  // unknown rooms fail open and the server validates on download
+  const roomClosed = user.roomId != null && rooms[user.roomId]?.status === 'closed'
 
   if (metadata !== savedMetadata) {
     setSavedMetadata(metadata)
@@ -56,16 +63,18 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
 
       <MetadataFields artist={artist} title={title} />
 
-      <label className={styles.queueRow}>
-        <input
-          type='checkbox'
-          checked={queueChecked}
-          onChange={() => setQueueChecked(!queueChecked)}
-        />
-        Add to queue
-      </label>
+      {!roomClosed && (
+        <label className={styles.queueRow}>
+          <input
+            type='checkbox'
+            checked={queueChecked}
+            onChange={() => setQueueChecked(!queueChecked)}
+          />
+          Add to queue
+        </label>
+      )}
 
-      {canQueueForOthers && (
+      {canQueueForOthers && !roomClosed && (
         <label className={styles.queueRow}>
           <span className={styles.label}>User</span>
           <select

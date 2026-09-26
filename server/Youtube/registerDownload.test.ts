@@ -29,6 +29,7 @@ vi.mock('../Queue/Queue.js', () => ({
 vi.mock('../Rooms/Rooms.js', () => ({
   default: {
     isUserPresent: vi.fn(() => true),
+    validate: vi.fn(async () => true),
   },
 }))
 
@@ -195,6 +196,27 @@ describe('registerDownload', () => {
 
     expect(Media.add).toHaveBeenCalled()
     expect(Queue.add).not.toHaveBeenCalled()
+  })
+
+  it('marks the job when the room closed mid-download', async () => {
+    vi.mocked(Rooms.validate).mockRejectedValueOnce(new Error('Room is no longer open'))
+
+    const downloading = { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 }
+    await registerDownload({ job: downloading, io: {} })
+
+    expect(Media.add).toHaveBeenCalled()
+    expect(Queue.add).not.toHaveBeenCalled()
+    expect(downloading.error).toBe('Room is no longer open')
+  })
+
+  it('marks the job when the user is gone', async () => {
+    vi.mocked(Rooms.isUserPresent).mockReturnValueOnce(false)
+
+    const downloading = { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 }
+    await registerDownload({ job: downloading, io: {} })
+
+    expect(Media.add).toHaveBeenCalled()
+    expect(downloading.error).toBe('User not in room')
   })
 
   it('registers even when auto-queue fails', async () => {

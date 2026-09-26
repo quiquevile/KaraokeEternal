@@ -126,16 +126,21 @@ export default async function registerDownload (options: { job: DownloadJob, io:
   log.info('registered download: %s (%s)', relPath, job.id)
 
   // auto-queue on request, but only while the target user is still
-  // in the downloader's room; never fail the registration over this
+  // auto-queue on request: the room must still be open and the target
+  // user still in it; failures only mark the job, never the registration
   if (job.queueUserId != null && job.queueRoomId != null && io) {
     try {
+      await Rooms.validate(job.queueRoomId, null, { validatePassword: false })
+
       if (Rooms.isUserPresent(io, job.queueRoomId, job.queueUserId)) {
         Queue.add({ roomId: job.queueRoomId, songId: match.songId, userId: job.queueUserId })
       } else {
+        job.error = 'User not in room'
         log.info('skipping auto-queue: user %s not in room %s', job.queueUserId, job.queueRoomId)
       }
     } catch (err) {
-      log.warn('could not auto-queue download %s: %s', job.id, getErrorMessage(err))
+      job.error = getErrorMessage(err)
+      log.warn('could not auto-queue download %s: %s', job.id, job.error)
     }
   }
 

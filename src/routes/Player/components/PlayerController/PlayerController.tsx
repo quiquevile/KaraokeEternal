@@ -116,6 +116,7 @@ const PlayerController = (props: PlayerControllerProps) => {
     player.cdgAlpha,
     player.cdgSize,
     player.isPlaying,
+    player.isReplayGainEnabled,
     player.mp4Alpha,
     player.pitchSemitones,
     player.volume,

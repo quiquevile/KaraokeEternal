@@ -230,6 +230,23 @@ describe('GainScan', () => {
     expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (0 measured, 1 from tags, 0 skipped)')
   })
 
+  it('aborts the in-flight file when stopped', async () => {
+    dbAllMock.mockReturnValue([{ mediaId: 1, pathId: 1, relPath: 'a.mp3' }])
+    measureMock.mockImplementation((_file: unknown, opts?: { signal?: AbortSignal }) => new Promise((resolve) => {
+      opts?.signal?.addEventListener('abort', () => resolve(null), { once: true })
+    }))
+
+    const sock = io()
+    startGainScan(sock)
+
+    while (measureMock.mock.calls.length < 1) await new Promise(resolve => setTimeout(resolve, 10))
+    stopGainScan()
+    await waitForIdle()
+
+    expect(updateMock).not.toHaveBeenCalled()
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan stopped')
+  })
+
   it('reports stop when cancelled', async () => {
     let resolveMeasure
     dbAllMock.mockReturnValue([{ mediaId: 1, pathId: 1, relPath: 'a.mp3' }])

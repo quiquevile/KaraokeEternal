@@ -15,6 +15,7 @@ type GainState = 'idle' | 'running' | 'paused'
 
 let state: GainState = 'idle'
 let cancelRequested = false
+let aborter: AbortController | null = null
 let attempted: Set<number> = new Set()
 let measured = 0
 let tagged = 0
@@ -49,6 +50,7 @@ export function startGainScan (io): boolean {
 
   state = 'running'
   cancelRequested = false
+  aborter = new AbortController()
   attempted = new Set()
   measured = 0
   tagged = 0
@@ -97,12 +99,14 @@ export function resumeGainScan (): void {
 }
 
 /**
- * Cancels the job (running or paused); completion is reported as stopped.
+ * Cancels the job (running or paused); the in-flight file is aborted so
+ * completion is reported as stopped without waiting for it.
  */
 export function stopGainScan (): void {
   if (state === 'idle') return
 
   cancelRequested = true
+  aborter?.abort()
   log.info('gain scan stopping')
 }
 
@@ -164,8 +168,10 @@ async function run (io): Promise<void> {
 
         // files with ReplayGain tags use them; only tagless files are
         // measured. Rows with stored values are never selected, so
-        // manual edits are never overwritten.
-        const tags = await readTagGain(item.fullPath)
+        // manual edits are never overwritten. The run signal aborts
+        // in-flight work so stops take effect immediately.
+        const signal = aborter?.signal
+        const tags = await readTagGain(item.fullPath, { signal })
 
         if (tags) {
           Media.update({
@@ -176,7 +182,9 @@ async function run (io): Promise<void> {
           })
           tagged += 1
         } else {
-          const loudness = await measureLoudness(item.fullPath)
+          const loudness = await measureLoudness(item.fullPath, { signal })
+
+          if (cancelRequested) break
 
           if (loudness) {
             Media.update({
@@ -203,6 +211,7 @@ async function run (io): Promise<void> {
   const cancelled = cancelRequested
   state = 'idle'
   cancelRequested = false
+  aborter = null
   emit = null
 
   log.info('gain scan %s (%s measured, %s from tags, %s skipped)',

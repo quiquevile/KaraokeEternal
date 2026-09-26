@@ -18,29 +18,63 @@ export interface TagGain {
   peakRatio: number | null
 }
 
+export const MEASURE_TIMEOUT_MS = 180000
+export const TAG_READ_TIMEOUT_MS = 60000
+
+export interface MeasureOptions {
+  timeoutMs?: number
+  signal?: AbortSignal
+}
+
 /**
  * Reads ReplayGain tags from a file (same scale as measured values, no
- * conversion). Returns null when the file has no usable tags or cannot
- * be parsed.
+ * conversion). Returns null when the file has no usable tags, cannot
+ * be parsed, times out or is aborted.
  */
-export async function readTagGain (filePath: string): Promise<TagGain | null> {
-  let common
+export async function readTagGain (
+  filePath: string,
+  { timeoutMs = TAG_READ_TIMEOUT_MS, signal }: MeasureOptions = {},
+): Promise<TagGain | null> {
+  if (signal?.aborted) return null
+
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let onAbort: (() => void) | undefined
+
+  const abort = new Promise<null>((resolve) => {
+    onAbort = () => resolve(null)
+
+    if (timeoutMs > 0) {
+      timer = setTimeout(() => {
+        log.warn('timed out reading tags of %s', filePath)
+        resolve(null)
+      }, timeoutMs)
+      timer.unref?.()
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
 
   try {
-    ({ common } = await parseFile(filePath, { duration: false, skipCovers: true }))
+    const parsed = await Promise.race([
+      parseFile(filePath, { duration: false, skipCovers: true }),
+      abort,
+    ])
+
+    const gainDb = parsed?.common?.replaygain_track_gain?.dB
+
+    if (typeof gainDb !== 'number' || !Number.isFinite(gainDb)) return null
+
+    const peak = parsed?.common?.replaygain_track_peak?.ratio
+
+    return {
+      gainDb,
+      peakRatio: typeof peak === 'number' && Number.isFinite(peak) ? peak : null,
+    }
   } catch {
     return null
-  }
-
-  const gainDb = common?.replaygain_track_gain?.dB
-
-  if (typeof gainDb !== 'number' || !Number.isFinite(gainDb)) return null
-
-  const peak = common?.replaygain_track_peak?.ratio
-
-  return {
-    gainDb,
-    peakRatio: typeof peak === 'number' && Number.isFinite(peak) ? peak : null,
+  } finally {
+    clearTimeout(timer)
+    if (onAbort) signal?.removeEventListener('abort', onAbort)
   }
 }
 
@@ -71,9 +105,14 @@ export function parseLoudnorm (json: string): Loudness | null {
 
 /**
  * Measures a file's loudness with ffmpeg (single pass). Returns null
- * when ffmpeg is missing or the measurement fails.
+ * when ffmpeg is missing, the measurement fails, times out or is aborted.
  */
-export function measureLoudness (filePath: string): Promise<Loudness | null> {
+export function measureLoudness (
+  filePath: string,
+  { timeoutMs = MEASURE_TIMEOUT_MS, signal }: MeasureOptions = {},
+): Promise<Loudness | null> {
+  if (signal?.aborted) return Promise.resolve(null)
+
   const bin = process.env.KES_FFMPEG_BIN || 'ffmpeg'
 
   return new Promise((resolve) => {
@@ -82,9 +121,20 @@ export function measureLoudness (filePath: string): Promise<Loudness | null> {
       '-i', filePath,
       '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json',
       '-f', 'null', '-',
-    ], { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+    ], {
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: timeoutMs > 0 ? timeoutMs : undefined,
+      signal,
+    }, (err, stdout, stderr) => {
       if (err) {
-        log.debug('could not measure loudness of %s: %s', filePath, err.message)
+        if ((err as Error & { code?: unknown }).code === 'ABORT_ERR') {
+          log.debug('loudness measurement of %s aborted', filePath)
+        } else if ((err as NodeJS.ErrnoException).killed) {
+          log.warn('timed out measuring loudness of %s', filePath)
+        } else {
+          log.debug('could not measure loudness of %s: %s', filePath, err.message)
+        }
+
         resolve(null)
 
         return

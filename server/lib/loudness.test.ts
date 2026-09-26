@@ -4,8 +4,13 @@ vi.mock('music-metadata', () => ({
   parseFile: vi.fn(),
 }))
 
+vi.mock('child_process', () => ({
+  execFile: vi.fn(),
+}))
+
+import { execFile } from 'child_process'
 import { parseFile } from 'music-metadata'
-import { LOUDNESS_TARGET_LUFS, parseLoudnorm, readTagGain } from './loudness.js'
+import { LOUDNESS_TARGET_LUFS, measureLoudness, parseLoudnorm, readTagGain } from './loudness.js'
 
 const LOUDNORM_JSON = `{
   "input_i" : "-16.42",
@@ -76,5 +81,48 @@ describe('readTagGain', () => {
 
     vi.mocked(parseFile).mockRejectedValueOnce(new Error('no such file'))
     await expect(readTagGain('/media/missing.mp3')).resolves.toBeNull()
+  })
+
+  it('returns null when already aborted without parsing', async () => {
+    vi.mocked(parseFile).mockClear()
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(readTagGain('/media/a.mp3', { signal: controller.signal })).resolves.toBeNull()
+    expect(parseFile).not.toHaveBeenCalled()
+  })
+
+  it('returns null on timeout', async () => {
+    vi.mocked(parseFile).mockReturnValueOnce(new Promise(() => {}))
+
+    await expect(readTagGain('/media/a.mp3', { timeoutMs: 20 })).resolves.toBeNull()
+  })
+})
+
+describe('measureLoudness', () => {
+  it('returns null when already aborted without spawning', async () => {
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(measureLoudness('/media/a.mp3', { signal: controller.signal })).resolves.toBeNull()
+    expect(execFile).not.toHaveBeenCalled()
+  })
+
+  it('resolves null when the signal aborts mid-flight', async () => {
+    const controller = new AbortController()
+    vi.mocked(execFile).mockImplementationOnce(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
+      const opts = options as { signal?: AbortSignal }
+      opts.signal?.addEventListener('abort', () => {
+        const callback = cb as (err: Error | null, stdout: string, stderr: string) => void
+        callback(Object.assign(new Error('aborted'), { code: 'ABORT_ERR' }), '', '')
+      }, { once: true })
+
+      return undefined as never
+    }) as unknown as typeof execFile)
+
+    const pending = measureLoudness('/media/a.mp3', { signal: controller.signal })
+    controller.abort()
+
+    await expect(pending).resolves.toBeNull()
   })
 })

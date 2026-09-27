@@ -8,6 +8,7 @@ import { moveItem, removeUpcomingItems } from '../../modules/queue'
 import { hasPermission } from 'store/modules/user'
 import { showSongEditor } from 'store/modules/songInfo'
 import getPlayerHistory from '../../selectors/getPlayerHistory'
+import getMoveAnchor from '../../selectors/getMoveAnchor'
 import getRoundRobinQueue from '../../selectors/getRoundRobinQueue'
 import getWaits from '../../selectors/getWaits'
 
@@ -26,16 +27,10 @@ const QueueList = () => {
   // actions
   const dispatch = useAppDispatch()
   const handleMoveClick = (qId: number) => {
-    // reference user's last-played item as the new prevQueueId
+    // reference user's last-played item as the new prevQueueId; the status
+    // anchor may be stale with no player open, so validate it first
     const userId = queue.entities[qId].userId
-    let lastPlayed = queueId // default in case user has no played items
-
-    for (let i = queue.result.indexOf(queueId); i >= 0; i--) {
-      if (queue.entities[queue.result[i]].userId === userId) {
-        lastPlayed = queue.result[i]
-        break
-      }
-    }
+    const lastPlayed = getMoveAnchor(queue, queueId, userId)
 
     dispatch(moveItem({ queueId: qId, prevQueueId: lastPlayed }))
   }

@@ -4,6 +4,7 @@
 
 - Added a dedicated search tab with direct video-URL support and automatic artist/title identification
 - Downloaded tracks land in a subfolder named after the downloader, and each user only sees their own download notifications (admins see them all)
+- Users with the download-for-others capability can queue downloads for another user in an open room, with presence checks at enqueue and completion time
 - Downloads are refused when the song or the file already exists, without downloading anything
 - yt-dlp is fully self-contained: it downloads and updates itself in the configured folder, picking the right build per environment and healing itself when broken; features stay disabled until a folder is selected
 
@@ -17,19 +18,23 @@
 
 - Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor
 - Users with player access can start playback (projection use case) without playback controls
+- Admins can sign in to password-protected rooms without knowing the room password (their own password is still required)
 - Closed privilege-escalation paths around permission editing and player control
 
 ### Player
 
 - Live pitch control in semitones, replay/restart button, and automatic advance when the playing item disappears
+- VLC-style ten-band equalizer, adjustable per player room
+- ReplayGain leveling moved from a global setting to a per-room toggle in the display options (enabled by default)
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted
 
 ### Loudness leveling
 
-- Files without loudness tags are measured with ffmpeg on download and on scan (only when nothing is stored yet), so the existing ReplayGain setting levels them too
-- Per-version gain can be adjusted manually from Song Info (admin); manual values always prevail and are never re-measured
-- Note: the first rescan of a large library can take much longer than usual, once per file
+- Files without loudness tags are measured with ffmpeg on download (only when nothing is stored yet); library scans never measure, they only pick up tags when the database has no values yet
+- A "Measure ReplayGain" button (admin, Player preferences) measures every song still missing a level: existing tags are used first and only tagless files go through ffmpeg, with live progress, pause/resume around library scans, and cancel support
+- Stored values (measured, tagged or manually adjusted) are never overwritten by any scan; canceling counts pending files as skipped
+- Per-version gain can be adjusted manually from Song Info (admin); clearing a value re-arms tag pickup or measurement
 
 ### Queue and rooms
 
@@ -38,7 +43,7 @@
 
 ### Other
 
-- Ready-to-build container image and compose file
+- Ready-to-build container image and compose file, with resource caps suited for small hosts (capped node heap and ffmpeg threads via environment, overridable per deployment)
 - More consistent API error statuses (404/422)
 
 ## v2.0.2 (2026-02-14)

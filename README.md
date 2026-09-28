@@ -16,23 +16,28 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Each downloader gets their own subfolder named after their username.
 - Downloads are refused when the song or the file already exists — no duplicates, nothing half-downloaded.
 - Download notifications are private to whoever started them (admins see them all).
+- Download for others: users with the capability can queue a download for another user in an open room.
 - Self-contained yt-dlp: it downloads and updates itself in the configured folder, picked per environment (no system Python or yt-dlp needed). YouTube features stay disabled until a folder is selected.
 
 ### Permissions
 - Granular per-user capabilities instead of a single admin-or-not model: delete/move/restart queue songs, open the player, control playback and download from YouTube (e.g. a download-only user profile).
 - Player access alone lets a user start playback (projection use case), without playback controls.
+- Admins sign in to password-protected rooms without knowing the room password.
 - Room admins and a managed account editor with roles and a permissions dialog.
 
 ### Player
 - Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported).
 - Replay/restart button in the top playback bar.
-- Automatic loudness leveling of untagged files (measured on download/scan) plus manual per-version trim (admin), applied via the existing ReplayGain setting. Note: the first rescan of a large library can take much longer than usual.
+- VLC-style ten-band equalizer, adjustable per player room.
+- ReplayGain leveling with a per-room toggle in the display options (enabled by default) plus manual per-version trim (admin).
+- A "Measure ReplayGain" button (admin) measures every song still missing a level, tags first and ffmpeg otherwise; stored values are never overwritten by scans.
 
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.
 
 ### Docker
 - Ready-to-build image and compose file (`Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh`).
+- Resource-friendly defaults for small hosts (capped node heap and ffmpeg threads), tunable per deployment with `NODE_OPTIONS` and `KES_FFMPEG_THREADS`.
 
 ---
 

@@ -103,6 +103,10 @@ export function parseLoudnorm (json: string): Loudness | null {
   }
 }
 
+// decode threads are capped to bound ffmpeg's memory on small hosts
+// (e.g. Pi); measurement stays sequential, one file at a time
+const FFMPEG_DECODE_THREADS = 2
+
 /**
  * Measures a file's loudness with ffmpeg (single pass). Returns null
  * when ffmpeg is missing, the measurement fails, times out or is aborted.
@@ -118,6 +122,7 @@ export function measureLoudness (
   return new Promise((resolve) => {
     execFile(bin, [
       '-hide_banner',
+      '-threads', String(FFMPEG_DECODE_THREADS),
       '-i', filePath,
       '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json',
       '-f', 'null', '-',

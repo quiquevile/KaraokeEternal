@@ -28,7 +28,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV NODE_ENV=production \
     KES_PORT=8080 \
-    KES_PATH_DATA=/config
+    KES_PATH_DATA=/config \
+    # cap the node heap so it cannot starve ffmpeg/OS inside the container
+    NODE_OPTIONS=--max-old-space-size=512
 
 EXPOSE 8080
 

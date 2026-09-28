@@ -125,4 +125,19 @@ describe('measureLoudness', () => {
 
     await expect(pending).resolves.toBeNull()
   })
+
+  it('caps ffmpeg decode threads to bound memory on small hosts', async () => {
+    vi.mocked(execFile).mockImplementationOnce(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
+      const callback = cb as (err: Error | null, stdout: string, stderr: string) => void
+      callback(null, '', '{\n"measured_I" : "-16.42",\n"measured_TP" : "-1.50"\n}')
+
+      return undefined as never
+    }) as unknown as typeof execFile)
+
+    await measureLoudness('/media/a.mp3')
+
+    const args = vi.mocked(execFile).mock.calls[0][1] as string[]
+    expect(args).toContain('-threads')
+    expect(args[args.indexOf('-threads') + 1]).toBe('2')
+  })
 })

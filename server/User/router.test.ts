@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const { validateMock, roomsValidateMock } = vi.hoisted(() => ({
+  validateMock: vi.fn(),
+  roomsValidateMock: vi.fn(),
+}))
+
 vi.mock('./User.js', () => ({
   default: {
     get: vi.fn(() => ({
@@ -9,10 +14,19 @@ vi.mock('./User.js', () => ({
         2: { userId: 2, username: 'pepe', name: 'Pepe', permissions: { youtubeDownload: true }, role: 'standard' },
       },
     })),
+    validate: validateMock,
   },
 }))
 
-import { handleUsersNames } from './router.js'
+vi.mock('../Rooms/Rooms.js', () => ({
+  default: { validate: roomsValidateMock },
+}))
+
+vi.mock('../lib/crypto.js', () => ({
+  default: { isLegacy: () => false, hash: vi.fn() },
+}))
+
+import { handleLogin, handleUsersNames } from './router.js'
 import User from './User.js'
 
 const makeSockets = (users: Array<{ userId: number, roomId: number | null }>) => (
@@ -94,5 +108,80 @@ describe('handleUsersNames', () => {
 
     await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 422 })
     expect(User.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('handleLogin', () => {
+  const adminUser = {
+    userId: 1, username: 'admin', name: 'Admin', role: 'admin',
+    password: 'hashed', permissions: {},
+  }
+  const standardUser = {
+    userId: 2, username: 'pepe', name: 'Pepe', role: 'standard',
+    password: 'hashed', permissions: {},
+  }
+
+  const makeLoginCtx = (body: Record<string, unknown> = {}) => ({
+    params: {},
+    query: {},
+    request: { body },
+    body: undefined,
+    status: 200,
+    jwtKey: 'test-key',
+    cookies: { set: vi.fn() },
+    throw: (status: number, message?: string): never => {
+      const err = new Error(message || String(status)) as Error & { status: number }
+      err.status = status
+      throw err
+    },
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    roomsValidateMock.mockResolvedValue(true)
+  })
+
+  it('lets admins skip the room password', async () => {
+    validateMock.mockResolvedValue(adminUser)
+    const ctx = makeLoginCtx({ username: 'admin', password: 'secret', roomId: '1', roomPassword: 'wrong' })
+
+    await handleLogin(ctx as never)
+
+    expect(roomsValidateMock).toHaveBeenCalledWith(1, 'wrong', {
+      isOpen: false,
+      validatePassword: false,
+    })
+    expect(ctx.body).toMatchObject({ username: 'admin', roomId: 1, isAdmin: true })
+    expect(ctx.cookies.set).toHaveBeenCalledWith('keToken', expect.any(String), expect.anything())
+  })
+
+  it('still requires the room password for standard users', async () => {
+    validateMock.mockResolvedValue(standardUser)
+    roomsValidateMock.mockRejectedValueOnce(new Error('Incorrect room password'))
+    const ctx = makeLoginCtx({ username: 'pepe', password: 'secret', roomId: '1', roomPassword: 'wrong' })
+
+    await expect(handleLogin(ctx as never)).rejects.toMatchObject({ status: 401 })
+    expect(roomsValidateMock).toHaveBeenCalledWith(1, 'wrong', {
+      isOpen: true,
+      validatePassword: true,
+    })
+  })
+
+  it('lets admins sign in without a room', async () => {
+    validateMock.mockResolvedValue(adminUser)
+    const ctx = makeLoginCtx({ username: 'admin', password: 'secret' })
+
+    await handleLogin(ctx as never)
+
+    expect(roomsValidateMock).not.toHaveBeenCalled()
+    expect(ctx.body).toMatchObject({ username: 'admin', roomId: null })
+  })
+
+  it('still requires standard users to select a room', async () => {
+    validateMock.mockResolvedValue(standardUser)
+    const ctx = makeLoginCtx({ username: 'pepe', password: 'secret' })
+
+    await expect(handleLogin(ctx as never)).rejects.toMatchObject({ status: 401, message: 'Please select a room' })
+    expect(roomsValidateMock).not.toHaveBeenCalled()
   })
 })

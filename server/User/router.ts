@@ -35,6 +35,18 @@ const readFile = promisify(fs.readFile)
 const deleteFile = promisify(fs.unlink)
 const { sign: jwtSign } = jsonWebToken
 
+export interface RouterContext {
+  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null } | undefined
+  params: Record<string, string>
+  query: Record<string, string | undefined>
+  request: { body: Record<string, unknown> }
+  body: unknown
+  status: number
+  throw: (status: number, message?: string) => never
+  jwtKey: string
+  cookies: { set: (name: string, value: string, opts?: Record<string, unknown>) => void }
+}
+
 // Takes the "raw" object returned by the User class and massages it
 // into the shape used by the client (state.user) and in server-side
 // routers. Should be used to generate the JWT.
@@ -53,7 +65,7 @@ const createUserCtx = (user, roomId) => {
 }
 
 // login
-router.post('/login', async (ctx) => {
+export async function handleLogin (ctx: RouterContext): Promise<void> {
   const req = ctx.request as unknown as RequestWithBody
   const roomId = parseInt(req.body.roomId, 10) || null
   let user
@@ -64,7 +76,8 @@ router.post('/login', async (ctx) => {
     if (roomId) {
       await Rooms.validate(roomId, req.body.roomPassword, {
         isOpen: user.role !== 'admin', // admins can sign in to closed rooms
-        validatePassword: true,
+        // admins can also skip the room password with their own password
+        validatePassword: user.role !== 'admin',
       })
     } else if (user.role !== 'admin') {
       ctx.throw(401, 'Please select a room')
@@ -95,7 +108,9 @@ router.post('/login', async (ctx) => {
   })
 
   ctx.body = userCtx
-})
+}
+
+router.post('/login', ctx => handleLogin(ctx as unknown as RouterContext))
 
 // logout
 router.get('/logout', (ctx) => {

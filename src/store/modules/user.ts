@@ -7,7 +7,7 @@ import { RootState } from 'store/store'
 import HttpApi from 'lib/HttpApi'
 import Persistor from 'store/Persistor'
 import type { Permission } from 'shared/types'
-import { fetchPrefs } from './prefs'
+import { fetchGainStatus, fetchPrefs } from './prefs'
 import {
   ACCOUNT_RECEIVE,
   ACCOUNT_REQUEST,
@@ -42,6 +42,7 @@ export const login = createAsyncThunk(
 
     thunkAPI.dispatch(receiveAccount(user))
     thunkAPI.dispatch(fetchPrefs())
+    thunkAPI.dispatch(fetchGainStatus())
     thunkAPI.dispatch(connectSocket())
     socket.open()
 
@@ -93,6 +94,7 @@ export const createAccount = createAsyncThunk<void, FormData, { state: RootState
 
     thunkAPI.dispatch(receiveAccount(user))
     thunkAPI.dispatch(fetchPrefs())
+    thunkAPI.dispatch(fetchGainStatus())
     thunkAPI.dispatch(connectSocket())
     socket.open()
 

@@ -163,6 +163,14 @@ const prefsReducer = createReducer(initialState, (builder) => {
       state.scannerText = payload.text ?? ''
       state.scannerJob = 'gain'
     })
+    .addCase(logout, (state) => {
+      // drop scan progress with the session: a re-login re-discovers any
+      // still-running job instead of showing a dead one
+      state.isScanning = false
+      state.scannerPct = 0
+      state.scannerText = ''
+      state.scannerJob = null
+    })
 })
 
 export default prefsReducer

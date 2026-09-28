@@ -264,9 +264,7 @@ async function run (io): Promise<void> {
     payload: {
       isScanning: false,
       pct: 100,
-      text: cancelled
-        ? `Gain scan stopped (${measured} measured, ${tagged} from tags, ${skipped} skipped)`
-        : `Gain scan finished (${measured} measured, ${tagged} from tags, ${skipped} skipped)`,
+      text: `Gain scan (${measured} measured, ${tagged} from tags, ${skipped} skipped)`,
       job: 'gain',
     },
   })

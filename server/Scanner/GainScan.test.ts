@@ -105,7 +105,7 @@ describe('GainScan', () => {
       pct: 100,
       job: 'gain',
     })
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 from tags, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (2 measured, 0 from tags, 0 skipped)')
   })
 
   it('skips unmeasurable files and unknown paths', async () => {
@@ -123,7 +123,7 @@ describe('GainScan', () => {
 
     expect(updateMock).not.toHaveBeenCalled()
     expect(pushMock).not.toHaveBeenCalled()
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (0 measured, 0 from tags, 2 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (0 measured, 0 from tags, 2 skipped)')
   })
 
   it('refuses a second concurrent job', async () => {
@@ -176,7 +176,7 @@ describe('GainScan', () => {
     await waitForIdle()
 
     expect(updateMock).toHaveBeenCalledTimes(2)
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 from tags, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (2 measured, 0 from tags, 0 skipped)')
   })
 
   it('retries files cleared by an interrupting scan on resume', async () => {
@@ -207,7 +207,7 @@ describe('GainScan', () => {
 
     // measured again instead of being skipped as already attempted
     expect(updateMock).toHaveBeenCalledTimes(1)
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (2 measured, 0 from tags, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (2 measured, 0 from tags, 0 skipped)')
   })
 
   it('uses file tags without measuring', async () => {
@@ -228,7 +228,7 @@ describe('GainScan', () => {
       rgTrackGain: -4,
       rgTrackPeak: 0.9,
     }))
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan finished (0 measured, 1 from tags, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (0 measured, 1 from tags, 0 skipped)')
   })
 
   it('aborts the in-flight file when stopped', async () => {
@@ -245,7 +245,8 @@ describe('GainScan', () => {
     await waitForIdle()
 
     expect(updateMock).not.toHaveBeenCalled()
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan stopped')
+    expect(finishedPayload(sock.emit)).toMatchObject({ isScanning: false })
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (0 measured, 0 from tags, 0 skipped)')
   })
 
   it('reports stop when cancelled', async () => {
@@ -263,7 +264,8 @@ describe('GainScan', () => {
     resolveMeasure({ gainDb: -1, peakRatio: 1 })
     await waitForIdle()
 
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan stopped')
+    expect(finishedPayload(sock.emit)).toMatchObject({ isScanning: false })
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (')
   })
 
   it('emits no active status after the final one on fast runs', async () => {

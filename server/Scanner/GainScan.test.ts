@@ -246,7 +246,7 @@ describe('GainScan', () => {
 
     expect(updateMock).not.toHaveBeenCalled()
     expect(finishedPayload(sock.emit)).toMatchObject({ isScanning: false })
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan (0 measured, 0 from tags, 0 skipped)')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (0 measured, 0 from tags, 2 skipped)')
   })
 
   it('reports stop when cancelled', async () => {
@@ -265,7 +265,38 @@ describe('GainScan', () => {
     await waitForIdle()
 
     expect(finishedPayload(sock.emit)).toMatchObject({ isScanning: false })
-    expect(finishedPayload(sock.emit).text).toContain('Gain scan (')
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (0 measured, 0 from tags, 2 skipped)')
+  })
+
+  it('counts pending files as skipped on cancel', async () => {
+    const resolvers = []
+    dbGetMock.mockReturnValue({ count: 5 })
+    dbAllMock
+      .mockReturnValueOnce([
+        { mediaId: 1, pathId: 1, relPath: 'a.mp3' },
+        { mediaId: 2, pathId: 1, relPath: 'b.mp3' },
+        { mediaId: 3, pathId: 1, relPath: 'c.mp3' },
+        { mediaId: 4, pathId: 1, relPath: 'd.mp3' },
+        { mediaId: 5, pathId: 1, relPath: 'e.mp3' },
+      ])
+      .mockReturnValue([])
+    measureMock.mockImplementation((_file: unknown, opts?: { signal?: AbortSignal }) => new Promise((resolve) => {
+      resolvers.push(resolve)
+      opts?.signal?.addEventListener('abort', () => resolve(null), { once: true })
+    }))
+
+    const sock = io()
+    startGainScan(sock)
+
+    while (resolvers.length < 1) await new Promise(resolve => setTimeout(resolve, 10))
+    resolvers[0]({ gainDb: -1, peakRatio: 1 })
+    while (updateMock.mock.calls.length < 1) await new Promise(resolve => setTimeout(resolve, 10))
+
+    stopGainScan()
+    await waitForIdle()
+
+    expect(updateMock).toHaveBeenCalledTimes(1)
+    expect(finishedPayload(sock.emit).text).toContain('Gain scan (1 measured, 0 from tags, 4 skipped)')
   })
 
   it('emits no active status after the final one on fast runs', async () => {

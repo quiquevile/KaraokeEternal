@@ -248,6 +248,10 @@ async function run (io): Promise<void> {
   cancelRequested = false
   aborter = null
 
+  // files left pending by a cancel count as skipped: they were not
+  // measured, but they were skipped over by stopping
+  if (cancelled) skipped += Math.max(0, total - done())
+
   // drop any pending throttled progress so no stale active status can
   // land after the final one and re-activate the UI
   await emit?.cancel()

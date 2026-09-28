@@ -1,16 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const {
+  getGainStatusMock,
   isGainActiveMock,
   startGainScanMock,
   stopGainScanMock,
 } = vi.hoisted(() => ({
+  getGainStatusMock: vi.fn(),
   isGainActiveMock: vi.fn(),
   startGainScanMock: vi.fn(),
   stopGainScanMock: vi.fn(),
 }))
 
 vi.mock('../Scanner/GainScan.js', () => ({
+  getGainStatus: getGainStatusMock,
   isGainActive: isGainActiveMock,
   startGainScan: startGainScanMock,
   stopGainScan: stopGainScanMock,
@@ -18,6 +21,7 @@ vi.mock('../Scanner/GainScan.js', () => ({
 
 import {
   handleGainScan,
+  handleGainStatus,
   handleScanAll,
   handleScanPath,
   handleScanStop,
@@ -104,5 +108,22 @@ describe('gain/scan endpoints', () => {
 
     expect(ctx.stopScanner).toHaveBeenCalled()
     expect(stopGainScanMock).toHaveBeenCalled()
+  })
+
+  it('returns the gain job status to admins', async () => {
+    const status = { active: true, paused: false, measured: 3, tagged: 0, skipped: 0, total: 10, pct: 30, text: 'Measuring loudness (3/10)' }
+    getGainStatusMock.mockReturnValue(status)
+
+    const ctx = makeCtx()
+    await handleGainStatus(ctx)
+
+    expect(ctx.body).toEqual(status)
+  })
+
+  it('rejects gain status for non-admins with 401', async () => {
+    const ctx = makeCtx({ user: { isAdmin: false, userId: 5, username: 'user' } })
+
+    await expect(handleGainStatus(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(getGainStatusMock).not.toHaveBeenCalled()
   })
 })

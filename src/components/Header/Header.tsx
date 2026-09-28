@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import clsx from 'clsx'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { RootState } from 'store/store'
 import { Routes, Route, useLocation } from 'react-router'
 import { createSelector } from '@reduxjs/toolkit'
 
-import { requestScanStop } from 'store/modules/prefs'
+import { fetchGainStatus, requestScanStop } from 'store/modules/prefs'
 import { hasPermission } from 'store/modules/user'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import getWaits from 'routes/Queue/selectors/getWaits'
@@ -64,6 +64,12 @@ const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
 
   const dispatch = useAppDispatch()
   const cancelScan = () => dispatch(requestScanStop())
+
+  // re-discover a running gain job (e.g. after reload): progress only
+  // broadcasts on file completion, so the bar would otherwise stay empty
+  useEffect(() => {
+    if (isAdmin) dispatch(fetchGainStatus())
+  }, [dispatch, isAdmin])
 
   return (
     <div className={clsx(styles.container, 'bg-blur')} ref={ref}>

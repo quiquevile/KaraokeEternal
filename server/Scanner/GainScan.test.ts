@@ -40,6 +40,7 @@ vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
 }))
 
 import {
+  getGainStatus,
   isGainActive,
   isGainPaused,
   pauseGainScan,
@@ -288,4 +289,40 @@ describe('GainScan', () => {
     expect(finalIndex).toBeGreaterThan(-1)
     expect(payloads.slice(finalIndex + 1)).toEqual([])
   }, 10000)
+
+  it('reports idle when no job runs', () => {
+    expect(getGainStatus()).toMatchObject({ active: false, paused: false })
+  })
+
+  it('reports live progress while running and when paused', async () => {
+    const resolvers = []
+    dbGetMock.mockReturnValue({ count: 5 })
+    dbAllMock.mockReturnValue([{ mediaId: 1, pathId: 1, relPath: 'a.mp3' }])
+    measureMock.mockImplementation(() => new Promise((resolve) => {
+      resolvers.push(resolve)
+    }))
+
+    const sock = io()
+    startGainScan(sock)
+
+    while (resolvers.length < 1) await new Promise(resolve => setTimeout(resolve, 10))
+    expect(getGainStatus()).toMatchObject({
+      active: true,
+      paused: false,
+      total: 5,
+      text: 'Measuring loudness (0/5)',
+    })
+
+    expect(pauseGainScan()).toBe(true)
+    expect(getGainStatus()).toMatchObject({
+      active: true,
+      paused: true,
+      text: 'Gain scan paused (library scan running)',
+    })
+
+    stopGainScan()
+    resolvers[0](null)
+    await waitForIdle()
+    expect(getGainStatus()).toMatchObject({ active: false, paused: false })
+  })
 })

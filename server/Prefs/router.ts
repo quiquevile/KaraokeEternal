@@ -7,7 +7,7 @@ import getWindowsDrives from '../lib/getWindowsDrives.js'
 import Prefs from './Prefs.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
-import { isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
+import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
 import { parseIdParam, requireAdmin } from '../lib/http.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
@@ -167,6 +167,16 @@ export async function handleGainScan (ctx: RouterContext): Promise<void> {
 }
 
 router.get('/gain/scan', ctx => handleGainScan(ctx as unknown as RouterContext))
+
+// last known gain job status (admin only); lets (re)connecting clients
+// show progress and offer cancel without waiting for file completion
+export async function handleGainStatus (ctx: RouterContext): Promise<void> {
+  requireAdmin(ctx)
+
+  ctx.body = getGainStatus()
+}
+
+router.get('/gain/status', ctx => handleGainStatus(ctx as unknown as RouterContext))
 
 // get folder listing for path browser
 router.get('/path/ls', async (ctx) => {

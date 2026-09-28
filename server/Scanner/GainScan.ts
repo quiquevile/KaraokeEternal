@@ -21,7 +21,20 @@ let measured = 0
 let tagged = 0
 let skipped = 0
 let total = 0
+let lastPct = 0
+let lastText: string | null = null
 let emit: ThrottledFunction<[object], void> | null = null
+
+export interface GainStatus {
+  active: boolean
+  paused: boolean
+  measured: number
+  tagged: number
+  skipped: number
+  total: number
+  pct: number
+  text: string | null
+}
 
 export function isGainActive (): boolean {
   return state !== 'idle'
@@ -31,7 +44,28 @@ export function isGainPaused (): boolean {
   return state === 'paused'
 }
 
-function sendStatus (payload: object): void {
+/**
+ * Last known job status for clients that (re)connect mid-run: progress
+ * is only broadcast on file completion, so a fresh client would otherwise
+ * see nothing until the current file finishes.
+ */
+export function getGainStatus (): GainStatus {
+  return {
+    active: state !== 'idle',
+    paused: state === 'paused',
+    measured,
+    tagged,
+    skipped,
+    total,
+    pct: lastPct,
+    text: lastText,
+  }
+}
+
+function sendStatus (payload: { pct: number, text: string } & Record<string, unknown>): void {
+  lastPct = payload.pct
+  lastText = payload.text
+
   // fire-and-forget by design: no dangling promises, CanceledError-proof
   if (emit) emit.invokeIgnoreResult({ type: SCANNER_WORKER_STATUS, payload })
 }

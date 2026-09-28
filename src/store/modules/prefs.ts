@@ -79,6 +79,22 @@ export const requestGainScan = createAsyncThunk(
   async () => await api.get('/gain/scan'),
 )
 
+export interface GainStatus {
+  active: boolean
+  paused: boolean
+  measured: number
+  tagged: number
+  skipped: number
+  total: number
+  pct: number
+  text: string | null
+}
+
+export const fetchGainStatus = createAsyncThunk(
+  'prefs/fetchGainStatus',
+  async () => await api.get('/gain/status') as GainStatus,
+)
+
 // ------------------------------------
 // Reducer
 // ------------------------------------
@@ -137,6 +153,16 @@ const prefsReducer = createReducer(initialState, (builder) => {
       scannerText: payload.text,
       scannerJob: payload.job ?? null,
     }))
+    .addCase(fetchGainStatus.fulfilled, (state, { payload }) => {
+      // a reconnecting client re-discovers a running gain job; idle means
+      // nothing to show (a finished job reports itself through the socket)
+      if (!payload?.active) return
+
+      state.isScanning = true
+      state.scannerPct = payload.pct
+      state.scannerText = payload.text ?? ''
+      state.scannerJob = 'gain'
+    })
 })
 
 export default prefsReducer

@@ -103,9 +103,17 @@ export function parseLoudnorm (json: string): Loudness | null {
   }
 }
 
-// decode threads are capped to bound ffmpeg's memory on small hosts
-// (e.g. Pi); measurement stays sequential, one file at a time
-const FFMPEG_DECODE_THREADS = 2
+// decode threads for measurement ffmpeg calls. Capped in constrained
+// environments (e.g. the docker image sets KES_FFMPEG_THREADS=2); 0 or
+// unset means ffmpeg auto (no flag), which is the default everywhere else
+// including local runs without docker.
+function ffmpegThreadArgs (): string[] {
+  const threads = parseInt(process.env.KES_FFMPEG_THREADS ?? '', 10)
+
+  if (!Number.isFinite(threads) || threads <= 0) return []
+
+  return ['-threads', String(threads)]
+}
 
 /**
  * Measures a file's loudness with ffmpeg (single pass). Returns null
@@ -122,7 +130,7 @@ export function measureLoudness (
   return new Promise((resolve) => {
     execFile(bin, [
       '-hide_banner',
-      '-threads', String(FFMPEG_DECODE_THREADS),
+      ...ffmpegThreadArgs(),
       '-i', filePath,
       '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json',
       '-f', 'null', '-',

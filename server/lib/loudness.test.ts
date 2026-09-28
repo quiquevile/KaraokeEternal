@@ -126,7 +126,9 @@ describe('measureLoudness', () => {
     await expect(pending).resolves.toBeNull()
   })
 
-  it('caps ffmpeg decode threads to bound memory on small hosts', async () => {
+  it('leaves ffmpeg threads on auto by default (docker image caps them)', async () => {
+    vi.mocked(execFile).mockClear()
+    delete process.env.KES_FFMPEG_THREADS
     vi.mocked(execFile).mockImplementationOnce(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
       const callback = cb as (err: Error | null, stdout: string, stderr: string) => void
       callback(null, '', '{\n"measured_I" : "-16.42",\n"measured_TP" : "-1.50"\n}')
@@ -137,7 +139,27 @@ describe('measureLoudness', () => {
     await measureLoudness('/media/a.mp3')
 
     const args = vi.mocked(execFile).mock.calls[0][1] as string[]
-    expect(args).toContain('-threads')
-    expect(args[args.indexOf('-threads') + 1]).toBe('2')
+    expect(args).not.toContain('-threads')
+  })
+
+  it('caps ffmpeg decode threads from the environment', async () => {
+    vi.mocked(execFile).mockClear()
+    process.env.KES_FFMPEG_THREADS = '4'
+    vi.mocked(execFile).mockImplementationOnce(((bin: unknown, args: unknown, options: unknown, cb?: unknown) => {
+      const callback = cb as (err: Error | null, stdout: string, stderr: string) => void
+      callback(null, '', '{\n"measured_I" : "-16.42",\n"measured_TP" : "-1.50"\n}')
+
+      return undefined as never
+    }) as unknown as typeof execFile)
+
+    try {
+      await measureLoudness('/media/a.mp3')
+
+      const args = vi.mocked(execFile).mock.calls[0][1] as string[]
+      expect(args).toContain('-threads')
+      expect(args[args.indexOf('-threads') + 1]).toBe('4')
+    } finally {
+      delete process.env.KES_FFMPEG_THREADS
+    }
   })
 })

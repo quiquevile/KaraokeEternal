@@ -30,7 +30,10 @@ ENV NODE_ENV=production \
     KES_PORT=8080 \
     KES_PATH_DATA=/config \
     # cap the node heap so it cannot starve ffmpeg/OS inside the container
-    NODE_OPTIONS=--max-old-space-size=512
+    NODE_OPTIONS=--max-old-space-size=512 \
+    # cap ffmpeg decode threads likewise; override per deployment without
+    # rebuilding (local runs without docker are unaffected by both)
+    KES_FFMPEG_THREADS=2
 
 EXPOSE 8080
 

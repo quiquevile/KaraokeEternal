@@ -60,13 +60,16 @@ export function handleListRooms (ctx: RouterContext): void {
       const room = ctx.io.sockets.adapter.rooms.get(Rooms.prefix(roomId))
       res.entities[roomId].numUsers = room ? room.size : 0
     } else {
-      // only pass the 'roles' prefs key — plus 'qr' for the user's own room
-      // (members already know the key: they typed it and it travels in the QR)
+      // only pass the 'roles' prefs key — plus 'qr' and the reversible key
+      // for the user's own room (members already know it: they typed it
+      // and it travels in the QR)
       const prefs = res.entities[roomId].prefs
       res.entities[roomId].prefs = {
         ...(prefs?.roles ? { roles: prefs.roles } : {}),
         ...(roomId === ownRoomId && prefs?.qr ? { qr: prefs.qr } : {}),
       }
+
+      if (roomId !== ownRoomId) delete res.entities[roomId].qrPassword
     }
   })
 

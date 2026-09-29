@@ -55,6 +55,7 @@ class Rooms {
       dateCreated: string | number
       prefs?: any
       hasPassword?: boolean
+      qrPassword?: string | null
     }>(String(query), query.parameters)
 
     res.forEach((row) => {
@@ -63,6 +64,9 @@ class Rooms {
       delete row.data
 
       row.hasPassword = !!row.password
+      // reversible value for QR embedding (never legacy hashes): only
+      // members and admins ever see it, and only they know the key anyway
+      row.qrPassword = crypto.isEncodedRoomPassword(row.password) ? row.password : null
       if (!includePassword) delete row.password
 
       row.dateCreated = parseInt(String(row.dateCreated), 10) // v1.0 schema used 'text' column
@@ -95,7 +99,7 @@ class Rooms {
         // leave unchanged
         ? sql``
         // empty string unsets password
-        : sql`password = ${password === '' ? null : await crypto.hash(password)},`
+        : sql`password = ${password === '' ? null : crypto.encodeRoomPassword(password)},`
 
       query = sql`
         UPDATE rooms
@@ -110,7 +114,7 @@ class Rooms {
         INSERT INTO rooms (name, password, status, dateCreated, data)
         VALUES (
           ${name},
-          ${typeof password === 'undefined' ? null : await crypto.hash(password)},
+          ${typeof password === 'undefined' ? null : crypto.encodeRoomPassword(password)},
           ${status},
           ${Math.floor(Date.now() / 1000)},
           json_set('{}', '$.prefs', json(${JSON.stringify(prefs)}))
@@ -181,15 +185,15 @@ class Rooms {
         throw new Error('Room password is required')
       }
 
-      if (!(await crypto.compare(password, room.password))) {
+      if (!(await crypto.verifyRoomPassword(password, room.password))) {
         throw new Error('Incorrect room password')
       }
 
-      if (crypto.isLegacy(room.password)) {
-        const newHash = await crypto.hash(password)
+      if (!crypto.isEncodedRoomPassword(room.password)) {
+        // legacy hash verified: rewrite in the reversible format
         const query = sql`
           UPDATE rooms
-          SET password = ${newHash}
+          SET password = ${crypto.encodeRoomPassword(password)}
           WHERE roomId = ${roomId}
         `
         db.run(String(query), query.parameters)

@@ -111,8 +111,43 @@ function isLegacy (hashStr: string) {
   return typeof hashStr === 'string' && hashStr.startsWith('$2')
 }
 
+/**
+ * Reversible room-password encoding: base64 UTF-8, exactly what travels
+ * in QR login URLs. Room keys are low-value shared secrets (unlike user
+ * passwords, which always stay hashed); reversibility is what lets the
+ * player embed them in QR codes without ever asking again.
+ */
+function encodeRoomPassword (password: string): string {
+  return Buffer.from(password, 'utf8').toString('base64')
+}
+
+function isEncodedRoomPassword (stored: unknown): boolean {
+  return typeof stored === 'string' && stored.length > 0 && !stored.startsWith('$')
+}
+
+/**
+ * Verifies a room password against either storage format: legacy hashes
+ * (bcrypt/argon2, verified as before) or the current reversible encoding
+ * (byte-exact base64 comparison). Unknown formats never match.
+ */
+function verifyRoomPassword (password: string, stored: string): Promise<boolean> {
+  if (!stored) return Promise.resolve(false)
+
+  if (!isEncodedRoomPassword(stored)) return compare(password, stored)
+
+  const expected = Buffer.from(stored, 'base64')
+  const actual = Buffer.from(Buffer.from(password, 'utf8').toString('base64'), 'base64')
+
+  if (expected.length !== actual.length) return Promise.resolve(false)
+
+  return Promise.resolve(crypto.timingSafeEqual(expected, actual))
+}
+
 export default {
   hash,
   compare,
   isLegacy,
+  encodeRoomPassword,
+  isEncodedRoomPassword,
+  verifyRoomPassword,
 }

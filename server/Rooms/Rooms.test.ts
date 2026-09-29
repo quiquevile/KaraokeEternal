@@ -46,3 +46,41 @@ describe('Rooms.setRoomOptions', () => {
     expect(() => Rooms.setRoomOptions(999, { prefs: {} })).toThrowError(NotFoundError)
   })
 })
+
+describe('Rooms room-password format', () => {
+  it('stores new passwords reversibly (base64)', async () => {
+    await Rooms.set(1, { name: 'Room 1', status: 'open', password: 'secret', prefs: {} })
+
+    const stored = db.get<{ password: string }>('SELECT password FROM rooms WHERE roomId = 1')
+    expect(stored.password).toBe(Buffer.from('secret', 'utf8').toString('base64'))
+  })
+
+  it('verifies the reversible format and rejects wrong passwords', async () => {
+    await expect(Rooms.validate(1, 'secret', {})).resolves.toBe(true)
+    await expect(Rooms.validate(1, 'wrong', {})).rejects.toThrow('Incorrect room password')
+  })
+
+  it('verifies legacy hashes and rewrites them on success', async () => {
+    const bcrypt = (await import('bcryptjs')).default
+    const legacy = bcrypt.hashSync('oldsecret', 4)
+    db.run('UPDATE rooms SET password = ? WHERE roomId = 1', [legacy])
+
+    await expect(Rooms.validate(1, 'oldsecret', {})).resolves.toBe(true)
+
+    const stored = db.get<{ password: string }>('SELECT password FROM rooms WHERE roomId = 1')
+    expect(stored.password).toBe(Buffer.from('oldsecret', 'utf8').toString('base64'))
+    await expect(Rooms.validate(1, 'nope', {})).rejects.toThrow('Incorrect room password')
+  })
+
+  it('exposes the reversible key but never legacy hashes', () => {
+    db.run('UPDATE rooms SET password = ? WHERE roomId = 1', ['$2b$10$abcdef'])
+
+    const hashed = Rooms.get(1, { status: ['open', 'closed'] }).entities[1]
+    expect(hashed.qrPassword).toBeNull()
+
+    db.run('UPDATE rooms SET password = ? WHERE roomId = 1', [Buffer.from('s3', 'utf8').toString('base64')])
+
+    const clear = Rooms.get(1, { status: ['open', 'closed'] }).entities[1]
+    expect(clear.qrPassword).toBe(Buffer.from('s3', 'utf8').toString('base64'))
+  })
+})

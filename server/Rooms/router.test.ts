@@ -202,6 +202,25 @@ describe('handleListRooms', () => {
     expect(body.entities[2].prefs).toEqual({ roles: fullPrefs.roles })
   })
 
+  it('exposes the reversible key only for the non-admin own room', () => {
+    getMock.mockReturnValue({
+      result: [1, 2],
+      entities: {
+        1: { roomId: 1, prefs: {}, qrPassword: 'c2VjcmV0' },
+        2: { roomId: 2, prefs: {}, qrPassword: 'c2VjcmV0' },
+      },
+    })
+    const ctx = makeCtx({
+      user: { isAdmin: false, userId: 5, username: 'tester', roomId: 1 },
+    })
+
+    handleListRooms(ctx)
+
+    const body = ctx.body as { entities: Record<number, { qrPassword?: string | null }> }
+    expect(body.entities[1].qrPassword).toBe('c2VjcmV0')
+    expect(body.entities[2].qrPassword).toBeUndefined()
+  })
+
   it('leaves admin entities untouched with user counts', () => {
     const ctx = makeCtx({
       user: { isAdmin: true, userId: 1, username: 'admin', roomId: 1 },

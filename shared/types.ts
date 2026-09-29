@@ -61,6 +61,9 @@ export interface Room {
   hasPassword: boolean
   numUsers: number
   prefs?: IRoomPrefs
+  // reversible room key (base64) for QR embedding; only sent to admins
+  // and members of the room, never for legacy hashed values
+  qrPassword?: string | null
 }
 
 export interface Role {

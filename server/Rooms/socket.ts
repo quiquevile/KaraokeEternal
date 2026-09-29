@@ -14,6 +14,8 @@ const ACTION_HANDLERS = {
         type: ROOM_PREFS_PUSH_REQUEST + _ERROR,
         error: 'Unauthorized',
       })
+
+      return
     }
 
     const sockets = await sock.server.in(Rooms.prefix(roomId)).fetchSockets()

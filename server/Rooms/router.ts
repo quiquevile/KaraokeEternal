@@ -3,6 +3,7 @@ import sql from 'sqlate'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import Rooms, { STATUSES } from '../Rooms/Rooms.js'
+import { can } from '../lib/permissions.js'
 import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
 
 interface RequestWithBody {
@@ -15,13 +16,17 @@ const router = new KoaRouter({ prefix: '/api/rooms' })
 import { ROOM_PREFS_PUSH } from '../../shared/actionTypes.js'
 
 export interface RouterContext {
-  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null } | undefined
+  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null, permissions?: Record<string, boolean> } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown> }
   body: unknown
   status: number
   throw: (status: number, message?: string) => never
+  io: {
+    to: (room: string) => { emit: (event: string, data: unknown) => void }
+    sockets: { adapter: { rooms: { get: (name: string) => { size: number } | undefined } } }
+  }
 }
 
 // status of the requesting user's current room; any logged-in user may query
@@ -43,23 +48,32 @@ export function handleCurrentRoomStatus (ctx: RouterContext): void {
 router.get('/current/status', ctx => handleCurrentRoomStatus(ctx as unknown as RouterContext))
 
 // list rooms
-router.get(['/', '/:roomId'], (ctx) => {
+export function handleListRooms (ctx: RouterContext): void {
   const roomId = ctx.params.roomId ? parseInt(ctx.params.roomId, 10) : undefined
-  const status = ctx.user.isAdmin ? STATUSES : undefined
+  const isAdmin = !!ctx.user?.isAdmin
+  const ownRoomId = ctx.user?.roomId
+  const status = isAdmin ? STATUSES : undefined
   const res = Rooms.get(roomId, { status })
 
   res.result.forEach((roomId) => {
-    if (ctx.user.isAdmin) {
+    if (isAdmin) {
       const room = ctx.io.sockets.adapter.rooms.get(Rooms.prefix(roomId))
       res.entities[roomId].numUsers = room ? room.size : 0
     } else {
-      // only pass the 'roles' prefs key
-      res.entities[roomId].prefs = res.entities[roomId].prefs?.roles ? { roles: res.entities[roomId].prefs.roles } : {}
+      // only pass the 'roles' prefs key — plus 'qr' for the user's own room
+      // (members already know the key: they typed it and it travels in the QR)
+      const prefs = res.entities[roomId].prefs
+      res.entities[roomId].prefs = {
+        ...(prefs?.roles ? { roles: prefs.roles } : {}),
+        ...(roomId === ownRoomId && prefs?.qr ? { qr: prefs.qr } : {}),
+      }
     }
   })
 
   ctx.body = res
-})
+}
+
+router.get(['/', '/:roomId'], ctx => handleListRooms(ctx as unknown as RouterContext))
 
 // create room
 router.post('/', async (ctx) => {
@@ -75,6 +89,39 @@ router.post('/', async (ctx) => {
   // send updated room list
   ctx.body = Rooms.get(null, { status: STATUSES })
 })
+
+// update own room's display options (QR prefs only — never name, status,
+// password or roles). Allowed for admins and playback controllers.
+export async function handleCurrentRoomUpdate (ctx: RouterContext): Promise<void> {
+  const roomId = ctx.user?.roomId
+
+  if (ctx.user?.userId == null) ctx.throw(401)
+  if (roomId == null) ctx.throw(404, 'Not in a room')
+  if (!ctx.user.isAdmin && !can(ctx.user, 'playerControls')) ctx.throw(401)
+
+  const prefs = ctx.request.body?.prefs as Record<string, unknown> | undefined
+
+  if (!prefs || typeof prefs !== 'object') ctx.throw(422, 'Nothing to update')
+
+  try {
+    const merged = Rooms.setRoomOptions(roomId, { prefs })
+
+    log.verbose('%s updated room %s options', ctx.user.username, roomId)
+
+    const room = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
+    ctx.body = { room: { roomId, prefs: merged, hasPassword: room.hasPassword } }
+
+    // live update for every member of the room
+    ctx.io.to(Rooms.prefix(roomId)).emit('action', {
+      type: ROOM_PREFS_PUSH,
+      payload: { roomId, prefs: merged },
+    })
+  } catch (err) {
+    mapDomainError(ctx, err)
+  }
+}
+
+router.put('/current', ctx => handleCurrentRoomUpdate(ctx as unknown as RouterContext))
 
 // update room
 router.put('/:roomId', async (ctx) => {

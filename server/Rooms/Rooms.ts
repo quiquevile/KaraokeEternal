@@ -1,7 +1,7 @@
 import crypto from '../lib/crypto.js'
 import sql from 'sqlate'
 import { db } from '../lib/Database.js'
-import { ValidationError } from '../lib/Errors.js'
+import { NotFoundError, ValidationError } from '../lib/Errors.js'
 
 const NAME_MIN_LENGTH = 1
 const NAME_MAX_LENGTH = 50
@@ -119,6 +119,34 @@ class Rooms {
     }
 
     return db.run(String(query), query.parameters)
+  }
+
+  /**
+   * Update a room's display options (QR prefs only — never name, status,
+   * password, roles or user prefs). Returns the merged prefs.
+   */
+  static setRoomOptions (roomId: number, { prefs }: { prefs: Record<string, unknown> }): Record<string, unknown> {
+    const current = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
+
+    if (!current) {
+      throw new NotFoundError(`roomId ${roomId} not found`)
+    }
+
+    const merged = {
+      ...(current.prefs ?? {}),
+      ...(prefs?.qr && typeof prefs.qr === 'object'
+        ? { qr: { ...(current.prefs?.qr ?? {}), ...(prefs.qr as Record<string, unknown>) } }
+        : {}),
+    }
+
+    const query = sql`
+      UPDATE rooms
+      SET data = json_set(data, '$.prefs', json(${JSON.stringify(merged)}))
+      WHERE roomId = ${roomId}
+    `
+    db.run(String(query), query.parameters)
+
+    return merged
   }
 
   /**

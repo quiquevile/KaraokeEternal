@@ -9,6 +9,23 @@
   gap: var(--space-m);
 }
 
+.heading {
+  button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    padding: var(--space-s);
+    font-size: var(--font-size-s);
+  }
+
+  svg {
+    height: var(--icon-size-m);
+  }
+}
+
+.title {
+}
+
 .section {
 
   /* Safari REALLY doesn't like fieldsets to be flex *items*, hence the .section wrapper */

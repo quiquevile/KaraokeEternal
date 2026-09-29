@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
 import Modal, { ModalProps } from 'components/Modal/Modal'
+import Accordion from 'components/Accordion/Accordion'
 import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
 import EqualizerDialog from './EqualizerDialog'
+import RoomOptions from './RoomOptions/RoomOptions'
 import { PITCH_SEMITONE_MAX, PITCH_SEMITONE_MIN, clampPitchSemitones } from 'routes/Player/lib/pitchShift'
 import styles from './DisplayCtrl.css'
 import { MediaType, PlaybackOptions } from 'shared/types'
@@ -180,73 +182,86 @@ const DisplayCtrl = ({
           </fieldset>
         </div>
 
-        {isPitchAdjustable && (
-          <div className={clsx(styles.section, styles.pitch)}>
-            <fieldset>
-              <legend>
-                <label>Pitch</label>
-              </legend>
+        <RoomOptions />
 
-              <div className={styles.pitchButtons}>
-                <Button
-                  onClick={handlePitchDown}
-                  disabled={isPitchSupported === false || pitchSemitones <= PITCH_SEMITONE_MIN}
-                  aria-label='Lower pitch by one semitone'
-                  className={styles.step}
-                >
-                  <Icon icon='CHEVRON_LEFT' />
-                </Button>
-                <p
-                  className={styles.pitchValue}
-                  aria-live='polite'
-                >
-                  {formattedPitch}
-                </p>
-                <Button
-                  onClick={handlePitchUp}
-                  disabled={isPitchSupported === false || pitchSemitones >= PITCH_SEMITONE_MAX}
-                  aria-label='Raise pitch by one semitone'
-                  className={styles.step}
-                >
-                  <Icon icon='CHEVRON_RIGHT' />
-                </Button>
-                <Button
-                  onClick={handlePitchReset}
-                  disabled={isPitchSupported === false || pitchSemitones === 0}
-                  aria-label='Reset pitch'
-                  variant='primary'
-                  className={styles.reset}
-                >
-                  Reset
-                </Button>
+        <Accordion
+          headingComponent={(
+            <div className={styles.heading}>
+              <Icon icon='VOLUME_UP' />
+              <div className={styles.title}>Sound</div>
+            </div>
+          )}
+        >
+          <div className={styles.container}>
+            {isPitchAdjustable && (
+              <div className={clsx(styles.section, styles.pitch)}>
+                <fieldset>
+                  <legend>
+                    <label>Pitch</label>
+                  </legend>
+
+                  <div className={styles.pitchButtons}>
+                    <Button
+                      onClick={handlePitchDown}
+                      disabled={isPitchSupported === false || pitchSemitones <= PITCH_SEMITONE_MIN}
+                      aria-label='Lower pitch by one semitone'
+                      className={styles.step}
+                    >
+                      <Icon icon='CHEVRON_LEFT' />
+                    </Button>
+                    <p
+                      className={styles.pitchValue}
+                      aria-live='polite'
+                    >
+                      {formattedPitch}
+                    </p>
+                    <Button
+                      onClick={handlePitchUp}
+                      disabled={isPitchSupported === false || pitchSemitones >= PITCH_SEMITONE_MAX}
+                      aria-label='Raise pitch by one semitone'
+                      className={styles.step}
+                    >
+                      <Icon icon='CHEVRON_RIGHT' />
+                    </Button>
+                    <Button
+                      onClick={handlePitchReset}
+                      disabled={isPitchSupported === false || pitchSemitones === 0}
+                      aria-label='Reset pitch'
+                      variant='primary'
+                      className={styles.reset}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                  {isPitchSupported === false && (
+                    <p className={styles.unsupported}>
+                      {insecureContext
+                        ? 'Pitch needs a secure context: use HTTPS or localhost.'
+                        : 'Pitch engine unavailable in this browser'}
+                    </p>
+                  )}
+                </fieldset>
               </div>
-              {isPitchSupported === false && (
-                <p className={styles.unsupported}>
-                  {insecureContext
-                    ? 'Pitch needs a secure context: use HTTPS or localhost.'
-                    : 'Pitch engine unavailable in this browser'}
-                </p>
-              )}
-            </fieldset>
+            )}
+
+            <div className={styles.container}>
+              <Button
+                variant='default'
+                onClick={() => setEqualizerOpen(true)}
+              >
+                Equalizer
+              </Button>
+            </div>
+
+            <div className={styles.container}>
+              <InputCheckbox
+                label='ReplayGain'
+                checked={isReplayGainEnabled}
+                onChange={handleToggleReplayGain}
+              />
+            </div>
           </div>
-        )}
-
-        <div className={styles.container}>
-          <Button
-            variant='default'
-            onClick={() => setEqualizerOpen(true)}
-          >
-            Equalizer
-          </Button>
-        </div>
-
-        <div className={styles.container}>
-          <InputCheckbox
-            label='ReplayGain'
-            checked={isReplayGainEnabled}
-            onChange={handleToggleReplayGain}
-          />
-        </div>
+        </Accordion>
 
         {isEqualizerOpen && (
           <EqualizerDialog

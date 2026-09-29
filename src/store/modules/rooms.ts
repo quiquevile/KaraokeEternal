@@ -86,6 +86,21 @@ export const removeRoom = createAsyncThunk(
   },
 )
 
+export interface RoomOptionsUpdate {
+  roomId: number
+  prefs: IRoomPrefs
+  hasPassword: boolean
+}
+
+// update the current room's display options (QR prefs); scoped to the
+// user's own room so playback controllers can use it without admin rights
+export const updateCurrentRoomOptions = createAsyncThunk(
+  'rooms/updateCurrentRoomOptions',
+  async (data: { prefs: Partial<IRoomPrefs> }) => await api.put('/current', {
+    body: data,
+  }) as { room: RoomOptionsUpdate },
+)
+
 export const openRoomEditor = createAction(ROOM_EDITOR_OPEN)
 export const closeRoomEditor = createAction(ROOM_EDITOR_CLOSE)
 export const filterByStatus = createAction<boolean | string>(ROOM_FILTER_STATUS)
@@ -159,6 +174,16 @@ const roomsReducer = createReducer(initialState, (builder) => {
 
       if (state.entities[roomId]) {
         state.entities[roomId].prefs = payload.prefs
+      }
+    })
+    .addCase(updateCurrentRoomOptions.fulfilled, (state, { payload }) => {
+      // merge into the known entity (never refetch: a closed own room
+      // would vanish from the filtered list)
+      const room = payload?.room
+
+      if (room && state.entities[room.roomId]) {
+        state.entities[room.roomId].prefs = room.prefs as IRoomPrefs
+        state.entities[room.roomId].hasPassword = room.hasPassword
       }
     })
     .addCase(LOGOUT, () => ({

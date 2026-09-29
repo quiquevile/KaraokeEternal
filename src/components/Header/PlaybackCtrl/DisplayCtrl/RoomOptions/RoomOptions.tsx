@@ -49,11 +49,7 @@ const RoomOptions = () => {
     <QRPrefs
       prefs={prefs}
       onChange={handleChange}
-      roomPassword=''
-      roomPasswordDirty={false}
-      showPasswordBox={false}
-      hideIncludeUnlessValued
-      roomHasPassword={roomHasPassword}
+      passwordPresent={roomHasPassword}
     />
   )
 }

@@ -107,7 +107,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
 
         <div className={styles.prefsContainer}>
           <UserPrefs prefs={prefs} onChange={handlePrefsChange} />
-          <QRPrefs prefs={prefs} onChange={handlePrefsChange} roomPassword={roomPassword} roomPasswordDirty={isPasswordDirty} />
+          <QRPrefs prefs={prefs} onChange={handlePrefsChange} passwordPresent={roomPassword !== ''} />
         </div>
 
         <div className={styles.btnContainer}>

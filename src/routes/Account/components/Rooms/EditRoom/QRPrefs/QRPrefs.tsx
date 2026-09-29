@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback } from 'react'
 import clsx from 'clsx'
 import Accordion from 'components/Accordion/Accordion'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
@@ -10,40 +10,19 @@ import styles from './QRPrefs.css'
 interface QRPrefsProps {
   prefs: Partial<IRoomPrefs>
   onChange: (prefs: Partial<IRoomPrefs>) => void
-  roomPassword: string
-  roomPasswordDirty: boolean
-  // Display usage: no password box at all (non-admins must never touch keys)
-  showPasswordBox?: boolean
-  // Display usage: show the include-password checkbox only when the room
-  // has a password (checking it without a stored value embeds nothing
-  // until one exists)
-  hideIncludeUnlessValued?: boolean
-  roomHasPassword?: boolean
+  // whether the room currently has a key (main form field in EditRoom,
+  // room metadata in Display): without one the checkbox stays off
+  passwordPresent: boolean
 }
 
-const QRPrefs = ({
-  onChange,
-  prefs = {},
-  roomPassword,
-  roomPasswordDirty,
-  showPasswordBox = true,
-  hideIncludeUnlessValued = false,
-  roomHasPassword = false,
-}: QRPrefsProps) => {
-  // the flag only toggles embedding; the stored value survives toggles and
-  // is only destroyed by clearing the box below (legacy rows without the
-  // flag fall back to the previous value-implies-enabled behaviour)
-  const includePassword = prefs?.qr?.includePassword ?? !!prefs?.qr?.password
+const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
+  // embedding needs both the flag and an actual key; the flag alone only
+  // records the preference for when a key exists
+  const includePassword = (prefs?.qr?.includePassword ?? false) && passwordPresent
 
   const handleSetPref = useCallback((update: Partial<IRoomPrefs>) => {
     onChange({ ...prefs, ...update })
   }, [onChange, prefs])
-
-  useEffect(() => {
-    if (includePassword && roomPasswordDirty && prefs?.qr?.password !== roomPassword) {
-      handleSetPref({ qr: { ...prefs.qr, password: roomPassword } })
-    }
-  }, [handleSetPref, includePassword, prefs, roomPassword, roomPasswordDirty])
 
   return (
     <Accordion
@@ -62,28 +41,14 @@ const QRPrefs = ({
             onChange={event => handleSetPref({ qr: { ...prefs.qr, isEnabled: event.currentTarget.checked } })}
           />
         </div>
-        {(hideIncludeUnlessValued ? roomHasPassword : true) && (
-          <div className={styles.field}>
-            <InputCheckbox
-              label='Include room password'
-              checked={includePassword}
-              disabled={!prefs?.qr?.password}
-              onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
-            />
-          </div>
-        )}
-        {showPasswordBox && (
-          <div className={styles.field}>
-            <input
-              type='password'
-              autoComplete='new-password'
-              value={prefs?.qr?.password ?? ''}
-              onChange={e => handleSetPref({ qr: { ...prefs.qr, password: e.target.value } })}
-              onFocus={e => e.target.select()}
-              placeholder='password to embed in QR'
-            />
-          </div>
-        )}
+        <div className={styles.field}>
+          <InputCheckbox
+            label='Include room password'
+            checked={includePassword}
+            disabled={!passwordPresent}
+            onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
+          />
+        </div>
         <div className={clsx(styles.field)}>
           <label id='label-qr-size'>Size</label>
           <Slider

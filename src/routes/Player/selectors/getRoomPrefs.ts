@@ -6,7 +6,6 @@ const DEFAULT_ROOM_PREFS: IRoomPrefs = {
   qr: {
     isEnabled: false,
     opacity: 0.625,
-    password: '',
     size: 0.5,
   },
 }

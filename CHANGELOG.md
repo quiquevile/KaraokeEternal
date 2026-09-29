@@ -19,6 +19,7 @@
 - Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor
 - Users with player access can start playback (projection use case) without playback controls
 - Admins can sign in to password-protected rooms without knowing the room password (their own password is still required)
+- Room passwords are stored reversibly (base64) so they can be embedded in QR codes; user passwords stay hashed
 - Closed privilege-escalation paths around permission editing and player control
 
 ### Player

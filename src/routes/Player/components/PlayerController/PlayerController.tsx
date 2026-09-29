@@ -18,6 +18,11 @@ const PlayerController = (props: PlayerControllerProps) => {
   const player = useAppSelector(state => state.player)
   const playerVisualizer = useAppSelector(state => state.playerVisualizer)
   const roomPrefs = useAppSelector(getRoomPrefs)
+  const roomQrPassword = useAppSelector(state =>
+    (typeof state.user.roomId === 'number'
+      ? state.rooms.entities[state.user.roomId]?.qrPassword
+      : undefined) ?? null,
+  )
   const queueItem = queue.entities[player.queueId]
   // current item deleted (e.g. its song was removed from the library)?
   // fall back to the first unplayed item, as it is the next song to play
@@ -205,6 +210,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         <PlayerQR
           height={props.height}
           prefs={roomPrefs.qr}
+          qrPassword={roomQrPassword}
           queueItem={queueItem}
         />
       )}

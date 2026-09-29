@@ -12,10 +12,11 @@ const MAX_STATIC_MS = 180000 // 3 min
 interface PlayerQRProps {
   height: number
   prefs: IRoomPrefs['qr']
+  qrPassword: string | null
   queueItem: QueueItem
 }
 
-const PlayerQR = ({ height, prefs, queueItem }: PlayerQRProps) => {
+const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
   const ref = useRef<HTMLDivElement>(null)
   const maxTimerID = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastToggleTime = useRef<number>(0)
@@ -78,8 +79,9 @@ const PlayerQR = ({ height, prefs, queueItem }: PlayerQRProps) => {
   url.pathname = url.pathname.replace(/\/player$/, '')
   url.searchParams.append('roomId', String(roomId))
 
-  if (prefs.password && (prefs.includePassword ?? true)) {
-    url.searchParams.append('password', btoa(prefs.password))
+  if (prefs.includePassword && qrPassword) {
+    // already encoded, exactly as it travels in the URL
+    url.searchParams.append('password', qrPassword)
   }
 
   const size = Math.round(height * (0.05 + (prefs.size ?? 0.5) / 5)) // min: 5vh, max: 25vh

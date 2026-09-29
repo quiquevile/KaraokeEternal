@@ -38,10 +38,9 @@ export interface IRoomPrefs {
   qr: {
     isEnabled: boolean
     opacity: number
-    password: string
     size: number
-    // whether the stored password is embedded in the QR; toggling it
-    // never destroys the value (use the password box for that)
+    // whether the room key is embedded in the QR (the key itself lives
+    // in the rooms table, never here)
     includePassword?: boolean
   }
   user?: {

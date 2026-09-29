@@ -12,6 +12,9 @@ const RoomOptions = () => {
   const roomPrefs = useAppSelector(state =>
     (typeof roomId === 'number' ? state.rooms.entities[roomId]?.prefs : undefined) as IRoomPrefs | undefined,
   )
+  const roomHasPassword = useAppSelector(state =>
+    (typeof roomId === 'number' ? state.rooms.entities[roomId]?.hasPassword : false) ?? false,
+  )
   const dispatch = useAppDispatch()
 
   const [prefs, setPrefs] = useState<IRoomPrefs>(roomPrefs ?? {} as IRoomPrefs)
@@ -50,6 +53,7 @@ const RoomOptions = () => {
       roomPasswordDirty={false}
       showPasswordBox={false}
       hideIncludeUnlessValued
+      roomHasPassword={roomHasPassword}
     />
   )
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import clsx from 'clsx'
 import Accordion from 'components/Accordion/Accordion'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
@@ -14,9 +14,11 @@ interface QRPrefsProps {
   roomPasswordDirty: boolean
   // Display usage: no password box at all (non-admins must never touch keys)
   showPasswordBox?: boolean
-  // Display usage: hide the include-password checkbox unless a value exists
-  // (checked once, when mounted — no point offering what cannot work)
+  // Display usage: show the include-password checkbox only when the room
+  // has a password (checking it without a stored value embeds nothing
+  // until one exists)
   hideIncludeUnlessValued?: boolean
+  roomHasPassword?: boolean
 }
 
 const QRPrefs = ({
@@ -26,12 +28,12 @@ const QRPrefs = ({
   roomPasswordDirty,
   showPasswordBox = true,
   hideIncludeUnlessValued = false,
+  roomHasPassword = false,
 }: QRPrefsProps) => {
   // the flag only toggles embedding; the stored value survives toggles and
   // is only destroyed by clearing the box below (legacy rows without the
   // flag fall back to the previous value-implies-enabled behaviour)
   const includePassword = prefs?.qr?.includePassword ?? !!prefs?.qr?.password
-  const [hasInitialValue] = useState(() => !!prefs?.qr?.password)
 
   const handleSetPref = useCallback((update: Partial<IRoomPrefs>) => {
     onChange({ ...prefs, ...update })
@@ -60,7 +62,7 @@ const QRPrefs = ({
             onChange={event => handleSetPref({ qr: { ...prefs.qr, isEnabled: event.currentTarget.checked } })}
           />
         </div>
-        {(hideIncludeUnlessValued ? hasInitialValue : !!roomPassword) && (
+        {(hideIncludeUnlessValued ? roomHasPassword : true) && (
           <div className={styles.field}>
             <InputCheckbox
               label='Include room password'

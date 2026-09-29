@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { getMock, setRoomOptionsMock } = vi.hoisted(() => ({
+const { getMock, setMock, setRoomOptionsMock } = vi.hoisted(() => ({
   getMock: vi.fn(),
+  setMock: vi.fn(),
   setRoomOptionsMock: vi.fn(),
 }))
 
@@ -11,13 +12,14 @@ vi.mock('./Rooms.js', async (importOriginal) => {
     ...actual,
     default: {
       get: getMock,
+      set: setMock,
       setRoomOptions: setRoomOptionsMock,
       prefix: (roomId: number | string = '') => `ROOM_ID_${roomId}`,
     },
   }
 })
 
-import { handleCurrentRoomStatus, handleCurrentRoomUpdate, handleListRooms } from './router.js'
+import { handleCurrentRoomStatus, handleCurrentRoomUpdate, handleListRooms, handleUpdateRoom } from './router.js'
 import type { RouterContext } from './router.js'
 
 function makeIo () {
@@ -210,5 +212,46 @@ describe('handleListRooms', () => {
     const body = ctx.body as { entities: Record<number, { prefs: object, numUsers: number }> }
     expect(body.entities[1].prefs).toEqual(fullPrefs)
     expect(body.entities[1].numUsers).toBe(3)
+  })
+})
+
+describe('handleUpdateRoom', () => {
+  const prefs = { qr: { isEnabled: true } }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setRoomOptionsMock.mockReturnValue(prefs)
+    getMock.mockImplementation((roomId: number | null | undefined) => (
+      roomId == null
+        ? { result: [3], entities: { 3: { roomId: 3 } } }
+        : { result: [3], entities: { 3: { roomId: 3, prefs } } }
+    ))
+  })
+
+  it('pushes the updated prefs to the whole room with the prefs-push shape', async () => {
+    const ctx = makeCtx({
+      user: { isAdmin: true, userId: 1, username: 'admin', roomId: 1 },
+      params: { roomId: '3' },
+      request: { body: { name: 'Room 3', status: 'open' } },
+    })
+
+    await handleUpdateRoom(ctx)
+
+    const emit = vi.mocked(ctx.io.to).mock.results[0].value.emit
+    expect(ctx.io.to).toHaveBeenCalledWith('ROOM_ID_3')
+    expect(emit).toHaveBeenCalledWith('action', {
+      type: 'rooms/ROOM_PREFS_PUSH',
+      payload: { roomId: 3, prefs },
+    })
+  })
+
+  it('rejects non-admins with 401', async () => {
+    const ctx = makeCtx({
+      user: { isAdmin: false, userId: 5, username: 'tester', roomId: 1 },
+      params: { roomId: '3' },
+      request: { body: {} },
+    })
+
+    await expect(handleUpdateRoom(ctx)).rejects.toMatchObject({ status: 401 })
   })
 })

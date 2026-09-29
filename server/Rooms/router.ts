@@ -16,7 +16,7 @@ const router = new KoaRouter({ prefix: '/api/rooms' })
 import { ROOM_PREFS_PUSH } from '../../shared/actionTypes.js'
 
 export interface RouterContext {
-  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null, permissions?: Record<string, boolean> } | undefined
+  user: { isAdmin: boolean, userId?: number, username?: string, name?: string, roomId?: number | null, permissions?: Record<string, boolean> } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown> }
@@ -124,7 +124,7 @@ export async function handleCurrentRoomUpdate (ctx: RouterContext): Promise<void
 router.put('/current', ctx => handleCurrentRoomUpdate(ctx as unknown as RouterContext))
 
 // update room
-router.put('/:roomId', async (ctx) => {
+export async function handleUpdateRoom (ctx: RouterContext): Promise<void> {
   requireAdmin(ctx)
 
   const roomId = parseIdParam(ctx, 'roomId')
@@ -137,20 +137,18 @@ router.put('/:roomId', async (ctx) => {
 
   log.verbose('%s updated a room (roomId: %s)', ctx.user.name, roomId)
 
-  const sockets = await ctx.io.in(Rooms.prefix(roomId)).fetchSockets()
-
-  for (const s of sockets) {
-    if (s?.user.isAdmin) {
-      ctx.io.to(s.id).emit('action', {
-        type: ROOM_PREFS_PUSH,
-        payload: Rooms.get(roomId),
-      })
-    }
-  }
+  // live update for every member of the room (same shape as the prefs push)
+  const updated = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
+  ctx.io.to(Rooms.prefix(roomId)).emit('action', {
+    type: ROOM_PREFS_PUSH,
+    payload: { roomId, prefs: updated.prefs },
+  })
 
   // send updated room list
   ctx.body = Rooms.get(null, { status: STATUSES })
-})
+}
+
+router.put('/:roomId', ctx => handleUpdateRoom(ctx as unknown as RouterContext))
 
 // remove room
 router.delete('/:roomId', (ctx) => {

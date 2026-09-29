@@ -18,16 +18,12 @@ const ACTION_HANDLERS = {
       return
     }
 
-    const sockets = await sock.server.in(Rooms.prefix(roomId)).fetchSockets()
-
-    for (const s of sockets) {
-      if (s?.user.isAdmin) {
-        sock.server.to(s.id).emit('action', {
-          type: ROOM_PREFS_PUSH,
-          payload,
-        })
-      }
-    }
+    // live update for every member of the room (players often run as
+    // non-admins and need room prefs too)
+    sock.server.to(Rooms.prefix(roomId)).emit('action', {
+      type: ROOM_PREFS_PUSH,
+      payload,
+    })
   },
 }
 

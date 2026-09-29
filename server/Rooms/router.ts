@@ -112,7 +112,10 @@ export async function handleCurrentRoomUpdate (ctx: RouterContext): Promise<void
     log.verbose('%s updated room %s options', ctx.user.username, roomId)
 
     const room = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
-    ctx.body = { room: { roomId, prefs: merged, hasPassword: room.hasPassword } }
+    // the reversible key travels with the options: members joining before
+    // a password existed (or changing it afterwards) would otherwise keep
+    // a stale null and never embed it despite the flag being set
+    ctx.body = { room: { roomId, prefs: merged, hasPassword: room.hasPassword, qrPassword: room.qrPassword ?? null } }
 
     // live update for every member of the room
     ctx.io.to(Rooms.prefix(roomId)).emit('action', {
@@ -140,11 +143,12 @@ export async function handleUpdateRoom (ctx: RouterContext): Promise<void> {
 
   log.verbose('%s updated a room (roomId: %s)', ctx.user.name, roomId)
 
-  // live update for every member of the room (same shape as the prefs push)
+  // live update for every member of the room (same shape as the prefs push,
+  // plus key metadata so members learn about password changes without refetch)
   const updated = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
   ctx.io.to(Rooms.prefix(roomId)).emit('action', {
     type: ROOM_PREFS_PUSH,
-    payload: { roomId, prefs: updated.prefs },
+    payload: { roomId, prefs: updated.prefs, hasPassword: updated.hasPassword, qrPassword: updated.qrPassword ?? null },
   })
 
   // send updated room list

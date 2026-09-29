@@ -90,6 +90,7 @@ export interface RoomOptionsUpdate {
   roomId: number
   prefs: IRoomPrefs
   hasPassword: boolean
+  qrPassword: string | null
 }
 
 // update the current room's display options (QR prefs); scoped to the
@@ -104,7 +105,7 @@ export const updateCurrentRoomOptions = createAsyncThunk(
 export const openRoomEditor = createAction(ROOM_EDITOR_OPEN)
 export const closeRoomEditor = createAction(ROOM_EDITOR_CLOSE)
 export const filterByStatus = createAction<boolean | string>(ROOM_FILTER_STATUS)
-const roomPrefsPush = createAction<{ roomId: number, prefs: IRoomPrefs }>(ROOM_PREFS_PUSH)
+const roomPrefsPush = createAction<{ roomId: number, prefs: IRoomPrefs, hasPassword?: boolean, qrPassword?: string | null }>(ROOM_PREFS_PUSH)
 
 export function requestPrefsPush (roomId: number, prefs: IRoomPrefs): AppThunk {
   return (dispatch) => {
@@ -174,6 +175,15 @@ const roomsReducer = createReducer(initialState, (builder) => {
 
       if (state.entities[roomId]) {
         state.entities[roomId].prefs = payload.prefs
+        // key metadata may ride along (admin room update): keep the
+        // entity's key in sync without refetch, ignore when absent
+        // (live preview pushes from the editor carry prefs only)
+        if (typeof payload.hasPassword === 'boolean') {
+          state.entities[roomId].hasPassword = payload.hasPassword
+        }
+        if ('qrPassword' in payload) {
+          state.entities[roomId].qrPassword = payload.qrPassword ?? null
+        }
       }
     })
     .addCase(updateCurrentRoomOptions.fulfilled, (state, { payload }) => {
@@ -184,6 +194,7 @@ const roomsReducer = createReducer(initialState, (builder) => {
       if (room && state.entities[room.roomId]) {
         state.entities[room.roomId].prefs = room.prefs as IRoomPrefs
         state.entities[room.roomId].hasPassword = room.hasPassword
+        state.entities[room.roomId].qrPassword = room.qrPassword ?? null
       }
     })
     .addCase(LOGOUT, () => ({

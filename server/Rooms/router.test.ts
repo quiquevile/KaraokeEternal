@@ -108,7 +108,7 @@ describe('handleCurrentRoomUpdate', () => {
     setRoomOptionsMock.mockReturnValue(merged)
     getMock.mockReturnValue({
       result: [1],
-      entities: { 1: { roomId: 1, prefs: merged, hasPassword: false } },
+      entities: { 1: { roomId: 1, prefs: merged, hasPassword: true, qrPassword: 'c2VjcmV0' } },
     })
   })
 
@@ -121,8 +121,23 @@ describe('handleCurrentRoomUpdate', () => {
     await handleCurrentRoomUpdate(ctx)
 
     expect(setRoomOptionsMock).toHaveBeenCalledWith(1, { prefs: { qr: { isEnabled: true } } })
-    expect(ctx.body).toEqual({ room: { roomId: 1, prefs: merged, hasPassword: false } })
+    expect(ctx.body).toEqual({ room: { roomId: 1, prefs: merged, hasPassword: true, qrPassword: 'c2VjcmV0' } })
     expect(ctx.io.to).toHaveBeenCalledWith('ROOM_ID_1')
+  })
+
+  it('returns a null key when the room has no reversible password', async () => {
+    getMock.mockReturnValue({
+      result: [1],
+      entities: { 1: { roomId: 1, prefs: merged, hasPassword: false } },
+    })
+    const ctx = makeCtx({
+      user: { isAdmin: false, userId: 5, username: 'tester', roomId: 1, permissions: { playerControls: true } },
+      request: { body: { prefs: { qr: { isEnabled: true } } } },
+    })
+
+    await handleCurrentRoomUpdate(ctx)
+
+    expect(ctx.body).toEqual({ room: { roomId: 1, prefs: merged, hasPassword: false, qrPassword: null } })
   })
 
   it('lets admins update their own room', async () => {
@@ -243,7 +258,7 @@ describe('handleUpdateRoom', () => {
     getMock.mockImplementation((roomId: number | null | undefined) => (
       roomId == null
         ? { result: [3], entities: { 3: { roomId: 3 } } }
-        : { result: [3], entities: { 3: { roomId: 3, prefs } } }
+        : { result: [3], entities: { 3: { roomId: 3, prefs, hasPassword: true, qrPassword: 'c2VjcmV0' } } }
     ))
   })
 
@@ -260,7 +275,7 @@ describe('handleUpdateRoom', () => {
     expect(ctx.io.to).toHaveBeenCalledWith('ROOM_ID_3')
     expect(emit).toHaveBeenCalledWith('action', {
       type: 'rooms/ROOM_PREFS_PUSH',
-      payload: { roomId: 3, prefs },
+      payload: { roomId: 3, prefs, hasPassword: true, qrPassword: 'c2VjcmV0' },
     })
   })
 

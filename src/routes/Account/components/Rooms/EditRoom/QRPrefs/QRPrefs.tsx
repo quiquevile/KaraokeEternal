@@ -60,7 +60,7 @@ const QRPrefs = ({
             onChange={event => handleSetPref({ qr: { ...prefs.qr, isEnabled: event.currentTarget.checked } })}
           />
         </div>
-        {prefs?.qr?.isEnabled && roomPassword && !(hideIncludeUnlessValued && !hasInitialValue) && (
+        {(hideIncludeUnlessValued ? hasInitialValue : !!roomPassword) && (
           <div className={styles.field}>
             <InputCheckbox
               label='Include room password'

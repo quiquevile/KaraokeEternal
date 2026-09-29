@@ -78,7 +78,7 @@ const PlayerQR = ({ height, prefs, queueItem }: PlayerQRProps) => {
   url.pathname = url.pathname.replace(/\/player$/, '')
   url.searchParams.append('roomId', String(roomId))
 
-  if (prefs.password) {
+  if (prefs.password && (prefs.includePassword ?? true)) {
     url.searchParams.append('password', btoa(prefs.password))
   }
 

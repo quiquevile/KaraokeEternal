@@ -40,6 +40,9 @@ export interface IRoomPrefs {
     opacity: number
     password: string
     size: number
+    // whether the stored password is embedded in the QR; toggling it
+    // never destroys the value (use the password box for that)
+    includePassword?: boolean
   }
   user?: {
     isNewAllowed?: boolean

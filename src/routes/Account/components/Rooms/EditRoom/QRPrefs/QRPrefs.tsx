@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import clsx from 'clsx'
 import Accordion from 'components/Accordion/Accordion'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
@@ -15,17 +15,20 @@ interface QRPrefsProps {
 }
 
 const QRPrefs = ({ onChange, prefs = {}, roomPassword, roomPasswordDirty }: QRPrefsProps) => {
-  const [isQRPasswordEnabled, setIsQRPasswordEnabled] = useState(!!prefs?.qr?.password)
+  // the flag only toggles embedding; the stored value survives toggles and
+  // is only destroyed by clearing the box below (legacy rows without the
+  // flag fall back to the previous value-implies-enabled behaviour)
+  const includePassword = prefs?.qr?.includePassword ?? !!prefs?.qr?.password
 
   const handleSetPref = useCallback((update: Partial<IRoomPrefs>) => {
     onChange({ ...prefs, ...update })
   }, [onChange, prefs])
 
   useEffect(() => {
-    if (isQRPasswordEnabled && roomPasswordDirty && prefs?.qr?.password !== roomPassword) {
+    if (includePassword && roomPasswordDirty && prefs?.qr?.password !== roomPassword) {
       handleSetPref({ qr: { ...prefs.qr, password: roomPassword } })
     }
-  }, [handleSetPref, isQRPasswordEnabled, prefs, roomPassword, roomPasswordDirty])
+  }, [handleSetPref, includePassword, prefs, roomPassword, roomPasswordDirty])
 
   return (
     <Accordion
@@ -48,27 +51,21 @@ const QRPrefs = ({ onChange, prefs = {}, roomPassword, roomPasswordDirty }: QRPr
           <div className={styles.field}>
             <InputCheckbox
               label='Include room password'
-              checked={isQRPasswordEnabled}
-              onChange={(event) => {
-                const checked = event.currentTarget.checked
-                setIsQRPasswordEnabled(checked)
-                if (!checked) handleSetPref({ qr: { ...prefs.qr, password: '' } })
-              }}
+              checked={includePassword}
+              onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
             />
           </div>
         )}
-        {(isQRPasswordEnabled && !roomPasswordDirty) && (
-          <div className={styles.field}>
-            <input
-              type='password'
-              autoComplete='new-password'
-              value={prefs?.qr?.password ?? ''}
-              onChange={e => handleSetPref({ qr: { ...prefs.qr, password: e.target.value } })}
-              onFocus={e => e.target.select()}
-              placeholder='re-enter room password'
-            />
-          </div>
-        )}
+        <div className={styles.field}>
+          <input
+            type='password'
+            autoComplete='new-password'
+            value={prefs?.qr?.password ?? ''}
+            onChange={e => handleSetPref({ qr: { ...prefs.qr, password: e.target.value } })}
+            onFocus={e => e.target.select()}
+            placeholder='password to embed in QR'
+          />
+        </div>
         <div className={clsx(styles.field)}>
           <label id='label-qr-size'>Size</label>
           <Slider

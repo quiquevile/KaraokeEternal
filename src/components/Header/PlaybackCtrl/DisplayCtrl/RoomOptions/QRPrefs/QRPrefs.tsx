@@ -10,16 +10,12 @@ import styles from './QRPrefs.css'
 interface QRPrefsProps {
   prefs: Partial<IRoomPrefs>
   onChange: (prefs: Partial<IRoomPrefs>) => void
-  // whether the room currently has a key (main form field in EditRoom,
-  // room metadata in Display): without one the checkbox stays off
+  // whether the current room has a key: without one the include-password
+  // option is not shown at all
   passwordPresent: boolean
 }
 
 const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
-  // embedding needs both the flag and an actual key; the flag alone only
-  // records the preference for when a key exists
-  const includePassword = (prefs?.qr?.includePassword ?? false) && passwordPresent
-
   const handleSetPref = useCallback((update: Partial<IRoomPrefs>) => {
     onChange({ ...prefs, ...update })
   }, [onChange, prefs])
@@ -41,14 +37,15 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
             onChange={event => handleSetPref({ qr: { ...prefs.qr, isEnabled: event.currentTarget.checked } })}
           />
         </div>
-        <div className={styles.field}>
-          <InputCheckbox
-            label='Include room password'
-            checked={includePassword}
-            disabled={!passwordPresent}
-            onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
-          />
-        </div>
+        {passwordPresent && (
+          <div className={styles.field}>
+            <InputCheckbox
+              label='Include room password'
+              checked={prefs?.qr?.includePassword ?? false}
+              onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
+            />
+          </div>
+        )}
         <div className={clsx(styles.field)}>
           <label id='label-qr-size'>Size</label>
           <Slider

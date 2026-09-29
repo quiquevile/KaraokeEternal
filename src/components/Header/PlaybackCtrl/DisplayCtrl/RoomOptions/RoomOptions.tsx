@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import QRPrefs from 'routes/Account/components/Rooms/EditRoom/QRPrefs/QRPrefs'
+import QRPrefs from './QRPrefs/QRPrefs'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
 import type { IRoomPrefs } from 'shared/types'
 
-// Room QR options for the current room (Display dialog). Reuses QRPrefs
-// as-is for an identical look; no password box here, so non-admins can
-// never touch keys. Changes persist debounced (and flushed on unmount).
+// Room QR options for the current room (Display dialog). The sole editor
+// of QR prefs: no password box here, so non-admins can never touch keys.
+// Changes persist debounced (and flushed on unmount).
 const RoomOptions = () => {
   const roomId = useAppSelector(state => state.user.roomId)
   const roomPrefs = useAppSelector(state =>

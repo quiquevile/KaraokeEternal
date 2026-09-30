@@ -69,7 +69,7 @@ describe('updateCurrentRoomOptions', () => {
     store.dispatch(updateCurrentRoomOptions.fulfilled(
       { room: { roomId: 1, prefs, hasPassword: true, qrPassword: 'c2VjcmV0' } },
       'req1',
-      { prefs: { qr: { isEnabled: true } } },
+      { prefs: { qr: { isEnabled: true, opacity: 0.625, size: 0.5 } } },
     ))
 
     const entity = store.getState().rooms.entities[1]

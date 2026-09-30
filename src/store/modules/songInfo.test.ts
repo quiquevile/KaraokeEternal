@@ -36,7 +36,7 @@ describe('songInfo errors', () => {
     expect(store.getState().songInfo.error).toBe('bad gain')
 
     store.dispatch(setPreferredSong.rejected(
-      new Error('nope'), 'req5', { songId: 7, mediaId: 3, isPreferred: 1 },
+      new Error('nope'), 'req5', { songId: 7, mediaId: 3, isPreferred: true },
     ))
     expect(store.getState().songInfo.error).toBe('nope')
   })

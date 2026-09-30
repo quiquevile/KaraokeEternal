@@ -37,6 +37,13 @@ const ACTION_HANDLERS = {
   [QUEUE_MOVE]: async (sock, { payload }, acknowledge) => {
     const { queueId, prevQueueId } = payload
 
+    if (!Number.isInteger(queueId) || (prevQueueId !== null && !Number.isInteger(prevQueueId))) {
+      return acknowledge({
+        type: QUEUE_MOVE + '_ERROR',
+        error: 'Invalid queueId',
+      })
+    }
+
     try {
       await Rooms.validate(sock.user.roomId, null, { validatePassword: false })
     } catch (err) {
@@ -53,11 +60,18 @@ const ACTION_HANDLERS = {
       })
     }
 
-    Queue.move({
-      prevQueueId,
-      queueId,
-      roomId: sock.user.roomId,
-    })
+    try {
+      Queue.move({
+        prevQueueId,
+        queueId,
+        roomId: sock.user.roomId,
+      })
+    } catch (err) {
+      return acknowledge({
+        type: QUEUE_MOVE + '_ERROR',
+        error: err.message,
+      })
+    }
 
     // success
     acknowledge({ type: QUEUE_MOVE + '_SUCCESS' })
@@ -68,19 +82,42 @@ const ACTION_HANDLERS = {
       payload: Queue.get(sock.user.roomId),
     })
   },
-  [QUEUE_REMOVE]: (sock, { payload }, acknowledge) => {
+  [QUEUE_REMOVE]: async (sock, { payload }, acknowledge) => {
     const { queueId } = payload
     const ids = Array.isArray(queueId) ? queueId : [queueId]
 
-    if (!can(sock.user, 'queueDelete') && !(Queue.isOwner(sock.user.userId, ids))) {
+    if (!ids.length || ids.some(id => !Number.isInteger(id))) {
+      return acknowledge({
+        type: QUEUE_REMOVE + '_ERROR',
+        error: 'Invalid queueId',
+      })
+    }
+
+    try {
+      await Rooms.validate(sock.user.roomId, null, { validatePassword: false })
+    } catch (err) {
+      return acknowledge({
+        type: QUEUE_REMOVE + '_ERROR',
+        error: err.message,
+      })
+    }
+
+    if (!can(sock.user, 'queueDelete') && !(Queue.isOwner(sock.user.userId, ids, sock.user.roomId))) {
       return acknowledge({
         type: QUEUE_REMOVE + '_ERROR',
         error: 'Cannot remove another user\'s song',
       })
     }
 
-    for (const id of ids) {
-      Queue.remove(id)
+    try {
+      for (const id of ids) {
+        Queue.remove(id, sock.user.roomId)
+      }
+    } catch (err) {
+      return acknowledge({
+        type: QUEUE_REMOVE + '_ERROR',
+        error: err.message,
+      })
     }
 
     // success

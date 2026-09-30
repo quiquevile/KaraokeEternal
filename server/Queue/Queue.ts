@@ -188,29 +188,30 @@ class Queue {
   }
 
   /**
-   * Delete a queue item
+   * Delete a queue item (room-scoped: ids are only meaningful within
+   * a room's chain, and the gap-close must not touch other rooms)
    */
-  static remove (queueId: number): void {
+  static remove (queueId: number, roomId: number): void {
     db.exec('BEGIN IMMEDIATE')
     db.exec('PRAGMA defer_foreign_keys = ON') // v0.9 betas didn't have prevQueueId DEFERRABLE
 
     try {
       const deleteQuery = sql`
         DELETE FROM queue
-        WHERE queueId = ${queueId}
+        WHERE queueId = ${queueId} AND roomId = ${roomId}
         RETURNING prevQueueId
       `
       const deletedRow = db.get<{ prevQueueId: number | null }>(String(deleteQuery), deleteQuery.parameters)
 
       if (deletedRow === undefined) {
-        throw new Error(`Could not remove queueId: ${queueId}`)
+        throw new NotFoundError(`Could not remove queueId: ${queueId}`)
       }
 
       // close the gap
       const updateQuery = sql`
         UPDATE queue
         SET prevQueueId = ${deletedRow.prevQueueId}
-        WHERE prevQueueId = ${queueId}
+        WHERE prevQueueId = ${queueId} AND roomId = ${roomId}
       `
       db.run(String(updateQuery), updateQuery.parameters)
       db.exec('COMMIT')
@@ -221,9 +222,9 @@ class Queue {
   }
 
   /**
-   * Check if user owns queue item(s)
+   * Check if user owns queue item(s), optionally within a room
    */
-  static isOwner (userId: number, queueId: number | number[]): boolean {
+  static isOwner (userId: number, queueId: number | number[], roomId?: number): boolean {
     const ids = Array.isArray(queueId) ? queueId : [queueId]
     if (ids.length === 0) return false
 
@@ -231,6 +232,7 @@ class Queue {
       SELECT COUNT(*) AS count
       FROM queue
       WHERE userId = ${userId} AND queueId IN ${sql.tuple(ids)}
+      ${roomId === undefined ? sql`` : sql`AND roomId = ${roomId}`}
     `
     const res = db.get<{ count: number }>(String(query), query.parameters)
     return res.count === ids.length

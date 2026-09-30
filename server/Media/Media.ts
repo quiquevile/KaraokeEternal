@@ -158,12 +158,12 @@ class Media {
     log.info(`cleanup: ${res.changes} stars for nonexistent songs`)
 
     // remove queue items for nonexistent songs
-    const rows = db.all<{ queueId: number }>(`
-      SELECT queue.queueId FROM queue LEFT JOIN songs USING(songId) WHERE songs.songId IS NULL
+    const rows = db.all<{ queueId: number, roomId: number }>(`
+      SELECT queue.queueId, queue.roomId FROM queue LEFT JOIN songs USING(songId) WHERE songs.songId IS NULL
     `)
 
     for (const row of rows) {
-      Queue.remove(row.queueId)
+      Queue.remove(row.queueId, row.roomId)
     }
 
     log.info(`cleanup: ${rows.length} queue items for nonexistent songs`)

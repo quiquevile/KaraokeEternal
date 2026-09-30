@@ -117,3 +117,39 @@ describe('Queue.get with corrupt chains', () => {
     expect(Queue.get(2).result).toEqual([])
   }, 5000)
 })
+
+describe('Queue.remove', () => {
+  beforeEach(() => {
+    db.run('DELETE FROM queue')
+    // room 1 chain 1 -> 2 -> 3, room 2 holds a decoy with a colliding id
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [1, 1, 1, 1, null])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [2, 1, 2, 1, 1])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [3, 1, 3, 1, 2])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [40, 2, 1, 1, null])
+    db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [41, 2, 2, 1, 40])
+  })
+
+  it('removes the item and closes the gap', () => {
+    Queue.remove(2, 1)
+
+    expect(orderOf(1)).toEqual([1, 3])
+    expect(orderOf(2)).toEqual([40, 41])
+  })
+
+  it('refuses items from another room without touching anything', () => {
+    expect(() => Queue.remove(40, 1)).toThrowError(NotFoundError)
+    expect(orderOf(1)).toEqual([1, 2, 3])
+    expect(orderOf(2)).toEqual([40, 41])
+  })
+
+  it('throws for unknown items', () => {
+    expect(() => Queue.remove(999, 1)).toThrowError(NotFoundError)
+  })
+
+  it('scopes ownership checks to the room', () => {
+    expect(Queue.isOwner(1, [1, 2], 1)).toBe(true)
+    expect(Queue.isOwner(1, [1, 40], 1)).toBe(false)
+    expect(Queue.isOwner(1, [1, 40])).toBe(true)
+    expect(Queue.isOwner(2, [1], 1)).toBe(false)
+  })
+})

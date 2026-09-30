@@ -210,14 +210,14 @@ class User {
 
     // remove user's queue items
     const queueQuery = sql`
-      SELECT queueId
+      SELECT queueId, roomId
       FROM queue
       WHERE userId = ${userId}
     `
-    const queueRows = db.all<{ queueId: number }>(String(queueQuery), queueQuery.parameters)
+    const queueRows = db.all<{ queueId: number, roomId: number }>(String(queueQuery), queueQuery.parameters)
 
     for (const row of queueRows) {
-      Queue.remove(row.queueId)
+      Queue.remove(row.queueId, row.roomId)
     }
 
     // remove user's song stars

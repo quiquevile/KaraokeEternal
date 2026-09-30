@@ -29,7 +29,7 @@ describe('Library star socket handlers', () => {
   })
 
   it('acks and broadcasts starring on change', () => {
-    vi.mocked(Library.starSong).mockReturnValue(true)
+    vi.mocked(Library.starSong).mockReturnValue(1)
     const ack = vi.fn()
     const { sock, emit } = makeSock()
 
@@ -44,7 +44,7 @@ describe('Library star socket handlers', () => {
   })
 
   it('acks without broadcasting a no-op star', () => {
-    vi.mocked(Library.starSong).mockReturnValue(false)
+    vi.mocked(Library.starSong).mockReturnValue(0)
     const ack = vi.fn()
     const { sock, emit } = makeSock()
 
@@ -55,7 +55,7 @@ describe('Library star socket handlers', () => {
   })
 
   it('acks and broadcasts unstarring on change', () => {
-    vi.mocked(Library.unstarSong).mockReturnValue(true)
+    vi.mocked(Library.unstarSong).mockReturnValue(1)
     const ack = vi.fn()
     const { sock, emit } = makeSock()
 
@@ -70,7 +70,7 @@ describe('Library star socket handlers', () => {
   })
 
   it('acks without broadcasting a no-op unstar', () => {
-    vi.mocked(Library.unstarSong).mockReturnValue(false)
+    vi.mocked(Library.unstarSong).mockReturnValue(0)
     const ack = vi.fn()
     const { sock, emit } = makeSock()
 

@@ -195,4 +195,11 @@ describe('toFilename', () => {
   it('falls back to the title alone when artist is empty', () => {
     expect(toFilename('', 'Instrumental Piece')).toBe('Instrumental Piece')
   })
+
+  it('neutralizes parent-directory segments', () => {
+    expect(toFilename('..', '..')).toBe('-')
+    expect(toFilename('..', '')).toBe('video')
+    expect(toFilename('.hidden', 'Title')).toBe('hidden - Title')
+    expect(toFilename('A...B', 'C..D')).toBe('A B - C D')
+  })
 })

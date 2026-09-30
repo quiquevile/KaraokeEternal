@@ -157,6 +157,12 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   const destDir = pathLib.join(path.destDir, toFilename(username, ''))
 
+  // defense in depth: the user folder must stay inside the download root
+  // even if sanitization above ever regresses
+  if (pathLib.relative(path.destDir, destDir).startsWith('..')) {
+    ctx.throw(422, 'invalid username')
+  }
+
   await fsPromises.mkdir(destDir, { recursive: true })
 
   requireYtdlBin(ctx)

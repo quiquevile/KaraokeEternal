@@ -160,14 +160,17 @@ function stripControlChars (str: string): string {
 }
 
 /**
- * Builds a filesystem-safe base name for the downloaded file.
+ * Builds a filesystem-safe base name for the downloaded file: a single
+ * path segment, never absolute, never `.`/`..` (parent escapes via
+ * hostile video titles or usernames are flattened away).
  */
 export function toFilename (artist: string, title: string): string {
   const name = stripControlChars([artist, title].filter(Boolean).join(' - '))
     .replace(INVALID_FILENAME_CHARS, ' ')
+    .replace(/\.{2,}/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
-    .replace(/[.\s]+$/g, '')
+    .replace(/^[.\s]+|[.\s]+$/g, '')
 
   return name || 'video'
 }

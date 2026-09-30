@@ -407,6 +407,8 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
   await ensureYtdlBinary()
 
   const [bin, ...args] = getUpdateCommand()
+  const UPDATE_TIMEOUT_MS = 120000
+  let timedOut = false
 
   return new Promise((resolve, reject) => {
     let output = ''
@@ -420,6 +422,11 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
       return
     }
 
+    const timer = setTimeout(() => {
+      timedOut = true
+      child.kill('SIGKILL')
+    }, UPDATE_TIMEOUT_MS)
+
     child.stdout.setEncoding('utf8')
     child.stderr.setEncoding('utf8')
 
@@ -430,9 +437,20 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
     child.stdout.on('data', collect)
     child.stderr.on('data', collect)
 
-    child.on('error', err => reject(err))
+    child.on('error', (err) => {
+      clearTimeout(timer)
+      reject(err)
+    })
 
     child.on('close', async (code) => {
+      clearTimeout(timer)
+
+      if (timedOut) {
+        resolve({ ok: false, output: 'update timed out', version: null })
+
+        return
+      }
+
       const trimmed = output.trim()
 
       let version: string | null = null
@@ -520,6 +538,58 @@ export function buildDownloadArgs (url: string, output: string, extraArgs: strin
     ...extraArgs,
     url,
   ]
+}
+
+// admin-settable extra flags (youtubeDlExtraArgs pref): only flags with no
+// file, command-execution or output control. Anything else (e.g. --exec,
+// -o, --paths, --config-locations, --dump*) is rejected, since yt-dlp
+// also accepts unambiguous long-option prefixes.
+const SAFE_EXTRA_FLAGS: Record<string, boolean> = {
+  // flag: takesValue
+  '--concurrent-fragments': true,
+  '--format-sort': true,
+  '--limit-rate': true,
+  '--no-check-certificate': false,
+  '--no-mtime': false,
+  '--no-part': false,
+  '--prefer-free-formats': false,
+  '--recode-video': true,
+  '--remux-video': true,
+  '--retries': true,
+  '--socket-timeout': true,
+  '--throttled-rate': true,
+}
+
+export function sanitizeExtraArgs (tokens: string[]): string[] {
+  const out: string[] = []
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]
+
+    if (!token.startsWith('-') || token === '-') {
+      throw new Error(`unsafe yt-dlp argument: ${token}`)
+    }
+
+    const takesValue = SAFE_EXTRA_FLAGS[token]
+
+    if (takesValue === undefined) {
+      throw new Error(`unsafe yt-dlp argument: ${token}`)
+    }
+
+    out.push(token)
+
+    if (takesValue) {
+      const value = tokens[++i]
+
+      if (value === undefined || value.startsWith('-')) {
+        throw new Error(`unsafe yt-dlp argument value for: ${token}`)
+      }
+
+      out.push(value)
+    }
+  }
+
+  return out
 }
 
 export function parseSearchLine (line: string): ParsedSearchLine | null {

@@ -8,6 +8,7 @@ import {
   resolveVideo,
   resolveStreamUrl,
   parseVideoId,
+  sanitizeExtraArgs,
   setYtdlDir,
   getYtdlBin,
   getYtdlStatus,
@@ -213,9 +214,15 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
     ctx.throw(409, `File already exists: ${existingFile}`)
   }
 
-  const extraArgs = typeof prefs.youtubeDlExtraArgs === 'string'
-    ? prefs.youtubeDlExtraArgs.trim().split(/\s+/).filter(Boolean)
-    : []
+  let extraArgs: string[]
+
+  try {
+    extraArgs = typeof prefs.youtubeDlExtraArgs === 'string' && prefs.youtubeDlExtraArgs.trim()
+      ? sanitizeExtraArgs(prefs.youtubeDlExtraArgs.trim().split(/\s+/).filter(Boolean))
+      : []
+  } catch {
+    ctx.throw(422, 'invalid youtubeDlExtraArgs')
+  }
 
   const job = downloadManager.enqueue({
     url,

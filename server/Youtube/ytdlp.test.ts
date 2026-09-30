@@ -16,6 +16,7 @@ import {
   buildStreamArgs,
   buildVideoMetadataArgs,
   buildDownloadArgs,
+  sanitizeExtraArgs,
   parseSearchLine,
   parseSearchOutput,
   parseProgressLine,
@@ -401,6 +402,26 @@ describe('buildDownloadArgs', () => {
     expect(runtimeIndex).toBeGreaterThanOrEqual(0)
     expect(args[runtimeIndex + 1]).toBe(`node:${process.execPath}`)
     expect(runtimeIndex).toBeLessThan(args.indexOf('--postprocessor-args'))
+  })
+})
+
+describe('sanitizeExtraArgs', () => {
+  it('passes benign flags with values through', () => {
+    expect(sanitizeExtraArgs(['--retries', '3', '--no-check-certificate']))
+      .toEqual(['--retries', '3', '--no-check-certificate'])
+  })
+
+  it('rejects execution, output and dump flags', () => {
+    for (const bad of ['--exec', 'echo hi', '-o', '/tmp/x', '--paths', '/tmp', '--dump-json', '--config-locations', '/tmp/c']) {
+      expect(() => sanitizeExtraArgs([bad])).toThrow()
+    }
+  })
+
+  it('rejects unlisted flags and dash-led values', () => {
+    expect(() => sanitizeExtraArgs(['--js-runtimes', 'x'])).toThrow()
+    expect(() => sanitizeExtraArgs(['--retries'])).toThrow()
+    expect(() => sanitizeExtraArgs(['--retries', '--exec'])).toThrow()
+    expect(() => sanitizeExtraArgs(['3'])).toThrow()
   })
 })
 

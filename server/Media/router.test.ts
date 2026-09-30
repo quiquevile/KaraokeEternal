@@ -149,7 +149,25 @@ describe('Media media streaming permissions', () => {
     vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'file.unknown' }))
     const ctx = makeCtx({ isAdmin: true })
 
-    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404, message: 'unknown media type' })
+  })
+
+  it('rejects media whose path was removed with 404', async () => {
+    vi.mocked(Prefs.get).mockReturnValue({ paths: { entities: {} } } as unknown as ReturnType<typeof Prefs.get>)
+    const ctx = makeCtx({ isAdmin: true })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404, message: 'media path not found' })
+  })
+
+  it('maps missing files to 404 without leaking the path', async () => {
+    const fsPromises = (await import('node:fs/promises')).default
+    const enoent = Object.assign(new Error('ENOENT: no such file'), { code: 'ENOENT' })
+    vi.mocked(fsPromises.stat).mockRejectedValueOnce(enoent)
+    const ctx = makeCtx({ isAdmin: true })
+
+    const err = await dispatch(ctx, () => {}).catch(e => e)
+    expect(err).toMatchObject({ status: 404, message: 'media file not found' })
+    expect(err.message).not.toContain('/audio')
   })
 
   it('streams the audio entry of a zip archive', async () => {

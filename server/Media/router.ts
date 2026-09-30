@@ -20,6 +20,9 @@ const router = new KoaRouter({ prefix: '/api/media' })
 
 const audioExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].mimeType.startsWith('audio/'))
 
+// refuse to buffer absurd archives into memory (mp3+g zips are kilobytes)
+const MAX_ZIP_BYTES = 256 * 1024 * 1024
+
 // stream a media file
 router.get('/:mediaId', async (ctx) => {
   const { type } = ctx.query
@@ -43,42 +46,70 @@ router.get('/:mediaId', async (ctx) => {
 
   const { pathId, relPath } = res.entities[mediaId]
 
-  // get base path
+  // get base path (the path may have been removed since the scan)
   const { paths } = Prefs.get()
-  const basePath = paths.entities[pathId].path
+  const basePath = paths.entities[pathId]?.path
 
-  let file = path.join(basePath, relPath)
-  let buffer
-
-  if (getExt(file) === '.zip') {
-    const { entries } = await unzip(new Uint8Array(await fsPromises.readFile(file)))
-    let entry
-
-    if (type === 'cdg') {
-      entry = Object.keys(entries).find(f => !f.includes('/') && getExt(f) === '.cdg')
-      if (!entry) ctx.throw(404, 'No .cdg file found in archive')
-    } else {
-      entry = Object.keys(entries).find(f => !f.includes('/') && audioExts.includes(getExt(f)))
-      if (!entry) ctx.throw(404, 'No valid audio file found in archive')
-    }
-
-    ctx.length = entries[entry].size
-    ctx.type = fileTypes[getExt(entry)]?.mimeType
-    buffer = Buffer.from(await entries[entry].arrayBuffer())
-  } else {
-    if (type === 'cdg') {
-      file = getCdgName(file)
-      if (!file) ctx.throw(404, 'The .cdg file could not be found')
-    }
-
-    const stats = await fsPromises.stat(file)
-    ctx.length = stats.size
-    ctx.type = fileTypes[getExt(file)]?.mimeType
+  if (!basePath) {
+    ctx.throw(404, 'media path not found')
   }
 
-  if (!ctx.type) ctx.throw(404, `Unknown MIME type: ${file}`)
+  let file = path.join(basePath, relPath)
 
-  log.verbose('streaming %s (%sMB): %s', ctx.type, (ctx.length / 1000000).toFixed(2), file)
+  // relPath comes from the scanner, but never serve outside the base path
+  if (path.relative(basePath, file).startsWith('..')) {
+    ctx.throw(404, 'media file not found')
+  }
+
+  let buffer
+
+  try {
+    if (getExt(file) === '.zip') {
+      const { entries } = await unzip(new Uint8Array(await fsPromises.readFile(file)))
+
+      const totalSize = Object.values(entries).reduce((sum, entry) => sum + (entry.size ?? 0), 0)
+
+      if (totalSize > MAX_ZIP_BYTES) {
+        ctx.throw(413, 'archive too large')
+      }
+
+      let entry
+
+      if (type === 'cdg') {
+        entry = Object.keys(entries).find(f => !f.includes('/') && getExt(f) === '.cdg')
+        if (!entry) ctx.throw(404, 'No .cdg file found in archive')
+      } else {
+        entry = Object.keys(entries).find(f => !f.includes('/') && audioExts.includes(getExt(f)))
+        if (!entry) ctx.throw(404, 'No valid audio file found in archive')
+      }
+
+      ctx.length = entries[entry].size
+      ctx.type = fileTypes[getExt(entry)]?.mimeType
+      buffer = Buffer.from(await entries[entry].arrayBuffer())
+    } else {
+      if (type === 'cdg') {
+        file = getCdgName(file)
+        if (!file) ctx.throw(404, 'The .cdg file could not be found')
+      }
+
+      const stats = await fsPromises.stat(file)
+      ctx.length = stats.size
+      ctx.type = fileTypes[getExt(file)]?.mimeType
+    }
+  } catch (err) {
+    if (err.status) throw err // our own 4xx above
+
+    if (err.code === 'ENOENT') {
+      ctx.throw(404, 'media file not found')
+    }
+
+    log.error('streaming failed: %s', err.message)
+    ctx.throw(500, 'media stream unavailable')
+  }
+
+  if (!ctx.type) ctx.throw(404, 'unknown media type')
+
+  log.verbose('streaming %s (%sMB)', ctx.type, (ctx.length / 1000000).toFixed(2))
   ctx.body = buffer ? Readable.from(buffer) : fs.createReadStream(file)
 })
 

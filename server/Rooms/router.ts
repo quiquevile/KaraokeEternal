@@ -177,11 +177,12 @@ export async function handleUpdateRoom (ctx: RouterContext): Promise<void> {
   log.verbose('%s updated a room (roomId: %s)', ctx.user.name, roomId)
 
   // live update for every member of the room (same shape as the prefs push,
-  // plus key metadata so members learn about password changes without refetch)
+  // plus key metadata so members learn about password changes without refetch,
+  // plus status so open/close applies instantly on open players and dialogs)
   const updated = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
   ctx.io.to(Rooms.prefix(roomId)).emit('action', {
     type: ROOM_PREFS_PUSH,
-    payload: { roomId, prefs: updated.prefs, hasPassword: updated.hasPassword, qrPassword: updated.qrPassword ?? null },
+    payload: { roomId, prefs: updated.prefs, hasPassword: updated.hasPassword, qrPassword: updated.qrPassword ?? null, status: updated.status },
   })
 
   // send updated room list

@@ -311,7 +311,7 @@ describe('handleUpdateRoom', () => {
     getMock.mockImplementation((roomId: number | null | undefined) => (
       roomId == null
         ? { result: [3], entities: { 3: { roomId: 3 } } }
-        : { result: [3], entities: { 3: { roomId: 3, prefs, hasPassword: true, qrPassword: 'c2VjcmV0' } } }
+        : { result: [3], entities: { 3: { roomId: 3, prefs, hasPassword: true, qrPassword: 'c2VjcmV0', status: 'closed' } } }
     ))
   })
 
@@ -328,7 +328,7 @@ describe('handleUpdateRoom', () => {
     expect(ctx.io.to).toHaveBeenCalledWith('ROOM_ID_3')
     expect(emit).toHaveBeenCalledWith('action', {
       type: 'rooms/ROOM_PREFS_PUSH',
-      payload: { roomId: 3, prefs, hasPassword: true, qrPassword: 'c2VjcmV0' },
+      payload: { roomId: 3, prefs, hasPassword: true, qrPassword: 'c2VjcmV0', status: 'closed' },
     })
   })
 

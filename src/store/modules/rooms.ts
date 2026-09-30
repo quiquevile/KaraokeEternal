@@ -107,7 +107,13 @@ export const updateCurrentRoomOptions = createAsyncThunk(
 export const openRoomEditor = createAction(ROOM_EDITOR_OPEN)
 export const closeRoomEditor = createAction(ROOM_EDITOR_CLOSE)
 export const filterByStatus = createAction<boolean | string>(ROOM_FILTER_STATUS)
-export const roomPrefsPush = createAction<{ roomId: number, prefs: IRoomPrefs, hasPassword?: boolean, qrPassword?: string | null }>(ROOM_PREFS_PUSH)
+export const roomPrefsPush = createAction<{
+  roomId: number
+  prefs: IRoomPrefs
+  hasPassword?: boolean
+  qrPassword?: string | null
+  status?: Room['status']
+}>(ROOM_PREFS_PUSH)
 
 export function requestPrefsPush (roomId: number, prefs: IRoomPrefs): AppThunk {
   return (dispatch) => {
@@ -221,6 +227,11 @@ const roomsReducer = createReducer(initialState, (builder) => {
         }
         if ('qrPassword' in payload) {
           state.entities[roomId].qrPassword = payload.qrPassword ?? null
+        }
+        // room open/close rides along too so open players and dialogs
+        // react instantly; absent on editor preview pushes
+        if (payload.status === 'open' || payload.status === 'closed') {
+          state.entities[roomId].status = payload.status
         }
       }
     })

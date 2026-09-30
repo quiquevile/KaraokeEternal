@@ -138,4 +138,17 @@ describe('roomPrefsPush', () => {
     expect(entity.hasPassword).toBe(false)
     expect(entity.qrPassword).toBeNull()
   })
+
+  it('applies room open/close from admin updates, ignores preview pushes', () => {
+    const store = makeStore()
+
+    store.dispatch(roomPrefsPush({ roomId: 1, prefs: qrPrefs(), status: 'closed' }))
+    expect(store.getState().rooms.entities[1].status).toBe('closed')
+
+    store.dispatch(roomPrefsPush({ roomId: 1, prefs: qrPrefs() }))
+    expect(store.getState().rooms.entities[1].status).toBe('closed')
+
+    store.dispatch(roomPrefsPush({ roomId: 1, prefs: qrPrefs(), status: 'open' }))
+    expect(store.getState().rooms.entities[1].status).toBe('open')
+  })
 })

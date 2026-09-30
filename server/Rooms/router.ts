@@ -14,6 +14,7 @@ const log = getLogger('Rooms')
 const router = new KoaRouter({ prefix: '/api/rooms' })
 
 import { ROOM_PREFS_PUSH } from '../../shared/actionTypes.js'
+import type { IRoomPrefs } from '../../shared/types.js'
 
 export interface RouterContext {
   user: { isAdmin: boolean, userId?: number, username?: string, name?: string, roomId?: number | null, permissions?: Record<string, boolean> } | undefined
@@ -44,8 +45,37 @@ export function handleCurrentRoomStatus (ctx: RouterContext): void {
   ctx.body = { roomId, status: room.status }
 }
 
+// full own-room entity for members, regardless of room status (closed
+// rooms are hidden from the list, but logged-in members keep karaokeing:
+// player bootstrap, QR and persisted options all read from here)
+export function handleCurrentRoom (ctx: RouterContext): void {
+  if (ctx.user?.userId == null) ctx.throw(401)
+
+  const roomId = ctx.user?.roomId
+  if (roomId == null) ctx.throw(404, 'Not in a room')
+
+  const res = Rooms.get(roomId, { status: STATUSES })
+  const room = res.entities[roomId]
+  if (!room) ctx.throw(404, 'Room not found')
+
+  const prefs = (room.prefs ?? {}) as Partial<IRoomPrefs>
+  ctx.body = {
+    room: {
+      ...room,
+      prefs: {
+        ...(prefs.roles ? { roles: prefs.roles } : {}),
+        ...(prefs.qr ? { qr: prefs.qr } : {}),
+        ...(prefs.eq ? { eq: prefs.eq } : {}),
+      },
+    },
+  }
+}
+
 // current room status (registered before '/:roomId' for clarity)
 router.get('/current/status', ctx => handleCurrentRoomStatus(ctx as unknown as RouterContext))
+
+// current room (registered before '/:roomId' for clarity)
+router.get('/current', ctx => handleCurrentRoom(ctx as unknown as RouterContext))
 
 // list rooms
 export function handleListRooms (ctx: RouterContext): void {

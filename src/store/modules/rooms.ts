@@ -33,16 +33,18 @@ export const fetchCurrentRoomStatus = createAsyncThunk(
   async () => await api.get('/current/status') as { roomId: number, status: string },
 )
 
-export const fetchCurrentRoom = createAsyncThunk<object, void, { state: RootState }>(
-  ROOMS_REQUEST,
+// own room regardless of status (closed rooms are hidden from the list,
+// but members keep their prefs, key flag and persisted options)
+export const fetchOwnRoom = createAsyncThunk(
+  'rooms/fetchOwnRoom',
   async (_, thunkAPI) => {
-    const roomId = thunkAPI.getState().user.roomId
+    const roomId = (thunkAPI.getState() as RootState).user.roomId
 
     if (typeof roomId !== 'number') {
       return Promise.reject('Please sign into a room')
     }
 
-    return await api.get(`/${roomId}`)
+    return await api.get('/current') as { room: Room }
   },
 )
 
@@ -148,7 +150,7 @@ const initialState: RoomsState = {
 
 const roomsReducer = createReducer(initialState, (builder) => {
   builder
-    // handles both fetchRooms and fetchCurrentRoom
+    // handles fetchRooms (full replace)
     .addCase(fetchRooms.fulfilled, (state, { payload }) => ({
       ...state,
       ...payload,
@@ -177,6 +179,25 @@ const roomsReducer = createReducer(initialState, (builder) => {
     })
     .addCase(fetchCurrentRoomStatus.rejected, (state) => {
       state.currentStatus = null
+    })
+    .addCase(fetchOwnRoom.fulfilled, (state, { payload }) => {
+      // seed/refresh the own entity (works for closed rooms too, unlike
+      // the filtered list); never clears other rooms
+      const room = payload?.room
+
+      if (room) {
+        state.entities[room.roomId] = {
+          ...state.entities[room.roomId],
+          ...room,
+        }
+
+        if (!state.result.includes(room.roomId)) {
+          state.result.push(room.roomId)
+        }
+      }
+    })
+    .addCase(fetchOwnRoom.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not load room'
     })
     .addCase(openRoomEditor, (state) => {
       state.isEditorOpen = true

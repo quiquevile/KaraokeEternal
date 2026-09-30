@@ -19,7 +19,7 @@ vi.mock('./Rooms.js', async (importOriginal) => {
   }
 })
 
-import { handleCurrentRoomStatus, handleCurrentRoomUpdate, handleListRooms, handleUpdateRoom } from './router.js'
+import { handleCurrentRoom, handleCurrentRoomStatus, handleCurrentRoomUpdate, handleListRooms, handleUpdateRoom } from './router.js'
 import type { RouterContext } from './router.js'
 
 function makeIo () {
@@ -97,6 +97,58 @@ describe('handleCurrentRoomStatus', () => {
     const ctx = makeCtx()
 
     expect(() => handleCurrentRoomStatus(ctx)).toThrowError(expect.objectContaining({ status: 404 }))
+  })
+})
+
+describe('handleCurrentRoom', () => {
+  const prefs = {
+    qr: { isEnabled: true },
+    eq: { eqEnabled: true, eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], eqPreset: 'Flat' },
+    roles: { 3: { allowNew: false } },
+    user: { isGuestAllowed: true },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns the closed own room with member prefs and key', () => {
+    getMock.mockReturnValue({
+      result: [1],
+      entities: {
+        1: {
+          roomId: 1, name: 'Room 1', status: 'closed', dateCreated: 0,
+          prefs: structuredClone(prefs), hasPassword: true, qrPassword: 'c2VjcmV0',
+        },
+      },
+    })
+    const ctx = makeCtx()
+
+    handleCurrentRoom(ctx)
+
+    expect(getMock).toHaveBeenCalledWith(1, { status: ['open', 'closed'] })
+    expect(ctx.body).toEqual({
+      room: {
+        roomId: 1, name: 'Room 1', status: 'closed', dateCreated: 0,
+        prefs: { roles: prefs.roles, qr: prefs.qr, eq: prefs.eq },
+        hasPassword: true, qrPassword: 'c2VjcmV0',
+      },
+    })
+  })
+
+  it('rejects anonymous users with 401 and roomless users with 404', () => {
+    const anon = makeCtx({ user: { isAdmin: false, userId: null, roomId: null } })
+    expect(() => handleCurrentRoom(anon)).toThrowError(expect.objectContaining({ status: 401 }))
+
+    const roomless = makeCtx({ user: { isAdmin: true, userId: 1, roomId: null } })
+    expect(() => handleCurrentRoom(roomless)).toThrowError(expect.objectContaining({ status: 404 }))
+  })
+
+  it('returns 404 for a deleted room', () => {
+    getMock.mockReturnValue({ result: [], entities: {} })
+    const ctx = makeCtx()
+
+    expect(() => handleCurrentRoom(ctx)).toThrowError(expect.objectContaining({ status: 404 }))
   })
 })
 

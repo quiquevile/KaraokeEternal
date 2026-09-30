@@ -5,7 +5,7 @@ import Modal from 'components/Modal/Modal'
 import MetadataFields from 'components/MetadataFields/MetadataFields'
 import { useCaseField } from 'components/MetadataFields/useCaseField'
 import { closeYoutubeDialog, downloadVideo, fetchDownloadUsers, identifyVideo } from 'store/modules/youtube'
-import { fetchCurrentRoomStatus, fetchRooms } from 'store/modules/rooms'
+import { fetchCurrentRoomStatus, fetchOwnRoom, fetchRooms } from 'store/modules/rooms'
 import { hasPermission } from 'store/modules/user'
 import type { ConvertedMetadata, YouTubeResult } from 'store/modules/youtube'
 import styles from './YouTubeMetadataDialog.css'
@@ -24,7 +24,13 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'downloadForOthers')
 
   useEffect(() => {
-    dispatch(fetchRooms())
+    // ordered: the filtered list drops a closed own room, so re-seed it
+    // afterwards (member views like QR and persisted options keep working
+    // while closed); failures are already recorded in their slices
+    dispatch(fetchRooms()).then(
+      () => { dispatch(fetchOwnRoom()) },
+      () => { dispatch(fetchOwnRoom()) },
+    )
     dispatch(fetchCurrentRoomStatus())
     if (canQueueForOthers) dispatch(fetchDownloadUsers(user.roomId ?? null))
   }, [dispatch, canQueueForOthers, user.roomId])

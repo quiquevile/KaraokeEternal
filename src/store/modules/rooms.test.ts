@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
 import reducer, {
   createRoom,
+  fetchOwnRoom,
   fetchRooms,
   removeRoom,
   roomPrefsPush,
@@ -76,6 +77,37 @@ describe('updateCurrentRoomOptions', () => {
     expect(entity.prefs).toEqual(prefs)
     expect(entity.hasPassword).toBe(true)
     expect(entity.qrPassword).toBe('c2VjcmV0')
+  })
+})
+
+describe('fetchOwnRoom', () => {
+  it('seeds a closed own room missing from the filtered list', async () => {
+    const store = configureStore({ reducer: { rooms: reducer } })
+    const prefs = qrPrefs({ isEnabled: true })
+
+    store.dispatch(fetchOwnRoom.fulfilled(
+      {
+        room: {
+          roomId: 1, name: 'Room 1', status: 'closed', dateCreated: 0, numUsers: 0,
+          prefs, hasPassword: true, qrPassword: 'c2VjcmV0',
+        },
+      },
+      'req1',
+      undefined,
+    ))
+
+    const entity = store.getState().rooms.entities[1]
+    expect(entity.status).toBe('closed')
+    expect(entity.prefs).toEqual(prefs)
+    expect(entity.qrPassword).toBe('c2VjcmV0')
+    expect(store.getState().rooms.result).toEqual([1])
+  })
+
+  it('records failures', async () => {
+    const store = makeStore()
+
+    store.dispatch(fetchOwnRoom.rejected(new Error('gone'), 'req1', undefined))
+    expect(store.getState().rooms.error).toBe('gone')
   })
 })
 

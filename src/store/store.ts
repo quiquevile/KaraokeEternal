@@ -12,6 +12,9 @@ import {
   REGISTER,
 } from 'redux-persist'
 import { windowResize } from './modules/ui'
+import HttpApi from 'lib/HttpApi'
+import Persistor from './Persistor'
+import { LOGOUT } from 'shared/actionTypes'
 
 // resize action
 window.addEventListener('resize', () => store.dispatch(windowResize({
@@ -55,6 +58,14 @@ if (module.hot) {
     const { default: combinedReducer } = await import('./reducers')
     store.replaceReducer(combinedReducer)
   })
+}
+
+// dead server session (expired/invalid JWT): drop everything local,
+// mirroring requestLogout without the server round-trip
+HttpApi.onUnauthorized = () => {
+  store.dispatch({ type: LOGOUT })
+  Persistor.get().purge()
+  socket.close()
 }
 
 // Infer the `RootState` and `AppDispatch` types from the store itself

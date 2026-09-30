@@ -49,6 +49,14 @@ const readFile = promisify(fs.readFile)
 const deleteFile = promisify(fs.unlink)
 const { sign: jwtSign } = jsonWebToken
 
+// session lifetime: long enough for multi-day parties, short enough that
+// a stolen cookie eventually dies (the client drops its session on 401)
+const JWT_EXPIRES_IN = '30d'
+
+const signToken = (userCtx: object, jwtKey: string): string => (
+  jwtSign(userCtx, jwtKey, { expiresIn: JWT_EXPIRES_IN })
+)
+
 export interface RouterContext {
   user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null } | undefined
   params: Record<string, string>
@@ -114,7 +122,7 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
   const userCtx = createUserCtx(user, roomId)
 
   // create JWT
-  const token = jwtSign(userCtx, ctx.jwtKey)
+  const token = signToken(userCtx, ctx.jwtKey)
 
   // set JWT as an httpOnly cookie
   ctx.cookies.set('keToken', token, {
@@ -420,9 +428,8 @@ router.put('/user/:userId', async (ctx) => {
 
   const userCtx = createUserCtx(updatedUser, ctx.user.roomId || null)
 
-  // create JWT
-  // @todo: this should not extend the JWT expiry date
-  const token = jwtSign(userCtx, ctx.jwtKey)
+  // create JWT (fresh expiry on profile change: activity renews the session)
+  const token = signToken(userCtx, ctx.jwtKey)
 
   // set JWT as an httpOnly cookie
   ctx.cookies.set('keToken', token, {
@@ -494,7 +501,7 @@ router.post('/user', async (ctx) => {
     const userCtx = createUserCtx(user, body.roomId || null)
 
     // create JWT
-    const token = jwtSign(userCtx, ctx.jwtKey)
+    const token = signToken(userCtx, ctx.jwtKey)
 
     // set JWT as an httpOnly cookie
     ctx.cookies.set('keToken', token, {
@@ -546,7 +553,7 @@ router.post('/setup', async (ctx) => {
 
     // create JWT
     const userCtx = createUserCtx(user, roomRes.lastID)
-    const token = jwtSign(userCtx, ctx.jwtKey)
+    const token = signToken(userCtx, ctx.jwtKey)
 
     // set JWT as an httpOnly cookie
     ctx.cookies.set('keToken', token, {

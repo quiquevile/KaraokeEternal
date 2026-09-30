@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jsonWebToken from 'jsonwebtoken'
 
 const { validateMock, roomsValidateMock } = vi.hoisted(() => ({
   validateMock: vi.fn(),
@@ -175,6 +176,21 @@ describe('handleLogin', () => {
 
     expect(roomsValidateMock).not.toHaveBeenCalled()
     expect(ctx.body).toMatchObject({ username: 'admin', roomId: null })
+  })
+
+  it('issues expiring session tokens', async () => {
+    validateMock.mockResolvedValue(adminUser)
+    const ctx = makeLoginCtx({ username: 'admin', password: 'secret' })
+
+    await handleLogin(ctx as never)
+
+    const token = vi.mocked(ctx.cookies.set).mock.calls[0][1] as string
+    const payload = jsonWebToken.decode(token) as { iat: number, exp: number } | null
+
+    expect(payload).not.toBeNull()
+    // ~30 days, with a minute of slack for slow CI
+    expect(payload!.exp - payload!.iat).toBeGreaterThan(30 * 24 * 3600 - 60)
+    expect(payload!.exp - payload!.iat).toBeLessThanOrEqual(30 * 24 * 3600)
   })
 
   it('still requires standard users to select a room', async () => {

@@ -105,9 +105,7 @@ export const updateCurrentRoomOptions = createAsyncThunk(
 export const openRoomEditor = createAction(ROOM_EDITOR_OPEN)
 export const closeRoomEditor = createAction(ROOM_EDITOR_CLOSE)
 export const filterByStatus = createAction<boolean | string>(ROOM_FILTER_STATUS)
-const roomPrefsPush = createAction<{ roomId: number, prefs: IRoomPrefs, hasPassword?: boolean, qrPassword?: string | null }>(ROOM_PREFS_PUSH)
-
-export { roomPrefsPush }
+export const roomPrefsPush = createAction<{ roomId: number, prefs: IRoomPrefs, hasPassword?: boolean, qrPassword?: string | null }>(ROOM_PREFS_PUSH)
 
 export function requestPrefsPush (roomId: number, prefs: IRoomPrefs): AppThunk {
   return (dispatch) => {

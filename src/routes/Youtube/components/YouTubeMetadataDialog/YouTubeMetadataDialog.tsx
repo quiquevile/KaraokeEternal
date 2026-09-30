@@ -27,7 +27,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
     dispatch(fetchRooms())
     dispatch(fetchCurrentRoomStatus())
     if (canQueueForOthers) dispatch(fetchDownloadUsers(user.roomId ?? null))
-  }, [dispatch, canQueueForOthers])
+  }, [dispatch, canQueueForOthers, user.roomId])
 
   // hide queueing only when the current room is positively closed;
   // unknown status fails open and the server validates on download

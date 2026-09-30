@@ -6,11 +6,33 @@ import { NotFoundError, ValidationError } from '../lib/Errors.js'
 
 const log = getLogger('Media')
 
+// a media row joined with its song, artist and path (plus any later
+// migration columns via the index signature)
+export interface MediaRow {
+  mediaId: number
+  songId: number
+  pathId: number
+  relPath: string
+  duration: number
+  isPreferred: number
+  dateAdded: number
+  dateUpdated: number
+  title: string
+  titleNorm: string
+  artistId: number
+  artist: string
+  artistNorm: string
+  path: string
+  rgTrackGain?: number | null
+  rgTrackPeak?: number | null
+  [key: string]: unknown
+}
+
 class Media {
   /**
    * Get media matching all search criteria
    */
-  static search (filter: object): { result: number[], entities: Record<string, any> } {
+  static search (filter: object): { result: number[], entities: Record<number, MediaRow> } {
     const media = {
       result: [],
       entities: {},
@@ -33,7 +55,7 @@ class Media {
       WHERE ${whereClause}
       ORDER BY paths.priority ASC
     `
-    const rows = db.all<{ mediaId: number } & Record<string, any>>(String(query), query.parameters)
+    const rows = db.all<MediaRow>(String(query), query.parameters)
 
     for (const row of rows) {
       media.result.push(row.mediaId)
@@ -46,7 +68,7 @@ class Media {
   /**
    * Add media file to the library
    */
-  static add (media: any): number {
+  static add (media: Record<string, unknown>): number {
     if (!Number.isInteger(media.songId)
       || !Number.isInteger(media.duration)
       || !Number.isInteger(media.pathId)
@@ -70,7 +92,7 @@ class Media {
   /**
    * Update media item
    */
-  static update (media: any): void {
+  static update (media: Record<string, unknown>): void {
     const { mediaId } = media
 
     if (!Number.isInteger(mediaId)) {

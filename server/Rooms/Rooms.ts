@@ -2,6 +2,14 @@ import crypto from '../lib/crypto.js'
 import sql from 'sqlate'
 import { db } from '../lib/Database.js'
 import { NotFoundError, ValidationError } from '../lib/Errors.js'
+import type { Server } from 'socket.io'
+import type { IRoomPrefs } from '../../shared/types.js'
+
+// socket with the app's session data attached
+interface AppSocket {
+  user?: { roomId?: number | null, userId?: number }
+  _lastPlayerStatus?: unknown
+}
 
 const NAME_MIN_LENGTH = 1
 const NAME_MAX_LENGTH = 50
@@ -36,6 +44,21 @@ function validateEqPrefs (eq: unknown): void {
 // Remember which users have been seen in each room
 const roomUsers: Map<number, Set<number>> = new Map()
 
+// a rooms-table row as returned by Rooms.get (data JSON decoded into
+// prefs, key metadata derived)
+export interface RoomRow {
+  roomId: number
+  name: string
+  status: string
+  password?: string | null
+  dateCreated: number
+  prefs: IRoomPrefs
+  hasPassword: boolean
+  qrPassword: string | null
+  numUsers?: number
+  [key: string]: unknown
+}
+
 class Rooms {
   /**
    * Get all rooms
@@ -43,7 +66,7 @@ class Rooms {
   static get (
     roomId: number | null | undefined = undefined,
     { status = ['open'], includePassword = false }: { status?: string[], includePassword?: boolean } = {},
-  ): { result: number[], entities: Record<number, any> } {
+  ): { result: number[], entities: Record<number, RoomRow> } {
     const result = []
     const entities = {}
     const whereConditions = []
@@ -77,7 +100,7 @@ class Rooms {
       data: string
       password?: string | null
       dateCreated: string | number
-      prefs?: any
+      prefs?: IRoomPrefs
       hasPassword?: boolean
       qrPassword?: string | null
     }>(String(query), query.parameters)
@@ -197,7 +220,7 @@ class Rooms {
     }: {
       isOpen?: boolean
       validatePassword?: boolean
-      role?: any
+      role?: string
     } = {},
   ): Promise<boolean> {
     const res = Rooms.get(roomId, { includePassword: true })
@@ -255,7 +278,7 @@ class Rooms {
   /**
    * Utility method to list active rooms on a socket.io instance
    */
-  static getActive (io: any): { room: string, roomId: number }[] {
+  static getActive (io: Server): { room: string, roomId: number }[] {
     const rooms = []
 
     for (const room of io.sockets.adapter.rooms.keys()) {
@@ -272,9 +295,10 @@ class Rooms {
   /**
    * Utility method to determine if a player is in a room
    */
-  static isPlayerPresent (io: any, roomId: number): boolean {
+  static isPlayerPresent (io: Server, roomId: number): boolean {
     for (const sock of io.of('/').sockets.values()) {
-      if (sock.user && sock.user.roomId === roomId && sock._lastPlayerStatus) {
+      const s = sock as AppSocket
+      if (s.user && s.user.roomId === roomId && s._lastPlayerStatus) {
         return true
       }
     }
@@ -285,9 +309,10 @@ class Rooms {
   /**
    * Utility method to determine if a user is currently in a room
    */
-  static isUserPresent (io: any, roomId: number, userId: number): boolean {
+  static isUserPresent (io: Server, roomId: number, userId: number): boolean {
     for (const sock of io.of('/').sockets.values()) {
-      if (sock.user && sock.user.roomId === roomId && sock.user.userId === userId) {
+      const s = sock as AppSocket
+      if (s.user && s.user.roomId === roomId && s.user.userId === userId) {
         return true
       }
     }

@@ -19,7 +19,9 @@ export function getMoveAnchor (queue: QueueView, statusQueueId: number, userId: 
   let lastPlayed = anchor
 
   for (let i = queue.result.indexOf(anchor); i >= 0; i--) {
-    if (queue.entities[queue.result[i]].userId === userId) {
+    const item = queue.entities[queue.result[i]]
+    // optimistic items carry no userId; dangling ids are skipped
+    if (item && 'userId' in item && item.userId === userId) {
       lastPlayed = queue.result[i]
       break
     }

@@ -98,7 +98,7 @@ export const fetchGainStatus = createAsyncThunk(
 // ------------------------------------
 // Reducer
 // ------------------------------------
-interface PrefsState {
+export interface PrefsState {
   isFirstRun?: boolean
   isScanning: boolean
   paths: {

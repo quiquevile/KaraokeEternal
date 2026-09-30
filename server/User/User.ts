@@ -82,6 +82,13 @@ class User {
     name,
     image,
     permissions,
+  }: {
+    username?: string
+    newPassword?: string
+    newPasswordConfirm?: string
+    name?: string
+    image?: Buffer
+    permissions?: unknown
   }, role = 'standard') {
     username = username?.trim()
     name = name?.trim()
@@ -179,7 +186,7 @@ class User {
     return res.lastID
   }
 
-  static async validate ({ username, password }) {
+  static async validate ({ username, password }: { username?: string, password?: string }) {
     if (!username || !password) {
       throw new Error('Username/email and password are required')
     }

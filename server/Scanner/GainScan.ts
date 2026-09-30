@@ -1,5 +1,5 @@
 import path from 'node:path'
-import throttle, { type ThrottledFunction } from '@jcoreio/async-throttle'
+import throttle from '@jcoreio/async-throttle'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import { measureLoudness, readTagGain } from '../lib/loudness.js'
@@ -23,7 +23,7 @@ let skipped = 0
 let total = 0
 let lastPct = 0
 let lastText: string | null = null
-let emit: ThrottledFunction<[object], void> | null = null
+let emit: ReturnType<typeof throttle> | null = null
 
 export interface GainStatus {
   active: boolean

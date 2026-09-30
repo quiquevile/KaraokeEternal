@@ -13,7 +13,7 @@ class Logger {
 
     for (const transport in cfg) {
       for (const key in cfg[transport]) {
-        if (key === 'level') log.transports[transport].level = LEVELS[cfg[transport].level] as any
+        if (key === 'level') log.transports[transport].level = LEVELS[cfg[transport].level] as typeof log.transports.console.level
         else log.transports[transport][key] = cfg[transport][key]
       }
     }

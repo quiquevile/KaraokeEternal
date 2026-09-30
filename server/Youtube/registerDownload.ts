@@ -10,6 +10,7 @@ import getLogger from '../lib/Log.js'
 import { measureLoudness, readTagGain } from '../lib/loudness.js'
 import { getErrorMessage } from '../lib/util.js'
 import type { DownloadJob } from './downloadManager.js'
+import type { Server } from 'socket.io'
 
 const log = getLogger('YoutubeRegister')
 
@@ -62,7 +63,7 @@ function getDuration (filePath: string): Promise<number> {
  * artist+song and inserts the media row, mirroring what FileScanner does on
  * a rescan so the entry behaves identically to scanned files.
  */
-export default async function registerDownload (options: { job: DownloadJob, io: unknown }): Promise<void> {
+export default async function registerDownload (options: { job: DownloadJob, io: Server }): Promise<void> {
   const { job, io } = options
 
   const filePath = await findDownloadedFile(job.destDir, job.baseName)

@@ -47,6 +47,11 @@ vi.mock('../lib/loudness.js', async importOriginal => ({
 import { execFile } from 'child_process'
 import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
+import type { MediaRow } from '../Media/Media.js'
+import type { Server } from 'socket.io'
+
+// registerDownload only probes presence/pushes, so an empty stand-in works
+const mockIo = {} as unknown as Server
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
@@ -111,7 +116,7 @@ describe('registerDownload', () => {
   })
 
   it('matches the song, probes duration and registers the media', async () => {
-    const io = {}
+    const io = mockIo
 
     await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io })
 
@@ -137,7 +142,7 @@ describe('registerDownload', () => {
       return undefined as never
     }) as unknown as typeof execFile)
 
-    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
+    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: mockIo })
 
     expect(Media.add).toHaveBeenCalledWith(expect.objectContaining({ duration: 0 }))
   })
@@ -153,7 +158,7 @@ describe('registerDownload', () => {
       return undefined as never
     }) as unknown as typeof execFile)
 
-    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
+    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: mockIo })
 
     expect(Media.add).toHaveBeenCalledWith(expect.objectContaining({
       rgTrackGain: 2.4,
@@ -164,7 +169,7 @@ describe('registerDownload', () => {
   it('uses file tags instead of measuring when present', async () => {
     readTagGainMock.mockResolvedValue({ gainDb: -4, peakRatio: 0.9 })
 
-    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: {} })
+    await registerDownload({ job: { ...job, destDir: dir, pathRoot: dir }, io: mockIo })
 
     expect(Media.add).toHaveBeenCalledWith(expect.objectContaining({
       rgTrackGain: -4,
@@ -176,7 +181,7 @@ describe('registerDownload', () => {
   it('throws when the downloaded file is missing', async () => {
     await expect(registerDownload({
       job: { ...job, destDir: dir, pathRoot: dir, baseName: 'Nobody - Nothing' },
-      io: {},
+      io: mockIo,
     })).rejects.toThrow('could not locate downloaded file')
     expect(Media.add).not.toHaveBeenCalled()
   })
@@ -184,18 +189,18 @@ describe('registerDownload', () => {
   it('throws without registering when the file is already registered', async () => {
     vi.mocked(Media.search).mockReturnValue({
       result: [10],
-      entities: { 10: { mediaId: 10 } },
+      entities: { 10: { mediaId: 10 } as unknown as MediaRow },
     })
 
     await expect(registerDownload({
       job: { ...job, destDir: dir, pathRoot: dir },
-      io: {},
+      io: mockIo,
     })).rejects.toThrow('already registered')
     expect(Media.add).not.toHaveBeenCalled()
   })
 
   it('queues the download for a present user on success', async () => {
-    const io = {}
+    const io = mockIo
 
     await registerDownload({
       job: { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 },
@@ -211,7 +216,7 @@ describe('registerDownload', () => {
 
     await registerDownload({
       job: { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 },
-      io: {},
+      io: mockIo,
     })
 
     expect(Media.add).toHaveBeenCalled()
@@ -222,7 +227,7 @@ describe('registerDownload', () => {
     vi.mocked(Rooms.validate).mockRejectedValueOnce(new Error('Room is no longer open'))
 
     const downloading = { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 }
-    await registerDownload({ job: downloading, io: {} })
+    await registerDownload({ job: downloading, io: mockIo })
 
     expect(Media.add).toHaveBeenCalled()
     expect(Queue.add).not.toHaveBeenCalled()
@@ -233,7 +238,7 @@ describe('registerDownload', () => {
     vi.mocked(Rooms.isUserPresent).mockReturnValueOnce(false)
 
     const downloading = { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 }
-    await registerDownload({ job: downloading, io: {} })
+    await registerDownload({ job: downloading, io: mockIo })
 
     expect(Media.add).toHaveBeenCalled()
     expect(downloading.error).toBe('User not in room')
@@ -246,7 +251,7 @@ describe('registerDownload', () => {
 
     await registerDownload({
       job: { ...job, destDir: dir, pathRoot: dir, queueUserId: 7, queueRoomId: 3 },
-      io: {},
+      io: mockIo,
     })
 
     expect(Media.add).toHaveBeenCalled()

@@ -143,7 +143,7 @@ function startScanner (pathIds) {
       // resume gain measurement paused for this scan, if any
       resumeGainScan()
 
-      ;(process as any).emit(SCANNER_WORKER_EXITED, { signal, code })
+      ;(process.emit as (event: string, payload: unknown) => boolean)(SCANNER_WORKER_EXITED, { signal, code })
       log.info(`Media scanner process exited (${signal || code})`)
     })
 

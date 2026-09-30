@@ -10,19 +10,22 @@ import getCdgName from '../../lib/getCdgName.js'
 import Media from '../../Media/Media.js'
 import MetaParser from '../MetaParser/MetaParser.js'
 import Scanner from '../Scanner.js'
-import IPC from '../../lib/IPCBridge.js'
+import IPC, { IPCChild } from '../../lib/IPCBridge.js'
 import fileTypes from '../../Media/fileTypes.js'
 import { LIBRARY_MATCH_SONG, MEDIA_ADD, MEDIA_REMOVE, MEDIA_UPDATE } from '../../../shared/actionTypes.js'
 const log = getLogger('FileScanner')
+
+// FileScanner always runs in the child process, where IPC is IPCChild
+const childIpc = IPC as typeof IPCChild
 
 const audioExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].mimeType.startsWith('audio/'))
 const searchExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].scan !== false)
 
 class FileScanner extends Scanner {
-  paths: any
-  parser: any
+  paths: { result: number[], entities: Record<number, { pathId: number, path: string, priority: number }> }
+  parser: ReturnType<typeof MetaParser>
 
-  constructor (prefs, qStats) {
+  constructor (prefs: { paths: FileScanner['paths'] }, qStats: { length: number }) {
     super(qStats)
     this.paths = prefs.paths
   }
@@ -138,9 +141,17 @@ class FileScanner extends Scanner {
     })
 
     // get artistId and songId
-    const match = await (IPC as any).req({ type: LIBRARY_MATCH_SONG, payload: parsed })
+    const match = (await childIpc.req({ type: LIBRARY_MATCH_SONG, payload: parsed })) as { songId: number, artistId: number }
 
-    const media = {
+    const media: {
+      songId: number
+      pathId: number
+      relPath: string
+      duration: number
+      rgTrackGain: number | null
+      rgTrackPeak: number | null
+      dateAdded?: number
+    } = {
       songId: match.songId,
       pathId,
       // normalize relPath to forward slashes with no leading slash
@@ -168,15 +179,15 @@ class FileScanner extends Scanner {
     }
 
     if (row) {
-      const diff = {}
+      const diff: Record<string, unknown> = {}
 
       // did anything change?
       Object.keys(media).forEach((key) => {
-        if (media[key] !== row[key]) diff[key] = media[key]
+        if ((media as Record<string, unknown>)[key] !== row[key]) diff[key] = (media as Record<string, unknown>)[key]
       })
 
       if (Object.keys(diff).length) {
-        await (IPC as any).req({
+        await childIpc.req({
           type: MEDIA_UPDATE,
           payload: {
             mediaId: row.mediaId,
@@ -194,11 +205,11 @@ class FileScanner extends Scanner {
     } // end if
 
     // new media
-    ;(media as any).dateAdded = Math.round(new Date().getTime() / 1000) // seconds
+    media.dateAdded = Math.round(new Date().getTime() / 1000) // seconds
     log.info('  => new: %s', JSON.stringify(match))
 
     return {
-      mediaId: await (IPC as any).req({ type: MEDIA_ADD, payload: media }),
+      mediaId: (await childIpc.req({ type: MEDIA_ADD, payload: media })) as number,
       isNew: true,
     }
   }
@@ -208,7 +219,7 @@ class FileScanner extends Scanner {
     const invalid = res.result.filter(mediaId => !validMediaIds.includes(mediaId))
 
     if (invalid.length) {
-      await (IPC as any).req({ type: MEDIA_REMOVE, payload: invalid })
+      await childIpc.req({ type: MEDIA_REMOVE, payload: invalid })
     }
 
     return invalid.length

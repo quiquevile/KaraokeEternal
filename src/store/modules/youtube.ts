@@ -173,7 +173,7 @@ export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
 // ------------------------------------
 // Reducer
 // ------------------------------------
-interface YouTubeState {
+export interface YouTubeState {
   downloads: DownloadReport | null
   downloadUsers: Array<{ userId: number, username: string, name: string }>
   error: string | null

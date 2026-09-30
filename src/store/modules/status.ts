@@ -48,7 +48,7 @@ export const requestOptions = createAction(PLAYER_REQ_OPTIONS, (opts: PlaybackOp
 // ------------------------------------
 // Reducer
 // ------------------------------------
-interface StatusState {
+export interface StatusState {
   cdgAlpha: number
   cdgSize: number
   eqEnabled: boolean
@@ -60,6 +60,7 @@ interface StatusState {
   isErrored: boolean
   isPlayerPresent: boolean
   isPlaying: boolean
+  isReplayGainEnabled: boolean
   isVideoKeyingEnabled: boolean
   isWebGLSupported: boolean
   mediaType: MediaType | null
@@ -85,6 +86,7 @@ const initialState: StatusState = {
   isErrored: false,
   isPlayerPresent: false,
   isPlaying: false,
+  isReplayGainEnabled: true,
   isVideoKeyingEnabled: false,
   isWebGLSupported: false,
   mediaType: null,

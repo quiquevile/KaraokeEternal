@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
-import reducer, { clearYoutubeResults, fetchDownloadUsers, searchYoutubeVideos } from './youtube'
+import reducer, { clearYoutubeResults, fetchDownloadUsers, searchYoutubeVideos, type YouTubeResult } from './youtube'
+
+const fullResult = (id: string): YouTubeResult => ({
+  artist: 'ABBA',
+  duration: 200,
+  durationLabel: '3:20',
+  id,
+  thumbnail: 'http://localhost/t.jpg',
+  title: 'Dancing Queen',
+  url: `http://localhost/watch?v=${id}`,
+})
 
 const users = [
   { userId: 1, username: 'admin', name: 'Admin' },
@@ -66,7 +76,7 @@ describe('hasSearched', () => {
 
     store.dispatch(searchYoutubeVideos.pending('req1', 'abba'))
     store.dispatch(clearYoutubeResults())
-    store.dispatch(searchYoutubeVideos.fulfilled([{ id: 'x' }], 'req1', 'abba'))
+    store.dispatch(searchYoutubeVideos.fulfilled([fullResult('x')], 'req1', 'abba'))
 
     expect(store.getState().youtube.results).toEqual([])
     expect(store.getState().youtube.hasSearched).toBe(false)
@@ -78,7 +88,7 @@ describe('hasSearched', () => {
 
     store.dispatch(searchYoutubeVideos.pending('req1', 'abba'))
     store.dispatch(searchYoutubeVideos.pending('req2', 'queen'))
-    store.dispatch(searchYoutubeVideos.fulfilled([{ id: 'x' }], 'req1', 'abba'))
+    store.dispatch(searchYoutubeVideos.fulfilled([fullResult('x')], 'req1', 'abba'))
 
     expect(store.getState().youtube.results).toEqual([])
     expect(store.getState().youtube.hasSearched).toBe(false)

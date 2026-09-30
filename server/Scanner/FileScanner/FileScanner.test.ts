@@ -36,10 +36,10 @@ const FILE = '/media/song.mp4'
 
 function makeScanner () {
   const scanner = new FileScanner(
-    { paths: { entities: { 1: { path: '/media' } } } },
+    { paths: { result: [1], entities: { 1: { pathId: 1, path: '/media', priority: 0 } } } },
     { length: 1 },
   )
-  scanner.parser = () => ({ artist: 'Artist', title: 'Title' })
+  scanner.parser = () => ({ artist: 'Artist', artistNorm: 'Artist', title: 'Title', titleNorm: 'Title' })
 
   return scanner
 }

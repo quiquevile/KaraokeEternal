@@ -63,12 +63,14 @@ export function handleListRooms (ctx: RouterContext): void {
       // only pass the 'roles' prefs key — plus 'qr', 'eq' and the reversible
       // key for the user's own room (members already know it: they typed it
       // and it travels in the QR; the player needs its persisted eq back)
+      // non-admin entities carry partial prefs by design (qr/eq only for
+      // the own room); the cast reflects the view boundary, not the table
       const prefs = res.entities[roomId].prefs
       res.entities[roomId].prefs = {
         ...(prefs?.roles ? { roles: prefs.roles } : {}),
         ...(roomId === ownRoomId && prefs?.qr ? { qr: prefs.qr } : {}),
         ...(roomId === ownRoomId && prefs?.eq ? { eq: prefs.eq } : {}),
-      }
+      } as typeof prefs
 
       if (roomId !== ownRoomId) delete res.entities[roomId].qrPassword
     }

@@ -142,7 +142,7 @@ export function measureLoudness (
       if (err) {
         if ((err as Error & { code?: unknown }).code === 'ABORT_ERR') {
           log.debug('loudness measurement of %s aborted', filePath)
-        } else if ((err as NodeJS.ErrnoException).killed) {
+        } else if ((err as Error & { killed?: unknown }).killed) {
           log.warn('timed out measuring loudness of %s', filePath)
         } else {
           log.debug('could not measure loudness of %s: %s', filePath, err.message)

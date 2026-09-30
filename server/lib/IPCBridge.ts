@@ -5,7 +5,7 @@ const log = getLogger('IPCBridge')
 const PROCESS_NAME = process.env.KES_CHILD_PROCESS || 'main'
 const isParent = typeof process.env.KES_CHILD_PROCESS === 'undefined' // @todo
 
-class IPCParent {
+export class IPCParent {
   static children = new Map()
   static handlers = {}
 
@@ -89,7 +89,7 @@ class IPCParent {
   }
 }
 
-class IPCChild {
+export class IPCChild {
   static handlers = {}
   static requests = {}
   static reqId = 0

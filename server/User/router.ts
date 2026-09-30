@@ -26,8 +26,22 @@ interface File {
 }
 
 interface RequestWithBody {
-  body: Record<string, any>
+  body: Record<string, unknown>
   files?: Record<string, File | File[]>
+}
+
+// JSON body shape sent by the client (koa-body); unknown fields ignored
+interface UserBody {
+  username?: string
+  password?: string
+  newPassword?: string
+  newPasswordConfirm?: string
+  name?: string
+  image?: string | null
+  role?: string
+  roomId?: string
+  roomPassword?: string
+  permissions?: Record<string, boolean>
 }
 
 const router = new KoaRouter({ prefix: '/api' })
@@ -67,14 +81,15 @@ const createUserCtx = (user, roomId) => {
 // login
 export async function handleLogin (ctx: RouterContext): Promise<void> {
   const req = ctx.request as unknown as RequestWithBody
-  const roomId = parseInt(req.body.roomId, 10) || null
+  const body = req.body as UserBody
+  const roomId = parseInt(body.roomId ?? '', 10) || null
   let user
 
   try {
-    user = await User.validate(req.body as any)
+    user = await User.validate(body as { username: string, password: string })
 
     if (roomId) {
-      await Rooms.validate(roomId, req.body.roomPassword, {
+      await Rooms.validate(roomId, body.roomPassword, {
         isOpen: user.role !== 'admin', // admins can sign in to closed rooms
         // admins can also skip the room password with their own password
         validatePassword: user.role !== 'admin',
@@ -87,7 +102,7 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
   }
 
   if (crypto.isLegacy(user.password)) {
-    const newHash = await crypto.hash(req.body.password)
+    const newHash = await crypto.hash(body.password as string)
     const query = sql`
       UPDATE users
       SET password = ${newHash}, dateUpdated = ${Math.floor(Date.now() / 1000)}
@@ -257,8 +272,9 @@ router.put('/user/:userId', async (ctx) => {
   }
 
   const req = ctx.request as unknown as RequestWithBody
-  let { name, username } = req.body
-  const { password, newPassword, newPasswordConfirm } = req.body
+  const body = req.body as UserBody
+  let { name, username } = body
+  const { password, newPassword, newPasswordConfirm } = body
 
   // validate current password if updating own account
   if (targetId === user.userId && !ctx.user.isGuest) {
@@ -325,29 +341,29 @@ router.put('/user/:userId', async (ctx) => {
 
     fields.set('image', await readFile(imageFile.filepath))
     await deleteFile(imageFile.filepath)
-  } else if (req.body.image === 'null') {
+  } else if (body.image === 'null') {
     fields.set('image', null)
   }
 
   // changing role?
-  if (req.body.role) {
+  if (typeof body.role === 'string' && body.role) {
     // @todo since we're not ensuring there'd be at least one admin
     // remaining, changing one's own role is currently disallowed
     if (user.role !== 'admin' || targetId === user.userId) {
       ctx.throw(403)
     }
 
-    fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${req.body.role})`)
+    fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${body.role})`)
   }
 
   // changing permissions? (admins only, and never one's own: admins
   // bypass permission checks anyway)
-  if (req.body.permissions) {
+  if (body.permissions) {
     if (user.role !== 'admin' || targetId === user.userId) {
       ctx.throw(403)
     }
 
-    const perms = parsePermissions(req.body.permissions)
+    const perms = parsePermissions(body.permissions)
 
     if (perms) {
       fields.set('permissions', JSON.stringify(perms))
@@ -420,6 +436,7 @@ router.put('/user/:userId', async (ctx) => {
 // create account
 router.post('/user', async (ctx) => {
   const req = ctx.request as unknown as RequestWithBody
+  const body = req.body as UserBody
   let image
 
   if (!ctx.user.isAdmin) {
@@ -429,16 +446,16 @@ router.post('/user', async (ctx) => {
     }
 
     // only possible roles; further validated per-room below
-    if (!['guest', 'standard'].includes(req.body.role)) {
+    if (typeof body.role !== 'string' || !['guest', 'standard'].includes(body.role)) {
       ctx.throw(401, 'Invalid role')
     }
 
     // new users must choose a room at the same time
     try {
       await Rooms.validate(
-        req.body.roomId,
-        req.body.roomPassword,
-        { role: req.body.role },
+        parseInt(body.roomId ?? '', 10),
+        body.roomPassword,
+        { role: body.role },
       )
     } catch (err) {
       ctx.throw(401, err.message)
@@ -459,7 +476,7 @@ router.post('/user', async (ctx) => {
 
   // create user (only admins may preset permissions)
   try {
-    const userId = await User.create({ ...req.body, permissions: ctx.user.isAdmin ? req.body.permissions : undefined, image } as any, req.body.role)
+    const userId = await User.create({ ...body, permissions: ctx.user.isAdmin ? body.permissions : undefined, image }, body.role)
 
     // if admin creating another user, we're done
     if (ctx.user.isAdmin) {
@@ -474,7 +491,7 @@ router.post('/user', async (ctx) => {
       throw new Error('User not found')
     }
 
-    const userCtx = createUserCtx(user, req.body.roomId || null)
+    const userCtx = createUserCtx(user, body.roomId || null)
 
     // create JWT
     const token = jwtSign(userCtx, ctx.jwtKey)
@@ -493,7 +510,7 @@ router.post('/user', async (ctx) => {
 
 // first-time setup
 router.post('/setup', async (ctx) => {
-  const prefs: any = Prefs.get()
+  const prefs = Prefs.get() as Record<string, unknown>
   let image
 
   // must be first run
@@ -504,7 +521,7 @@ router.post('/setup', async (ctx) => {
   try {
     // create admin user
     const req = ctx.request as unknown as RequestWithBody
-    const userId = await User.create({ ...req.body, image } as any, 'admin')
+    const userId = await User.create({ ...req.body as UserBody, image }, 'admin')
     const user = User.getById(userId, true)
 
     if (!user) {

@@ -39,7 +39,8 @@ class Queue {
    */
   static get (roomId: number): { result: number[], entities: Record<number, QueueItem> } {
     const result: number[] = []
-    const entities: Record<number, any> = {}
+    // wire-only extras (relPath/pathData/...) are stripped below
+    const entities: Record<number, QueueItem & { relPath?: string, pathData?: string, isPreferred?: number, pathId?: number }> = {}
     const map = new Map()
     const pathData = new Map()
     let curQueueId = null
@@ -81,9 +82,11 @@ class Queue {
 
       const pathPrefs = pathData.get(row.pathId)?.prefs
 
-      entities[row.queueId] = row
-      entities[row.queueId].mediaType = this.getType(row.relPath)
-      entities[row.queueId].isVideoKeyingEnabled = !!pathPrefs?.isVideoKeyingEnabled
+      entities[row.queueId] = {
+        ...row,
+        mediaType: this.getType(row.relPath),
+        isVideoKeyingEnabled: !!pathPrefs?.isVideoKeyingEnabled,
+      }
 
       // don't send over the wire
       delete entities[row.queueId].relPath
@@ -236,7 +239,7 @@ class Queue {
   /**
    * Get media type from file extension
    */
-  static getType (file: string): string {
+  static getType (file: string): 'cdg' | 'mp4' {
     return /\.mp4/i.test(path.extname(file)) ? 'mp4' : 'cdg'
   }
 }

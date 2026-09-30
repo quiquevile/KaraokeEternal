@@ -60,6 +60,7 @@ vi.mock('../Rooms/Rooms.js', () => ({
 
 import router from './router.js'
 import Media from '../Media/Media.js'
+import type { MediaRow } from '../Media/Media.js'
 import Prefs from '../Prefs/Prefs.js'
 import Library from '../Library/Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
@@ -73,6 +74,12 @@ const mockSong = {
 const mockPrefs = {
   paths: { entities: { 1: { path: '/audio' } } },
 } as unknown as ReturnType<typeof Prefs.get>
+
+// partial rows are fine for handler tests (only the accessed fields matter)
+const mockSearchResult = (row: object) => ({
+  result: [123],
+  entities: { 123: row as MediaRow },
+})
 
 const makeCtx = (user: object) => ({
   method: 'GET',
@@ -139,20 +146,14 @@ describe('Media media streaming permissions', () => {
   })
 
   it('rejects unknown MIME types with 404', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { pathId: 1, relPath: 'file.unknown' } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'file.unknown' }))
     const ctx = makeCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
   })
 
   it('streams the audio entry of a zip archive', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'archive.zip' }))
     vi.mocked(unzip).mockResolvedValue({
       entries: {
         'track.mp3': { size: 100, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer },
@@ -166,10 +167,7 @@ describe('Media media streaming permissions', () => {
   })
 
   it('streams the cdg sidecar of a zip archive', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'archive.zip' }))
     vi.mocked(unzip).mockResolvedValue({
       entries: {
         'track.mp3': { size: 100, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer },
@@ -183,10 +181,7 @@ describe('Media media streaming permissions', () => {
   })
 
   it('rejects zips without a valid audio entry with 404', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { pathId: 1, relPath: 'archive.zip' } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'archive.zip' }))
     vi.mocked(unzip).mockResolvedValue({ entries: { 'notes.txt': {} } } as unknown as Awaited<ReturnType<typeof unzip>>)
     const ctx = makeCtx({ isAdmin: true })
 
@@ -194,10 +189,7 @@ describe('Media media streaming permissions', () => {
   })
 
   it('rejects missing cdg sidecars with 404', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { pathId: 1, relPath: 'definitely-not-on-disk.mp3' } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'definitely-not-on-disk.mp3' }))
     const ctx = { ...makeCtx({ isAdmin: true }), query: { type: 'cdg' } }
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 404 })
@@ -307,10 +299,7 @@ describe('Media loudness gain', () => {
   })
 
   it('updates the gain rescaling the peak (admin)', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { mediaId: 123, rgTrackGain: 0, rgTrackPeak: 0.5 } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ mediaId: 123, rgTrackGain: 0, rgTrackPeak: 0.5 }))
     const ctx = gainCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
@@ -352,10 +341,7 @@ describe('Media loudness gain', () => {
   })
 
   it('clears gain and peak on null (re-measured on next scan)', async () => {
-    vi.mocked(Media.search).mockReturnValue({
-      result: [123],
-      entities: { 123: { mediaId: 123, rgTrackGain: 2.5, rgTrackPeak: 0.5 } },
-    })
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ mediaId: 123, rgTrackGain: 2.5, rgTrackPeak: 0.5 }))
     const ctx = gainCtx({ isAdmin: true }, { rgTrackGain: null })
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()

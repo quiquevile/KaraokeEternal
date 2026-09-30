@@ -15,6 +15,11 @@ const RoomOptions = () => {
   const roomHasPassword = useAppSelector(state =>
     (typeof roomId === 'number' ? state.rooms.entities[roomId]?.hasPassword : false) ?? false,
   )
+  // QR invites joining: the whole section hides while closed, for
+  // everyone (admins included)
+  const isRoomOpen = useAppSelector(state =>
+    (typeof roomId === 'number' ? state.rooms.entities[roomId]?.status : undefined) === 'open',
+  )
   const dispatch = useAppDispatch()
 
   const [prefs, setPrefs] = useState<IRoomPrefs>(roomPrefs ?? {} as IRoomPrefs)
@@ -33,6 +38,7 @@ const RoomOptions = () => {
   }, [dispatch])
 
   if (typeof roomId !== 'number') return null
+  if (!isRoomOpen) return null
 
   const handleChange = (next: Partial<IRoomPrefs>) => {
     setPrefs(next as IRoomPrefs)

@@ -185,6 +185,7 @@ const DisplayCtrl = ({
         <RoomOptions />
 
         <Accordion
+          initialExpanded
           headingComponent={(
             <div className={styles.heading}>
               <Icon icon='VOLUME_UP' />

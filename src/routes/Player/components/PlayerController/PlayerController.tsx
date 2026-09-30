@@ -24,6 +24,12 @@ const PlayerController = (props: PlayerControllerProps) => {
       ? state.rooms.entities[state.user.roomId]?.qrPassword
       : undefined) ?? null,
   )
+  // QR invites joining: pointless (and misleading) while closed
+  const isRoomOpen = useAppSelector(state =>
+    typeof state.user.roomId === 'number'
+      ? state.rooms.entities[state.user.roomId]?.status === 'open'
+      : false,
+  )
   const queueItem = queue.entities[player.queueId]
   // current item deleted (e.g. its song was removed from the library)?
   // fall back to the first unplayed item, as it is the next song to play
@@ -224,7 +230,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         width={props.width}
         height={props.height}
       />
-      {roomPrefs?.qr?.isEnabled && (
+      {roomPrefs?.qr?.isEnabled && isRoomOpen && (
         <PlayerQR
           height={props.height}
           prefs={roomPrefs.qr}

@@ -1,6 +1,19 @@
-import { describe, expect, it } from 'vitest'
-import { LOGOUT } from 'shared/actionTypes.js'
-import reducer, { fetchGainStatus } from './prefs'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { configureStore } from '@reduxjs/toolkit'
+import { LOGOUT, PREFS_PUSH } from 'shared/actionTypes.js'
+import reducer, { fetchGainStatus, saveEqPreset } from './prefs'
+
+const gains = [5, 4, 3, 2, 1, 0, 0, 1, 2, 3]
+
+const makeStore = () => configureStore({ reducer: { prefs: reducer } })
+
+beforeEach(() => {
+  vi.stubGlobal('document', { baseURI: 'http://localhost/' })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const activeStatus = {
   active: true,
@@ -43,5 +56,44 @@ describe('prefs gain status', () => {
       scannerText: '',
       scannerJob: null,
     })
+  })
+})
+
+describe('prefs eq presets', () => {
+  it('merges broadcast slots from other windows', () => {
+    const store = makeStore()
+
+    store.dispatch({ type: PREFS_PUSH, payload: { eqPresets: { P1: gains } } })
+
+    expect(store.getState().prefs.eqPresets).toEqual({ P1: gains })
+  })
+
+  it('persists a slot through the thunk', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: async (): Promise<unknown> => ({ P1: gains }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const store = makeStore()
+
+    const action = await store.dispatch(saveEqPreset({ name: 'P1', gains }))
+
+    expect(saveEqPreset.fulfilled.match(action)).toBe(true)
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/prefs/eq-presets'),
+      expect.objectContaining({ method: 'PUT' }),
+    )
+    expect(store.getState().prefs.eqPresets).toEqual({ P1: gains })
+  })
+
+  it('leaves stored slots alone when saving fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('boom')))
+    const store = makeStore()
+
+    const action = await store.dispatch(saveEqPreset({ name: 'P1', gains }))
+
+    expect(saveEqPreset.rejected.match(action)).toBe(true)
+    expect(store.getState().prefs.eqPresets).toBeUndefined()
   })
 })

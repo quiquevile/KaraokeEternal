@@ -65,9 +65,12 @@ const EqualizerDialog = ({
   }
 
   const handleSaveCustom = (name: EqPresetSlot) => {
-    dispatch(saveEqPreset({ name, gains: eqGains.slice() }))
-    // mark the slot live (dialog stays open)
-    onRequestOptions({ eqPreset: name })
+    // mark the slot live only once it is really stored (dialog stays open)
+    dispatch(saveEqPreset({ name, gains: eqGains.slice() })).then((action) => {
+      if (saveEqPreset.fulfilled.match(action)) {
+        onRequestOptions({ eqPreset: name })
+      }
+    })
   }
 
   // persist the live values shown above to the room; closing via the

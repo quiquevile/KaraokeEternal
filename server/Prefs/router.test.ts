@@ -156,6 +156,18 @@ describe('handleSaveEqPreset', () => {
     expect(ctx.body).toEqual({ P1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], P2: gains })
   })
 
+  it('broadcasts the merged presets to every client', async () => {
+    storedPrefs()
+    const ctx = makeCtx({ user: saver, request: { body: { name: 'P1', gains } } })
+
+    await handleSaveEqPreset(ctx)
+
+    expect(ctx.io.emit).toHaveBeenCalledWith('action', {
+      type: 'prefs/PREFS_PUSH',
+      payload: { eqPresets: { P1: gains } },
+    })
+  })
+
   it('lets admins save without the permission', async () => {
     const setSpy = storedPrefs()
     const ctx = makeCtx({ request: { body: { name: 'P1', gains } } })

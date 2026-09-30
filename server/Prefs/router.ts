@@ -11,6 +11,7 @@ import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Sca
 import { parseIdParam, requireAdmin } from '../lib/http.js'
 import { canSaveEqPresets } from '../lib/permissions.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
+import { PREFS_PUSH } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
 
 export interface RouterContext {
@@ -77,6 +78,13 @@ export async function handleSaveEqPreset (ctx: RouterContext): Promise<void> {
   const current = ((Prefs.get() as unknown as Record<string, unknown>).eqPresets ?? {}) as Record<string, number[]>
   const next = { ...current, [name as string]: gains as number[] }
   Prefs.set('eqPresets', next)
+
+  // global slots are shared live: every connected client (including open
+  // equalizer dialogs) recalls the fresh values without refetching
+  ctx.io.emit('action', {
+    type: PREFS_PUSH,
+    payload: { eqPresets: next },
+  })
 
   ctx.body = next
 }

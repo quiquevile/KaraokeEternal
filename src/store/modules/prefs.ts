@@ -95,6 +95,21 @@ export const fetchGainStatus = createAsyncThunk(
   async () => await api.get('/gain/status') as GainStatus,
 )
 
+export type EqPresetSlot = 'P1' | 'P2' | 'P3'
+
+// persist one global EQ preset slot (admins or holders of the nested
+// permission); the response carries the whole merged map
+export const saveEqPreset = createAsyncThunk(
+  'prefs/saveEqPreset',
+  async ({ name, gains }: { name: EqPresetSlot, gains: number[] }, thunkAPI) => {
+    const response = await api.put('/eq-presets', {
+      body: { name, gains },
+    }) as Record<EqPresetSlot, number[]>
+
+    thunkAPI.dispatch(receivePrefs({ eqPresets: response }))
+  },
+)
+
 // ------------------------------------
 // Reducer
 // ------------------------------------
@@ -115,6 +130,7 @@ export interface PrefsState {
   youtubeDownloadPathId?: number
   youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
+  eqPresets?: Partial<Record<EqPresetSlot, number[]>>
 }
 
 const initialState: PrefsState = {

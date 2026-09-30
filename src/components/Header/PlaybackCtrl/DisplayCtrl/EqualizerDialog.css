@@ -18,6 +18,19 @@
   white-space: nowrap;
 }
 
+.saveRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  justify-content: flex-end;
+}
+
+.saveSlots {
+  display: flex;
+  gap: var(--space-xs);
+  margin-right: auto;
+}
+
 .bands {
   display: flex;
   gap: var(--space-m);

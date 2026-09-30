@@ -23,3 +23,7 @@
   gap: var(--space-m);
   padding: var(--space-m) var(--container-padding);
 }
+
+.permsNested {
+  padding-left: var(--space-l);
+}

@@ -9,6 +9,7 @@ import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
 import { parseIdParam, requireAdmin } from '../lib/http.js'
+import { canSaveEqPresets } from '../lib/permissions.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
 
@@ -43,9 +44,44 @@ router.get('/', (ctx) => {
     return
   }
 
-  // non-admins only get roles
-  ctx.body = { roles: prefs.roles }
+  // non-admins only get roles (+ global EQ presets, which any playback
+  // controller may recall)
+  const eqPresets = (prefs as unknown as Record<string, unknown>).eqPresets ?? null
+  ctx.body = { roles: prefs.roles, eqPresets }
 })
+
+// number of equalizer bands (mirrors EQ_FREQUENCIES in
+// src/routes/Player/lib/equalizer.ts, not importable here)
+const EQ_BAND_COUNT = 10
+
+const EQ_PRESET_SLOTS = ['P1', 'P2', 'P3']
+
+// save a global EQ preset slot (admins or holders of the nested permission)
+export async function handleSaveEqPreset (ctx: RouterContext): Promise<void> {
+  if (!ctx.user || !canSaveEqPresets(ctx.user)) ctx.throw(401)
+
+  const body = (ctx.request as unknown as RequestWithBody).body
+  const { name, gains } = body
+
+  if (name !== 'P1' && name !== 'P2' && name !== 'P3') {
+    ctx.throw(422, 'Invalid preset slot')
+  }
+
+  if (!Array.isArray(gains)
+    || gains.length !== EQ_BAND_COUNT
+    || gains.some(g => typeof g !== 'number' || !Number.isFinite(g))
+  ) {
+    ctx.throw(422, 'Invalid preset gains')
+  }
+
+  const current = ((Prefs.get() as unknown as Record<string, unknown>).eqPresets ?? {}) as Record<string, number[]>
+  const next = { ...current, [name as string]: gains as number[] }
+  Prefs.set('eqPresets', next)
+
+  ctx.body = next
+}
+
+router.put('/eq-presets', ctx => handleSaveEqPreset(ctx as unknown as RouterContext))
 
 // add a media path
 router.post('/path', (ctx) => {

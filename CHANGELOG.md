@@ -28,6 +28,7 @@
 - Live pitch control in semitones, replay/restart button, and automatic advance when the playing item disappears
 - VLC-style ten-band equalizer, adjustable per player room
 - Equalizer settings persist per room when saved (Save button); unsaved tweaks stay live-only and are lost on player reload
+- Three global custom EQ slots (P1-P3) any playback controller can recall; saving them needs the new "Can save equalizer presets" permission nested under playback control
 - The QR code (player and display options) is only offered while the room is open; persisted options still apply to closed rooms
 - ReplayGain leveling moved from a global setting to a per-room toggle in the display options (enabled by default)
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP

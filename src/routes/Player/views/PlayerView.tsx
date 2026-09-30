@@ -6,6 +6,7 @@ import playerReducer, { sliceInjectNoOp } from '../modules/player'
 import playerVisualizerReducer from '../modules/playerVisualizer'
 import PlayerController from '../components/PlayerController/PlayerController'
 import { fetchOwnRoom } from 'store/modules/rooms'
+import { fetchPrefs } from 'store/modules/prefs'
 import styles from './PlayerView.css'
 
 const PlayerView = () => {
@@ -21,9 +22,11 @@ const PlayerView = () => {
   }
 
   // once per mount (own room even when closed, so persisted
-  // options like the equalizer survive a closed room)
+  // options like the equalizer survive a closed room; global prefs
+  // carry the shared EQ preset slots)
   useEffect(() => {
     dispatch(fetchOwnRoom())
+    dispatch(fetchPrefs())
   }, [dispatch])
 
   // set page title

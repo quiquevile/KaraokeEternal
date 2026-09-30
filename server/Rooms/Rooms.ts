@@ -9,6 +9,30 @@ const PASSWORD_MIN_LENGTH = 5
 
 export const STATUSES = ['open', 'closed']
 
+// number of equalizer bands (mirrors EQ_FREQUENCIES in
+// src/routes/Player/lib/equalizer.ts, not importable here)
+const EQ_BAND_COUNT = 10
+
+function validateEqPrefs (eq: unknown): void {
+  const { eqEnabled, eqGains, eqPreset } = (eq ?? {}) as Record<string, unknown>
+
+  if (typeof eqEnabled !== 'undefined' && typeof eqEnabled !== 'boolean') {
+    throw new ValidationError('Invalid equalizer prefs')
+  }
+
+  if (typeof eqPreset !== 'undefined' && typeof eqPreset !== 'string') {
+    throw new ValidationError('Invalid equalizer prefs')
+  }
+
+  if (typeof eqGains !== 'undefined' && (
+    !Array.isArray(eqGains)
+    || eqGains.length !== EQ_BAND_COUNT
+    || eqGains.some(g => typeof g !== 'number' || !Number.isFinite(g))
+  )) {
+    throw new ValidationError('Invalid equalizer prefs')
+  }
+}
+
 // Remember which users have been seen in each room
 const roomUsers: Map<number, Set<number>> = new Map()
 
@@ -126,8 +150,8 @@ class Rooms {
   }
 
   /**
-   * Update a room's display options (QR prefs only — never name, status,
-   * password, roles or user prefs). Returns the merged prefs.
+   * Update a room's display options (QR and equalizer prefs only — never
+   * name, status, password, roles or user prefs). Returns the merged prefs.
    */
   static setRoomOptions (roomId: number, { prefs }: { prefs: Record<string, unknown> }): Record<string, unknown> {
     const current = Rooms.get(roomId, { status: STATUSES }).entities[roomId]
@@ -136,10 +160,17 @@ class Rooms {
       throw new NotFoundError(`roomId ${roomId} not found`)
     }
 
+    if (typeof prefs.eq !== 'undefined') {
+      validateEqPrefs(prefs.eq)
+    }
+
     const merged = {
       ...(current.prefs ?? {}),
       ...(prefs?.qr && typeof prefs.qr === 'object'
         ? { qr: { ...(current.prefs?.qr ?? {}), ...(prefs.qr as Record<string, unknown>) } }
+        : {}),
+      ...(prefs?.eq && typeof prefs.eq === 'object'
+        ? { eq: { ...(current.prefs?.eq ?? {}), ...(prefs.eq as Record<string, unknown>) } }
         : {}),
     }
 

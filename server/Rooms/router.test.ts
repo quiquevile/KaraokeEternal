@@ -190,6 +190,7 @@ describe('handleCurrentRoomUpdate', () => {
 describe('handleListRooms', () => {
   const fullPrefs = {
     qr: { isEnabled: true, password: 'secret' },
+    eq: { eqEnabled: true, eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], eqPreset: 'Flat' },
     roles: { 3: { allowNew: false } },
     user: { isGuestAllowed: true },
   }
@@ -213,7 +214,7 @@ describe('handleListRooms', () => {
     handleListRooms(ctx)
 
     const body = ctx.body as { entities: Record<number, { prefs: object }> }
-    expect(body.entities[1].prefs).toEqual({ roles: fullPrefs.roles, qr: fullPrefs.qr })
+    expect(body.entities[1].prefs).toEqual({ roles: fullPrefs.roles, qr: fullPrefs.qr, eq: fullPrefs.eq })
     expect(body.entities[2].prefs).toEqual({ roles: fullPrefs.roles })
   })
 

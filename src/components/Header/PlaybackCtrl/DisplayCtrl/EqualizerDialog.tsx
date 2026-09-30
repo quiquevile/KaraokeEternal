@@ -1,4 +1,6 @@
 import React from 'react'
+import { useAppDispatch } from 'store/hooks'
+import { updateCurrentRoomOptions } from 'store/modules/rooms'
 import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Modal, { ModalProps } from 'components/Modal/Modal'
@@ -43,11 +45,22 @@ const EqualizerDialog = ({
     onRequestOptions({ eqGains: preset.gains.slice(), eqPreset: preset.name })
   }
 
+  const dispatch = useAppDispatch()
+
+  // persist the live values shown above to the room; closing via the
+  // dialog's X keeps them ephemeral (lost on player reload)
+  const handleSave = () => {
+    dispatch(updateCurrentRoomOptions({
+      prefs: { eq: { eqEnabled, eqGains: eqGains.slice(), eqPreset } },
+    }))
+    onClose()
+  }
+
   return (
     <Modal
       onClose={onClose}
       title='Equalizer'
-      buttons={<Button variant='primary' onClick={onClose}>Done</Button>}
+      buttons={<Button variant='primary' onClick={handleSave}>Save</Button>}
     >
       <div className={styles.container}>
         <InputCheckbox

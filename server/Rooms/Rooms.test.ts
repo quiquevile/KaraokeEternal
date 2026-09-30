@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { open, close, db } from '../lib/Database.js'
 import Rooms from './Rooms.js'
-import { NotFoundError } from '../lib/Errors.js'
+import { NotFoundError, ValidationError } from '../lib/Errors.js'
 
 let dir: string
 
@@ -44,6 +44,41 @@ describe('Rooms.setRoomOptions', () => {
 
   it('throws NotFoundError for unknown rooms', () => {
     expect(() => Rooms.setRoomOptions(999, { prefs: {} })).toThrowError(NotFoundError)
+  })
+
+  it('merges eq prefs, leaving qr and the rest intact', () => {
+    const eq = { eqEnabled: true, eqGains: [1, 0, 0, 0, 0, 0, 0, 0, 0, -1], eqPreset: 'Custom' }
+    const merged = Rooms.setRoomOptions(1, { prefs: { eq } }) as { eq: object, qr: object }
+
+    expect(merged.eq).toEqual(eq)
+    expect(merged.qr).toMatchObject({ isEnabled: false })
+
+    const stored = db.get<{ data: string }>('SELECT data FROM rooms WHERE roomId = 1')
+    expect(JSON.parse(stored.data).prefs).toEqual(merged)
+  })
+
+  it('merges partial eq updates over stored eq', () => {
+    const merged = Rooms.setRoomOptions(1, {
+      prefs: { eq: { eqPreset: 'Rock' } },
+    }) as { eq: Record<string, unknown> }
+
+    expect(merged.eq).toMatchObject({
+      eqEnabled: true,
+      eqGains: [1, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+      eqPreset: 'Rock',
+    })
+  })
+
+  it('rejects malformed eq prefs', () => {
+    expect(() => Rooms.setRoomOptions(1, {
+      prefs: { eq: { eqGains: [0, 0] } },
+    })).toThrowError(ValidationError)
+    expect(() => Rooms.setRoomOptions(1, {
+      prefs: { eq: { eqEnabled: 'yes' } },
+    })).toThrowError(ValidationError)
+    expect(() => Rooms.setRoomOptions(1, {
+      prefs: { eq: { eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, Number.NaN] } },
+    })).toThrowError(ValidationError)
   })
 })
 

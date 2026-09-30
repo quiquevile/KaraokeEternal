@@ -43,6 +43,13 @@ export interface IRoomPrefs {
     // in the rooms table, never here)
     includePassword?: boolean
   }
+  // persisted equalizer settings (explicit Save only; live tweaks travel
+  // over the socket and stay ephemeral)
+  eq?: {
+    eqEnabled: boolean
+    eqGains: number[]
+    eqPreset: string
+  }
   user?: {
     isNewAllowed?: boolean
     isGuestAllowed?: boolean

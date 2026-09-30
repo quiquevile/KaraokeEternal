@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Player from '../Player/Player'
 import PlayerTextOverlay from '../PlayerTextOverlay/PlayerTextOverlay'
@@ -66,6 +66,23 @@ const PlayerController = (props: PlayerControllerProps) => {
       _isReplayingQueueId: null,
     })
   }, [handleStatus, player.historyJSON, player.pitchSemitones, player.queueId, queue.entities])
+
+  // restore the room's persisted equalizer once (fresh page load): later
+  // prefs arrivals (e.g. QR tweaks) must not clobber live adjustments,
+  // and the emit below re-syncs every controller's status mirror
+  const persistedEqApplied = useRef(false)
+  const persistedEq = roomPrefs?.eq
+
+  useEffect(() => {
+    if (!persistedEqApplied.current && persistedEq) {
+      persistedEqApplied.current = true
+      handleStatus({
+        eqEnabled: persistedEq.eqEnabled,
+        eqGains: persistedEq.eqGains,
+        eqPreset: persistedEq.eqPreset,
+      })
+    }
+  }, [handleStatus, persistedEq])
 
   const handleLoadNext = useCallback(() => {
     const history = JSON.parse(player.historyJSON)

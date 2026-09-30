@@ -10,6 +10,11 @@ interface UserImageProps {
   onSelect: (blob: Blob) => void
 }
 
+// stable reference so re-attaching on the file input is a no-op
+const stopCancelPropagation = (e: Event) => {
+  e.stopPropagation()
+}
+
 const InputImage = ({ user, onSelect }: UserImageProps) => {
   const [isLoading, setIsLoading] = useState(true)
   const [imageURL, setImageURL] = useState<string | null>(
@@ -110,9 +115,8 @@ const InputImage = ({ user, onSelect }: UserImageProps) => {
           if (!node) return
 
           // prevents cancel event from bubbling up and dismissing a <dialog>
-          node.addEventListener('cancel', (e) => {
-            e.stopPropagation()
-          })
+          // (re-adding the same listener is a no-op per DOM spec)
+          node.addEventListener('cancel', stopCancelPropagation)
         }}
       />
     </div>

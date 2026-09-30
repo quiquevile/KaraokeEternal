@@ -102,6 +102,7 @@ export const setPreferredSong = createAsyncThunk(
 // Reducer
 // ------------------------------------
 export interface SongInfoState {
+  error: string | null
   isLoading: boolean
   isVisible: boolean
   songId: number | null
@@ -111,6 +112,7 @@ export interface SongInfoState {
 }
 
 const initialState: SongInfoState = {
+  error: null,
   isLoading: false,
   isVisible: false,
   songId: null,
@@ -122,6 +124,7 @@ const initialState: SongInfoState = {
 const songInfoReducer = createReducer(initialState, (builder) => {
   builder
     .addCase(showSongInfo.pending, (state, { meta }) => {
+      state.error = null
       state.isLoading = true
       state.isVisible = true
       state.songId = meta.arg
@@ -139,18 +142,38 @@ const songInfoReducer = createReducer(initialState, (builder) => {
     })
     .addCase(showSongEditor, (state, { payload }) => {
       state.editorSongId = payload
+      state.error = null
     })
     .addCase(closeSongEditor, (state) => {
       state.editorSongId = null
     })
     .addCase(showDeleteSong, (state, { payload }) => {
       state.deleteSongId = payload
+      state.error = null
     })
     .addCase(closeDeleteSong, (state) => {
       state.deleteSongId = null
     })
     .addCase(fetchSongMedia.fulfilled, (state, { payload }) => {
       state.media = payload
+    })
+    .addCase(fetchSongMedia.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not load versions'
+    })
+    .addCase(deleteSong.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not delete song'
+    })
+    .addCase(deleteMedia.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not delete versions'
+    })
+    .addCase(updateSong.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not save song'
+    })
+    .addCase(setMediaGain.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not update gain'
+    })
+    .addCase(setPreferredSong.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not update preference'
     })
 })
 

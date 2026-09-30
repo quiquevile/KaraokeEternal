@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
-import reducer, { clearYoutubeResults, fetchDownloadUsers, searchYoutubeVideos, type YouTubeResult } from './youtube'
+import reducer, {
+  clearYoutubeResults,
+  downloadVideo,
+  fetchDownloadUsers,
+  fetchDownloads,
+  removeDownload,
+  searchYoutubeVideos,
+  type YouTubeResult,
+} from './youtube'
 
 const fullResult = (id: string): YouTubeResult => ({
   artist: 'ABBA',
@@ -103,5 +111,51 @@ describe('hasSearched', () => {
 
     expect(store.getState().youtube.error).toBeNull()
     expect(store.getState().youtube.hasSearched).toBe(false)
+  })
+
+  it('surfaces download failures instead of hanging the dialog', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('boom')))
+    const store = makeStore()
+
+    await store.dispatch(downloadVideo({
+      url: 'https://www.youtube.com/watch?v=x',
+      artist: 'ABBA',
+      title: 'Dancing Queen',
+      thumbnail: null,
+      queueUserId: null,
+    }))
+
+    expect(store.getState().youtube.error).toBe('boom')
+  })
+
+  it('refetches the list when removing a download fails', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/downloads/')) {
+        return { ok: false, status: 500, headers: new Headers(), text: async () => 'boom' }
+      }
+
+      return {
+        ok: true,
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        json: async (): Promise<unknown> => ({ active: [], history: [{ id: 'a' }] }),
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const store = makeStore()
+
+    await store.dispatch(removeDownload('a'))
+
+    expect(store.getState().youtube.error).toBe('boom')
+    // removal rolled back via refetch
+    expect(store.getState().youtube.downloads).toEqual({ active: [], history: [{ id: 'a' }] })
+  })
+
+  it('surfaces download-list failures', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('boom')))
+    const store = makeStore()
+
+    await store.dispatch(fetchDownloads())
+
+    expect(store.getState().youtube.error).toBe('boom')
   })
 })

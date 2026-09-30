@@ -129,9 +129,15 @@ export const clearYoutube = createAsyncThunk<DownloadReport, void>(
 
 export const removeDownload = createAsyncThunk<DownloadReport, string>(
   'youtube/removeDownload',
-  async (id) => {
-    const res = await api.delete<DownloadReport>(`/downloads/${encodeURIComponent(id)}`)
-    return res
+  async (id, thunkAPI) => {
+    try {
+      const res = await api.delete<DownloadReport>(`/downloads/${encodeURIComponent(id)}`)
+      return res
+    } catch (err) {
+      // roll back the optimistic removal above before surfacing the error
+      await thunkAPI.dispatch(fetchDownloads())
+      throw err
+    }
   },
 )
 
@@ -281,7 +287,13 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     })
     .addCase(identifyVideo.fulfilled, (state, { payload }) => ({
       ...state,
+      error: null,
       metadata: payload,
+    }))
+    .addCase(identifyVideo.rejected, (state, action) => ({
+      ...state,
+      error: action.error.message ?? 'could not identify video',
+      metadata: null,
     }))
     .addCase(openPreview.pending, (state, { meta }) => ({
       ...state,
@@ -304,12 +316,21 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     })
     .addCase(downloadVideo.fulfilled, state => ({
       ...state,
+      error: null,
       metadata: null,
       selected: null,
+    }))
+    .addCase(downloadVideo.rejected, (state, action) => ({
+      ...state,
+      error: action.error.message ?? 'download failed',
     }))
     .addCase(fetchDownloads.fulfilled, (state, { payload }) => ({
       ...state,
       downloads: payload,
+    }))
+    .addCase(fetchDownloads.rejected, (state, action) => ({
+      ...state,
+      error: action.error.message ?? 'could not load downloads',
     }))
     .addCase(fetchDownloadUsers.fulfilled, (state, { payload }) => ({
       ...state,
@@ -358,6 +379,10 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       ...state,
       downloads: payload,
     }))
+    .addCase(removeDownload.rejected, (state, action) => ({
+      ...state,
+      error: action.error.message ?? 'could not remove download',
+    }))
     .addCase(fetchYtdlVersion.fulfilled, (state, { payload }) => ({
       ...state,
       ytdlpVersion: payload.version,
@@ -365,6 +390,10 @@ const youtubeReducer = createReducer(initialState, (builder) => {
       ytdlpStatus: payload.status,
       ytdlpUpdatedAt: payload.updatedAt,
       ytdlpDir: payload.dir,
+    }))
+    .addCase(fetchYtdlVersion.rejected, (state, action) => ({
+      ...state,
+      ytdlpError: action.error.message ?? 'could not check yt-dlp version',
     }))
     .addCase(updateYtdl.pending, state => ({
       ...state,

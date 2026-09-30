@@ -18,6 +18,7 @@ const EditSongForm = ({
 }) => {
   const artist = useCaseField(initialArtist)
   const title = useCaseField(initialTitle)
+  const error = useAppSelector(state => state.songInfo.error)
   const dispatch = useAppDispatch()
 
   const handleClose = () => dispatch(closeSongEditor())
@@ -39,6 +40,9 @@ const EditSongForm = ({
       </p>
 
       <MetadataFields artist={artist} title={title} />
+
+      {error
+        && <p className={styles.error}>{error}</p>}
 
       <div className={styles.buttons}>
         <Button

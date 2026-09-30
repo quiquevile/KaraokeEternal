@@ -134,6 +134,7 @@ export interface RoomsState {
   currentStatus: string | null
   filterStatus: boolean | string
   isEditorOpen: boolean
+  error: string | null
 }
 
 const initialState: RoomsState = {
@@ -142,6 +143,7 @@ const initialState: RoomsState = {
   currentStatus: null,
   filterStatus: 'open',
   isEditorOpen: false,
+  error: null,
 }
 
 const roomsReducer = createReducer(initialState, (builder) => {
@@ -151,6 +153,21 @@ const roomsReducer = createReducer(initialState, (builder) => {
       ...state,
       ...payload,
     }))
+    .addCase(fetchRooms.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not load rooms'
+    })
+    .addCase(createRoom.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not create room'
+    })
+    .addCase(updateRoom.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not update room'
+    })
+    .addCase(removeRoom.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not remove room'
+    })
+    .addCase(updateCurrentRoomOptions.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not update room options'
+    })
     .addCase(receiveRooms, (state, { payload }) => ({
       ...state,
       ...payload,

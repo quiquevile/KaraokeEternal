@@ -92,6 +92,7 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
     song ? state.artists.entities[song.artistId]?.name : undefined
   ))
   const media = useAppSelector(state => state.songInfo.media)
+  const error = useAppSelector(state => state.songInfo.error)
   const [selected, setSelected] = useState<number[]>([])
   const [previewId, setPreviewId] = useState<number | null>(null)
   const dispatch = useAppDispatch()
@@ -142,6 +143,9 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
           />
         ))}
       </ul>
+
+      {error
+        && <p className={styles.error}>{error}</p>}
 
       <div className={styles.buttons}>
         <Button

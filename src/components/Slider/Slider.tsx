@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { lockScrolling } from 'store/modules/ui'
 import RCSlider, { SliderProps as RCSliderProps } from 'rc-slider'
@@ -40,6 +40,10 @@ const Slider = ({
 }: SliderProps) => {
   const [tempVal, setTempVal] = useState<number | null>(null)
   const timerId = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (timerId.current) clearTimeout(timerId.current)
+  }, [])
 
   const handleChange = (val: number) => {
     if (timerId.current) {

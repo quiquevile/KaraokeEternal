@@ -4,13 +4,13 @@ import { useAppSelector } from 'store/hooks'
 import styles from './QueueListAnimator.css'
 
 const handleEnter = (el: HTMLDivElement) => {
-  el.addEventListener('animationend', e => (e.currentTarget as HTMLDivElement).classList.remove(styles.itemEnter))
+  el.addEventListener('animationend', e => (e.currentTarget as HTMLDivElement).classList.remove(styles.itemEnter), { once: true })
   el.classList.add(styles.itemEnter)
   el.style.removeProperty('opacity')
 }
 
 const handleExit = (el: HTMLDivElement, _i: number, removeEl: () => void) => {
-  el.addEventListener('animationend', removeEl)
+  el.addEventListener('animationend', removeEl, { once: true })
   el.classList.add(styles.itemExit)
 }
 

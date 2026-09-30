@@ -3,6 +3,12 @@
   margin-top: 0;
 }
 
+.error {
+  color: var(--btn-danger-bg-color);
+  font-size: var(--font-size-s);
+  margin: var(--space-s) 0 0;
+}
+
 .buttons {
   display: flex;
   justify-content: flex-end;

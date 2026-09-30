@@ -70,6 +70,8 @@ const PathPrefs = () => {
         dispatch(receivePrefs(res))
         return
       }).catch((err) => {
+        // roll back the optimistic removal above (store is unchanged)
+        setPriority(paths.result)
         alert(err)
       })
   }

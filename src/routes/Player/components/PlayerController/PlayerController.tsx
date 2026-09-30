@@ -6,6 +6,7 @@ import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
+import { parseNumberArray } from 'lib/util'
 import type { QueueItem } from 'shared/types'
 
 interface PlayerControllerProps {
@@ -26,7 +27,7 @@ const PlayerController = (props: PlayerControllerProps) => {
   const queueItem = queue.entities[player.queueId]
   // current item deleted (e.g. its song was removed from the library)?
   // fall back to the first unplayed item, as it is the next song to play
-  const playedIds: number[] = JSON.parse(player.historyJSON)
+  const playedIds: number[] = parseNumberArray(player.historyJSON)
   const nextQueueItem = queueItem
     ? queue.entities[queue.result[queue.result.indexOf(player.queueId) + 1]]
     : queue.entities[queue.result.find(queueId => !playedIds.includes(queueId))]
@@ -44,7 +45,7 @@ const PlayerController = (props: PlayerControllerProps) => {
     const nextItem = queue.entities[queueId]
     if (!nextItem) return
 
-    const history = JSON.parse(player.historyJSON)
+    const history = parseNumberArray(player.historyJSON)
 
     if (queueId !== player.queueId) {
       // reset history up to and including the replaying queueId
@@ -85,7 +86,7 @@ const PlayerController = (props: PlayerControllerProps) => {
   }, [handleStatus, persistedEq])
 
   const handleLoadNext = useCallback(() => {
-    const history = JSON.parse(player.historyJSON)
+    const history = parseNumberArray(player.historyJSON)
 
     // add current item to history (once)
     if (queueItem && history.lastIndexOf(queueItem.queueId) === -1) {

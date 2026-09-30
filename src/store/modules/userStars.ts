@@ -65,8 +65,12 @@ const userStarsReducer = createReducer(initialState, (builder) => {
       state.starredSongs.push(payload.songId)
     })
     .addCase(unstarSong, (state, { payload }) => {
-      // optimistic
-      state.starredSongs.splice(state.starredSongs.indexOf(payload.songId), 1)
+      // optimistic (splice(-1) would eat the last element, so guard)
+      const index = state.starredSongs.indexOf(payload.songId)
+
+      if (index !== -1) {
+        state.starredSongs.splice(index, 1)
+      }
     })
     .addCase(songStarred, (state, { payload }) => {
       if (payload.userId === state.userId && !state.starredSongs.includes(payload.songId)) {

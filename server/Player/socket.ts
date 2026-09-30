@@ -80,6 +80,11 @@ const ACTION_HANDLERS = {
     })
   },
   [PLAYER_EMIT_STATUS]: (sock, { payload }) => {
+    // only actual players (the /player route requires playerAccess) may
+    // publish status: otherwise any room member could spoof every
+    // controller's display mirror and the join relay
+    if (!can(sock.user, 'playerAccess')) return
+
     // so we can tell the room when players leave and
     // relay last known player status on client join
     sock._lastPlayerStatus = payload
@@ -90,6 +95,8 @@ const ACTION_HANDLERS = {
     })
   },
   [PLAYER_EMIT_LEAVE]: (sock) => {
+    if (!can(sock.user, 'playerAccess')) return
+
     sock._lastPlayerStatus = null
 
     // any players left in room?

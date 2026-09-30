@@ -19,6 +19,7 @@ import {
   NAME_MAX_LENGTH,
   IMG_MAX_LENGTH,
 } from './User.js'
+import { parseIdParam } from '../lib/http.js'
 
 interface File {
   filepath: string
@@ -233,7 +234,7 @@ router.get('/users/names', handleUsersNames)
 
 // delete a user (admin only)
 router.delete('/user/:userId', async (ctx) => {
-  const targetId = parseInt(ctx.params.userId, 10)
+  const targetId = parseIdParam(ctx, 'userId')
 
   if (!ctx.user.isAdmin || targetId === ctx.user.userId) {
     ctx.throw(403)
@@ -245,7 +246,7 @@ router.delete('/user/:userId', async (ctx) => {
   const sockets = await ctx.io.fetchSockets()
 
   for (const s of sockets) {
-    if (s?.user.userId === targetId) {
+    if (s?.user?.userId === targetId) {
       s.disconnect()
     }
   }
@@ -265,7 +266,7 @@ router.delete('/user/:userId', async (ctx) => {
 
 // update a user account
 router.put('/user/:userId', async (ctx) => {
-  const targetId = parseInt(ctx.params.userId, 10)
+  const targetId = parseIdParam(ctx, 'userId')
   const user = User.getById(ctx.user.userId, true)
 
   // must be admin if updating another user

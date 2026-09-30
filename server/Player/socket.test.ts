@@ -14,6 +14,9 @@ import {
   PLAYER_CMD_PLAY,
   PLAYER_CMD_REPLAY,
   PLAYER_CMD_VOLUME,
+  PLAYER_EMIT_STATUS,
+  PLAYER_EMIT_LEAVE,
+  PLAYER_STATUS,
 } from '../../shared/actionTypes.js'
 
 const makeSock = (user: object) => {
@@ -90,5 +93,39 @@ describe('Player PLAY with mere player access', () => {
     call(PLAYER_REQ_PAUSE, sock)
 
     expect(emit).not.toHaveBeenCalled()
+  })
+})
+
+describe('Player status publishing', () => {
+  const callStatus = (sock: unknown) => (
+    handlers[PLAYER_EMIT_STATUS] as (sock: unknown, msg: unknown, ack: unknown) => unknown
+  )(sock, { payload: { isPlaying: true } }, vi.fn())
+
+  it('relays status from users with player access', () => {
+    const { sock, emit } = makeSock({ isAdmin: false, permissions: { playerAccess: true } })
+
+    callStatus(sock)
+
+    expect(emit).toHaveBeenCalledWith('action', { type: PLAYER_STATUS, payload: { isPlaying: true } })
+    expect((sock as { _lastPlayerStatus?: unknown })._lastPlayerStatus).toEqual({ isPlaying: true })
+  })
+
+  it('ignores status from members without player access', () => {
+    const { sock, emit } = makeSock({ isAdmin: false, permissions: {} })
+
+    callStatus(sock)
+
+    expect(emit).not.toHaveBeenCalled()
+    expect((sock as { _lastPlayerStatus?: unknown })._lastPlayerStatus).toBeUndefined()
+  })
+
+  it('ignores leave from members without player access', () => {
+    const { sock } = makeSock({ isAdmin: false, permissions: {} })
+    const callLeave = (
+      handlers[PLAYER_EMIT_LEAVE] as (sock: unknown, msg: unknown, ack: unknown) => unknown
+    )(sock, { payload: undefined }, vi.fn())
+
+    expect(callLeave).toBeUndefined()
+    expect((sock as { _lastPlayerStatus?: unknown })._lastPlayerStatus).toBeUndefined()
   })
 })

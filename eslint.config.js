@@ -65,11 +65,20 @@ export default defineConfig(
     rules: {
       ...pluginNode.configs['flat/recommended-module'].rules,
       'n/hashbang': 'off', // suppress incorrect warning
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
     },
     languageOptions: {
       globals: globals.node,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: 2022,
+        projectService: {
+          // plain JS tooling without a tsconfig
+          allowDefaultProject: ['*.js', 'config/*.js', 'config/vitest.config.ts'],
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
     },
   },

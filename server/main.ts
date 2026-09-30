@@ -49,7 +49,11 @@ if (Number.isInteger(env.KES_PUID)) {
 
 // handle shutdown gracefully
 ['SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'uncaughtException'].forEach((event) => {
-  process.on(event, shutdown)
+  process.on(event, (signal) => {
+    shutdown(signal).catch((err: unknown) => {
+      log.error('shutdown failed: %s', err instanceof Error ? err.message : err)
+    })
+  })
 })
 
 // make sure child processes don't hang around
@@ -85,7 +89,7 @@ process.on('unhandledRejection', (reason) => {
   pauseGainScan = GainScan.pauseGainScan
   resumeGainScan = GainScan.resumeGainScan
   const serverWorker = await import('./serverWorker.js')
-  serverWorker.default({ env, startScanner, stopScanner, isScannerActive, shutdownHandlers })
+  await serverWorker.default({ env, startScanner, stopScanner, isScannerActive, shutdownHandlers })
 
   // scanning on startup?
   const pathIds = parsePathIds(env.KES_SCAN)
@@ -98,7 +102,10 @@ process.on('unhandledRejection', (reason) => {
   if (paths.result.find(pathId => paths.entities[pathId].prefs?.isWatchingEnabled)) {
     startWatcher(paths)
   }
-})()
+})().catch((err: unknown) => {
+  log.error('fatal startup error: %s', err instanceof Error ? err.message : err)
+  process.exit(1) // eslint-disable-line n/no-process-exit
+})
 
 function startWatcher (paths) {
   if (refs.watcher === undefined) {

@@ -55,7 +55,10 @@ let IPC
   log.debug('parsed pathIds: %s', pathIds)
 
   q.queue(pathIds)
-})()
+})().catch((err: unknown) => {
+  log.error('fatal scanner error: %s', err instanceof Error ? err.message : err)
+  process.exit(1) // eslint-disable-line n/no-process-exit
+})
 
 const totals = { new: 0, existing: 0, removed: 0 }
 

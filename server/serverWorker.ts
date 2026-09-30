@@ -43,6 +43,9 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
 
   // called when middleware is finalized
   function createServer () {
+    // Koa's callback promise is owned by Koa itself (errors go to app
+    // 'error' events); node's server ignores the return value
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     server = http.createServer(app.callback())
 
     // http server error handler
@@ -235,19 +238,22 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
   const { default: webpackConfig } = await import('../config/webpack.config.js')
   const compiler = webpack(webpackConfig)
 
-  compiler.hooks.done.tap('indexPlugin', async () => {
-    const indexContent = await new Promise((resolve, reject) => {
-      compiler.outputFileSystem.readFile(indexFile, 'utf8', (err, result) => {
-        if (err) return reject(err)
-        return resolve(result)
+  compiler.hooks.done.tap('indexPlugin', () => {
+    // tap expects a void return; surface async failures via the log
+    void (async () => {
+      const indexContent = await new Promise((resolve, reject) => {
+        compiler.outputFileSystem.readFile(indexFile, 'utf8', (err, result) => {
+          if (err) return reject(err)
+          return resolve(result)
+        })
       })
-    })
 
-    // @todo make this less hacky
-    if (!server) {
-      app.use(createIndexMiddleware(indexContent))
-      createServer()
-    }
+      // @todo make this less hacky
+      if (!server) {
+        app.use(createIndexMiddleware(indexContent))
+        createServer()
+      }
+    })().catch(err => log.error(err))
   })
 
   const { default: webpackDevMiddleware } = await import('webpack-dev-middleware')

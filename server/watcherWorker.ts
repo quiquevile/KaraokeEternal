@@ -62,4 +62,7 @@ const searchExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].scan !== 
       })
     },
   })
-})()
+})().catch((err: unknown) => {
+  log.error('fatal watcher error: %s', err instanceof Error ? err.message : err)
+  process.exit(1) // eslint-disable-line n/no-process-exit
+})

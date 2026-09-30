@@ -44,7 +44,9 @@ class ScannerQueue {
     })
 
     if (this.#q.length && !this.#instance) {
-      this.start()
+      this.start().catch((err: unknown) => {
+        log.error('media scan failed: %s', err instanceof Error ? err.message : err)
+      })
     }
   }
 

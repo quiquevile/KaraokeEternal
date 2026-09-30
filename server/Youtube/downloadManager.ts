@@ -115,7 +115,9 @@ export class DownloadManager {
     this.queue.push(job)
 
     queueMicrotask(() => {
-      this.processNext()
+      // processNext handles its own errors per job; void marks the
+      // intentional fire-and-forget
+      void this.processNext()
     })
 
     return job

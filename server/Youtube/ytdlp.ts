@@ -442,7 +442,7 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
       reject(err)
     })
 
-    child.on('close', async (code) => {
+    child.on('close', (code) => {
       clearTimeout(timer)
 
       if (timedOut) {
@@ -451,19 +451,23 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
         return
       }
 
-      const trimmed = output.trim()
+      void (async () => {
+        const trimmed = output.trim()
 
-      let version: string | null = null
+        let version: string | null = null
 
-      try {
-        version = await getYtdlVersion()
-      } catch {
-        version = null
-      }
+        try {
+          version = await getYtdlVersion()
+        } catch {
+          version = null
+        }
 
-      if (code === 0) await writeYtdlUpdatedAt(getYtdlDir())
+        if (code === 0) await writeYtdlUpdatedAt(getYtdlDir())
 
-      resolve({ ok: code === 0, output: trimmed, version })
+        resolve({ ok: code === 0, output: trimmed, version })
+      })().catch((err: unknown) => {
+        resolve({ ok: false, output: err instanceof Error ? err.message : String(err), version: null })
+      })
     })
   })
 }

@@ -8,7 +8,7 @@ import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Modal, { ModalProps } from 'components/Modal/Modal'
 import Slider from 'components/Slider/Slider'
 import sliderStyles from 'components/Slider/Slider.css'
-import { EQ_FREQUENCIES, EQ_GAIN_MAX, EQ_GAIN_MIN, EQ_PRESETS } from 'routes/Player/lib/equalizer'
+import { EQ_FREQUENCIES, EQ_GAIN_MAX, EQ_GAIN_MIN, EQ_PRESETS, equalGains } from 'routes/Player/lib/equalizer'
 import styles from './EqualizerDialog.css'
 import { PlaybackOptions } from 'shared/types'
 
@@ -90,18 +90,25 @@ const EqualizerDialog = ({
         <div className={styles.saveRow}>
           {maySavePresets && (
             <div className={styles.saveSlots}>
-              {EQ_CUSTOM_SLOTS.map(name => (
-                <Button
-                  key={name}
-                  variant='default'
-                  className={styles.preset}
-                  onClick={() => handleSaveCustom(name)}
-                  disabled={!eqEnabled}
-                  aria-label={`Save current equalizer as ${name}`}
-                >
-                  {name}
-                </Button>
-              ))}
+              {EQ_CUSTOM_SLOTS.map(name => {
+                // active when the slot holds exactly what is playing:
+                // instant feedback on save, no status round-trip needed
+                const isActive = eqEnabled && equalGains(storedPresets?.[name] ?? EQ_PRESETS[0].gains, eqGains)
+
+                return (
+                  <Button
+                    key={name}
+                    variant={isActive ? 'primary' : 'default'}
+                    className={styles.preset}
+                    onClick={() => handleSaveCustom(name)}
+                    disabled={!eqEnabled}
+                    aria-label={`Save current equalizer as ${name}`}
+                    aria-pressed={isActive}
+                  >
+                    {name}
+                  </Button>
+                )
+              })}
             </div>
           )}
           <Button variant='primary' onClick={handleSave}>Save</Button>

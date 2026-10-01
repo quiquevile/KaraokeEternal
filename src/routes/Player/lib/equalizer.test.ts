@@ -6,6 +6,7 @@ import {
   EQ_PRESETS,
   clampEqGain,
   createEqualizer,
+  equalGains,
   setEqualizerGains,
 } from './equalizer'
 
@@ -53,5 +54,13 @@ describe('equalizer', () => {
     expect(nodes[0].gain.value).toBe(EQ_GAIN_MAX)
     expect(nodes[1].gain.value).toBe(EQ_GAIN_MIN)
     expect(nodes[2].gain.value).toBe(0)
+  })
+
+  it('compares gain curves exactly', () => {
+    const flat = new Array(10).fill(0)
+    expect(equalGains(flat, flat.slice())).toBe(true)
+    expect(equalGains([1, ...flat.slice(1)], flat)).toBe(false)
+    expect(equalGains([0, 0], flat)).toBe(false)
+    expect(equalGains(flat, [...flat, 0])).toBe(false)
   })
 })

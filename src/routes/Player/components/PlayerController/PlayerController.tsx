@@ -127,6 +127,13 @@ const PlayerController = (props: PlayerControllerProps) => {
     })
   }, [handleStatus, nextQueueItem, player.historyJSON, queueItem])
 
+  // announce equalizer changes: options apply silently in the reducer,
+  // so without this no controller mirror (preset highlight included)
+  // would learn about them outside playback events
+  useEffect(() => {
+    handleStatus({})
+  }, [handleStatus, player.eqEnabled, player.eqPreset])
+
   // "lock in" the next user that isn't the currently up user, if possible
   useEffect(() => {
     if (!player.nextUserId || queueItem?.userId === nextQueueItem?.userId) {

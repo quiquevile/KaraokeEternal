@@ -11,6 +11,12 @@ export function clampEqGain (value: number): number {
   return Math.min(EQ_GAIN_MAX, Math.max(EQ_GAIN_MIN, value))
 }
 
+// exact numeric comparison of two gain curves (same provenance on both
+// sides: live slider values and JSON round-tripped stored slots)
+export function equalGains (a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((gain, index) => gain === b[index])
+}
+
 export interface EqPreset {
   name: string
   gains: number[]

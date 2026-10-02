@@ -5,8 +5,8 @@ import sliderStyles from 'components/Slider/Slider.css'
 import { EQ_GAIN_MAX, EQ_GAIN_MIN, clampEqGain, formatFreq, parseGainInput } from 'routes/Player/lib/equalizer'
 import styles from './EqualizerBand.css'
 
-// nudge per stepper tap (the slider itself steps 0.1 dB)
-const STEP = 0.5
+// nudge per stepper tap (sliders cover coarse moves with the same step)
+const STEP = 0.1
 
 const formatGain = (gain: number): string => (
   `${gain > 0 ? '+' : ''}${gain.toFixed(1)}`

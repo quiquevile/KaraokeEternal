@@ -54,6 +54,15 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
 
   return (
     <div className={styles.band}>
+      <Button
+        variant='default'
+        className={styles.stepper}
+        onClick={() => step(STEP)}
+        disabled={disabled}
+        aria-label={`Raise ${formatFreq(freq)} Hz by ${STEP} dB`}
+      >
+        +
+      </Button>
       <Slider
         vertical
         min={EQ_GAIN_MIN}
@@ -66,56 +75,45 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
         aria-label={`${formatFreq(freq)} Hz`}
         className={`${styles.slider} ${sliderStyles.small}`}
       />
+      <Button
+        variant='default'
+        className={styles.stepper}
+        onClick={() => step(-STEP)}
+        disabled={disabled}
+        aria-label={`Lower ${formatFreq(freq)} Hz by ${STEP} dB`}
+      >
+        −
+      </Button>
       <span className={styles.freq}>{formatFreq(freq)}</span>
-      <div className={styles.controls}>
-        <Button
-          variant='default'
-          className={styles.stepper}
-          onClick={() => step(-STEP)}
-          disabled={disabled}
-          aria-label={`Lower ${formatFreq(freq)} Hz by ${STEP} dB`}
-        >
-          −
-        </Button>
-        {editing
-          ? (
-            <input
-              ref={inputRef}
-              className={styles.editor}
-              value={draft}
-              inputMode='decimal'
-              autoComplete='off'
-              onChange={e => setDraft(e.target.value)}
-              onBlur={commitEditing}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commitEditing()
-                if (e.key === 'Escape') setEditing(false)
-              }}
-              aria-label={`${formatFreq(freq)} Hz gain in dB`}
-            />
-          )
-          : (
-            <button
-              type='button'
-              className={styles.value}
-              onClick={startEditing}
-              disabled={disabled}
-              aria-label={`${formatFreq(freq)} Hz gain ${formatGain(gain)}, activate to edit`}
-            >
-              {formatGain(gain)}
-            </button>
-          )
-        }
-        <Button
-          variant='default'
-          className={styles.stepper}
-          onClick={() => step(STEP)}
-          disabled={disabled}
-          aria-label={`Raise ${formatFreq(freq)} Hz by ${STEP} dB`}
-        >
-          +
-        </Button>
-      </div>
+      {editing
+        ? (
+          <input
+            ref={inputRef}
+            className={styles.editor}
+            value={draft}
+            inputMode='decimal'
+            autoComplete='off'
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commitEditing}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitEditing()
+              if (e.key === 'Escape') setEditing(false)
+            }}
+            aria-label={`${formatFreq(freq)} Hz gain in dB`}
+          />
+        )
+        : (
+          <button
+            type='button'
+            className={styles.value}
+            onClick={startEditing}
+            disabled={disabled}
+            aria-label={`${formatFreq(freq)} Hz gain ${formatGain(gain)}, activate to edit`}
+          >
+            {formatGain(gain)}
+          </button>
+        )
+      }
     </div>
   )
 }

@@ -18,15 +18,9 @@
   white-space: nowrap;
 }
 
-.controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
 .stepper {
-  width: auto;
-  min-width: 28px;
+  width: 100%;
+  min-height: 32px;
   padding: var(--space-xs);
   font-size: var(--font-size-s);
   line-height: 1;

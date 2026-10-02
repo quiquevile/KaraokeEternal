@@ -39,6 +39,7 @@
   overflow-x: auto;
   overscroll-behavior-x: contain;
   touch-action: pan-x pan-y;
+  padding-bottom: var(--space-m);
 }
 
 @media (min-width: 600px) {

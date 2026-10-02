@@ -7,6 +7,8 @@ import {
   clampEqGain,
   createEqualizer,
   equalGains,
+  formatFreq,
+  parseGainInput,
   setEqualizerGains,
 } from './equalizer'
 
@@ -62,5 +64,22 @@ describe('equalizer', () => {
     expect(equalGains([1, ...flat.slice(1)], flat)).toBe(false)
     expect(equalGains([0, 0], flat)).toBe(false)
     expect(equalGains(flat, [...flat, 0])).toBe(false)
+  })
+
+  it('parses typed gains with clamping', () => {
+    expect(parseGainInput('2.5')).toBe(2.5)
+    expect(parseGainInput(' -3,5 ')).toBe(-3.5)
+    expect(parseGainInput('+4')).toBe(4)
+    expect(parseGainInput('99')).toBe(EQ_GAIN_MAX)
+    expect(parseGainInput('-99')).toBe(EQ_GAIN_MIN)
+    expect(parseGainInput('')).toBeNull()
+    expect(parseGainInput('abc')).toBeNull()
+    expect(parseGainInput('Infinity')).toBeNull()
+  })
+
+  it('formats kHz frequencies', () => {
+    expect(formatFreq(600)).toBe('600')
+    expect(formatFreq(1000)).toBe('1k')
+    expect(formatFreq(16000)).toBe('16k')
   })
 })

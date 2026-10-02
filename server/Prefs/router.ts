@@ -64,7 +64,7 @@ export async function handleSaveEqPreset (ctx: RouterContext): Promise<void> {
   const body = (ctx.request as unknown as RequestWithBody).body
   const { name, gains } = body
 
-  if (name !== 'P1' && name !== 'P2' && name !== 'P3') {
+  if (typeof name !== 'string' || !EQ_PRESET_SLOTS.includes(name)) {
     ctx.throw(422, 'Invalid preset slot')
   }
 

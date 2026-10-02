@@ -2,6 +2,10 @@
 // Web Audio BiquadFilterNodes: shelves at both ends, peaking in between.
 export const EQ_FREQUENCIES = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000]
 
+export const formatFreq = (freq: number): string => (
+  freq >= 1000 ? `${freq / 1000}k` : `${freq}`
+)
+
 export const EQ_GAIN_MIN = -12
 export const EQ_GAIN_MAX = 12
 
@@ -9,6 +13,18 @@ export function clampEqGain (value: number): number {
   if (!Number.isFinite(value)) return 0
 
   return Math.min(EQ_GAIN_MAX, Math.max(EQ_GAIN_MIN, value))
+}
+
+// parses a typed gain (mobile keyboards may use ','), returning null for
+// non-numeric input; numeric input is clamped to the fader range
+export function parseGainInput (text: string): number | null {
+  const trimmed = text.trim().replace(',', '.')
+
+  if (!trimmed) return null
+
+  const value = Number(trimmed)
+
+  return Number.isFinite(value) ? clampEqGain(value) : null
 }
 
 // exact numeric comparison of two gain curves (same provenance on both
@@ -20,9 +36,7 @@ export function equalGains (a: number[], b: number[]): boolean {
 export interface EqPreset {
   name: string
   gains: number[]
-}
-
-export const EQ_PRESETS: EqPreset[] = [
+}export const EQ_PRESETS: EqPreset[] = [
   { name: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
   { name: 'Rock', gains: [5, 4, 3, 1, -1, -1, 1, 3, 4, 5] },
   { name: 'Pop', gains: [3, 4, 4, 2, 0, 0, 1, 2, 3, 4] },

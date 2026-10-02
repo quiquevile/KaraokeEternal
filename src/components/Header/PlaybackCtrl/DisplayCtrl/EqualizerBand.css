@@ -12,6 +12,13 @@
   min-height: 0;
 }
 
+.fader {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .freq {
   font-size: var(--font-size-s);
   color: var(--color-gray-5);

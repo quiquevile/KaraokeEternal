@@ -63,18 +63,24 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
       >
         +
       </Button>
-      <Slider
-        vertical
-        min={EQ_GAIN_MIN}
-        max={EQ_GAIN_MAX}
-        step={0.1}
-        value={gain}
-        onChange={onChange}
-        disabled={disabled}
-        handleIcon='HANDLE_VERT'
-        aria-label={`${formatFreq(freq)} Hz`}
-        className={`${styles.slider} ${sliderStyles.small}`}
-      />
+      <div
+        className={styles.fader}
+        onDoubleClick={() => { if (!disabled) onChange(0) }}
+        title='Double-click to reset to 0 dB'
+      >
+        <Slider
+          vertical
+          min={EQ_GAIN_MIN}
+          max={EQ_GAIN_MAX}
+          step={0.1}
+          value={gain}
+          onChange={onChange}
+          disabled={disabled}
+          handleIcon='HANDLE_VERT'
+          aria-label={`${formatFreq(freq)} Hz`}
+          className={`${styles.slider} ${sliderStyles.small}`}
+        />
+      </div>
       <Button
         variant='default'
         className={styles.stepper}

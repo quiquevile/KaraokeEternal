@@ -33,6 +33,31 @@ export function equalGains (a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((gain, index) => gain === b[index])
 }
 
+export interface TapPoint {
+  pointerId: number
+  time: number
+  x: number
+  y: number
+}
+
+// taps drifting further than this are drags, not taps
+export const TAP_MOVE_PX = 24
+
+// second tap of a double-tap (native dblclick never fires on touch
+// sliders: the slider preventDefaults touchstart, killing the synthesized
+// mouse events; Pointer Events are unaffected)
+export function isDoubleTap (prev: TapPoint | null, next: TapPoint, maxDelayMs = 350, maxDistPx = 24): boolean {
+  if (!prev || prev.pointerId !== next.pointerId) return false
+
+  const dt = next.time - prev.time
+  if (dt < 0 || dt > maxDelayMs) return false
+
+  const dx = next.x - prev.x
+  const dy = next.y - prev.y
+
+  return dx * dx + dy * dy <= maxDistPx * maxDistPx
+}
+
 export interface EqPreset {
   name: string
   gains: number[]

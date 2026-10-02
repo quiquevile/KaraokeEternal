@@ -8,6 +8,7 @@ import {
   createEqualizer,
   equalGains,
   formatFreq,
+  isDoubleTap,
   parseGainInput,
   setEqualizerGains,
 } from './equalizer'
@@ -81,5 +82,15 @@ describe('equalizer', () => {
     expect(formatFreq(600)).toBe('600')
     expect(formatFreq(1000)).toBe('1k')
     expect(formatFreq(16000)).toBe('16k')
+  })
+
+  it('detects double taps by time, distance and pointer', () => {
+    const first = { pointerId: 1, time: 1000, x: 50, y: 50 }
+
+    expect(isDoubleTap(null, { ...first, time: 1100 })).toBe(false)
+    expect(isDoubleTap(first, { ...first, time: 1100 })).toBe(true)
+    expect(isDoubleTap(first, { ...first, time: 1100, pointerId: 2 })).toBe(false)
+    expect(isDoubleTap(first, { ...first, time: 2000 })).toBe(false)
+    expect(isDoubleTap(first, { ...first, time: 1100, x: 500 })).toBe(false)
   })
 })

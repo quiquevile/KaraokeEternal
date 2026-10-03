@@ -316,6 +316,10 @@ export async function handleMoveMedia (ctx) {
 
   ctx.status = 200
   ctx.body = { mediaId, pathId: target.pathId, relPath }
+
+  // invalidate the library cache (download flags live there) and push the
+  // new library + queues so every client filters on fresh data
+  pushQueuesAndLibrary(ctx.io)
 }
 
 router.post('/:mediaId/move', handleMoveMedia)

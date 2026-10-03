@@ -358,4 +358,21 @@ describe('Library.get download flag', () => {
       Library.cache.version = null
     }
   })
+
+  it('recomputes the flag after a version moves folders', () => {
+    const songId = seedDownloadSetup()
+    Library.cache.version = null
+
+    try {
+      expect(Library.get().songs.entities[songId].isDownloaded).toBe(true)
+
+      // what handleMoveMedia persists (plus cache invalidation via push)
+      db.run('UPDATE media SET pathId = 1, relPath = ? WHERE relPath = ?', ['dl-song.mp4', 'dl-song.mp4'])
+      Library.cache.version = null
+
+      expect(Library.get().songs.entities[songId].isDownloaded).toBe(false)
+    } finally {
+      clearDownloadSetup()
+    }
+  })
 })

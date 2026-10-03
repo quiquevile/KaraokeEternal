@@ -439,6 +439,8 @@ describe('Media version move', () => {
     expect(fsMod.renameSync).toHaveBeenCalledWith('/audio/set1/song.mp3', '/video/song.mp3')
     expect(Media.update).toHaveBeenCalledWith({ mediaId: 123, pathId: 2, relPath: 'song.mp3' })
     expect(ctx.body).toEqual({ mediaId: 123, pathId: 2, relPath: 'song.mp3' })
+    // cache invalidation + fresh flags reach every client
+    expect(pushQueuesAndLibrary).toHaveBeenCalled()
   })
 
   it('moves the mp3+g sidecar along', async () => {

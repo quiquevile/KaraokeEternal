@@ -19,6 +19,14 @@ function findProjectRoot (startDir: string) {
 
 const baseDir = findProjectRoot(path.dirname(fileURLToPath(import.meta.url)))
 
+// log levels are indexes into LEVELS where 0 disables the transport, so
+// (unlike ports) a parsed 0 must survive instead of falling back
+export const parseLevel = (value: string | undefined): number | undefined => {
+  const parsed = parseInt(value ?? '', 10)
+
+  return Number.isInteger(parsed) ? parsed : undefined
+}
+
 const env = {
   NODE_ENV: process.env.NODE_ENV,
   KES_CONSOLE_COLORS: process.env.KES_CONSOLE_COLORS
@@ -30,10 +38,10 @@ const env = {
   KES_PORT: parseInt(process.env.KES_PORT, 10) || 0,
   KES_ROTATE_KEY: ['1', 'true'].includes(process.env.KES_ROTATE_KEY?.toLowerCase()),
   KES_SCAN: process.env.KES_SCAN?.trim(),
-  KES_SCANNER_CONSOLE_LEVEL: parseInt(process.env.KES_SCANNER_CONSOLE_LEVEL, 10) || undefined,
-  KES_SCANNER_LOG_LEVEL: parseInt(process.env.KES_SCANNER_LOG_LEVEL, 10) || undefined,
-  KES_SERVER_CONSOLE_LEVEL: parseInt(process.env.KES_SERVER_CONSOLE_LEVEL, 10) || undefined,
-  KES_SERVER_LOG_LEVEL: parseInt(process.env.KES_SERVER_LOG_LEVEL, 10) || undefined,
+  KES_SCANNER_CONSOLE_LEVEL: parseLevel(process.env.KES_SCANNER_CONSOLE_LEVEL),
+  KES_SCANNER_LOG_LEVEL: parseLevel(process.env.KES_SCANNER_LOG_LEVEL),
+  KES_SERVER_CONSOLE_LEVEL: parseLevel(process.env.KES_SERVER_CONSOLE_LEVEL),
+  KES_SERVER_LOG_LEVEL: parseLevel(process.env.KES_SERVER_LOG_LEVEL),
   KES_URL_PATH: process.env.KES_URL_PATH || '/',
   // support PUID/PGID convention
   KES_PUID: parseInt(process.env.PUID, 10) || undefined,

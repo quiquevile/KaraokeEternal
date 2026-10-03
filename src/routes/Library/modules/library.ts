@@ -15,7 +15,7 @@ import {
 // ------------------------------------
 export const scrollArtists = createAction<number>(SCROLL_ARTISTS)
 export const toggleArtistExpanded = createAction<number>(TOGGLE_ARTIST_EXPANDED)
-export const toggleArtistResultExpanded = createAction<number>(TOGGLE_ARTIST_RESULT_EXPANDED)
+export const toggleArtistResultExpanded = createAction<{ artistId: number, isExpanded: boolean }>(TOGGLE_ARTIST_RESULT_EXPANDED)
 const libraryPush = createAction<LibraryState>(LIBRARY_PUSH)
 
 export const resetFilterStr = createAction(LIBRARY_FILTER_STRING_RESET)
@@ -43,6 +43,7 @@ export interface LibraryState {
   scrollRow: number
   expandedArtists: number[]
   expandedArtistResults: number[]
+  collapsedArtistResults: number[]
 }
 
 const initialState: LibraryState = {
@@ -54,6 +55,7 @@ const initialState: LibraryState = {
   scrollRow: 0,
   expandedArtists: [],
   expandedArtistResults: [],
+  collapsedArtistResults: [],
 }
 
 const libraryReducer = createReducer(initialState, (builder) => {
@@ -80,10 +82,17 @@ const libraryReducer = createReducer(initialState, (builder) => {
       else state.expandedArtists.splice(idx, 1)
     })
     .addCase(toggleArtistResultExpanded, (state, { payload }) => {
-      const idx = state.expandedArtistResults.indexOf(payload)
+      // explicit user collapse wins over auto-expansion and vice versa
+      const inExpanded = state.expandedArtistResults.indexOf(payload.artistId)
+      const inCollapsed = state.collapsedArtistResults.indexOf(payload.artistId)
 
-      if (idx === -1) state.expandedArtistResults.push(payload)
-      else state.expandedArtistResults.splice(idx, 1)
+      if (payload.isExpanded) {
+        if (inExpanded !== -1) state.expandedArtistResults.splice(inExpanded, 1)
+        if (inCollapsed === -1) state.collapsedArtistResults.push(payload.artistId)
+      } else {
+        if (inCollapsed !== -1) state.collapsedArtistResults.splice(inCollapsed, 1)
+        if (inExpanded === -1) state.expandedArtistResults.push(payload.artistId)
+      }
     })
     .addCase(libraryPush, (state, { payload }) => ({
       ...state,

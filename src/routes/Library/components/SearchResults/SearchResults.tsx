@@ -21,13 +21,21 @@ interface SearchResultsProps {
 interface CustomRowProps {
   artists: RootState['artists']
   dispatch: ReturnType<typeof useAppDispatch>
-  expandedArtists: number[]
   filterKeywords: string[]
-  filterStarred: boolean
-  filterDownloaded: boolean
   tree: SearchTreeNode[]
   expandedArtistResults: number[]
+  collapsedArtistResults: number[]
 }
+
+// explicit user collapse wins over auto-expansion and vice versa
+const isNodeExpanded = (
+  node: SearchTreeNode,
+  expandedArtistResults: number[],
+  collapsedArtistResults: number[],
+): boolean => (
+  (node.autoExpanded || expandedArtistResults.includes(node.artistId))
+  && !collapsedArtistResults.includes(node.artistId)
+)
 
 // this is outside the SearchResults component to keep the reference as stable as possible,
 // as react-window will re-render the list (breaking animations) when RowComponent changes
@@ -38,15 +46,12 @@ const RowComponent = ({
   dispatch,
   artists,
   filterKeywords,
-  filterStarred,
-  filterDownloaded,
   tree,
   expandedArtistResults,
+  collapsedArtistResults,
 }: RowComponentProps<CustomRowProps>) => {
   const { starredSongs } = useAppSelector(state => ensureState(state.userStars))
   const { upcoming } = useAppSelector(getSongsStatus)
-
-  const qualifiers = `${filterStarred ? 'starred ' : ''}${filterDownloaded ? 'downloaded ' : ''}`
 
   // tree heading
   if (index === 0) {
@@ -55,14 +60,9 @@ const RowComponent = ({
     return (
       <div key='treeHeading' style={style} className={styles.artistsHeading}>
         {tree.length}
-        {' '}
-        {qualifiers}
-        {tree.length === 1 ? 'artist' : 'artists'}
-        {', '}
+        {' artists, '}
         {songCount}
-        {' '}
-        {qualifiers}
-        {songCount === 1 ? 'song' : 'songs'}
+        {' songs'}
       </div>
     )
   }
@@ -71,7 +71,7 @@ const RowComponent = ({
   const node = tree[index - 1]
   const artistId = node.artistId
   const artist = artists.entities[artistId]
-  const isExpanded = node.autoExpanded || expandedArtistResults.includes(artistId)
+  const isExpanded = isNodeExpanded(node, expandedArtistResults, collapsedArtistResults)
 
   return (
     <ArtistItem
@@ -81,7 +81,7 @@ const RowComponent = ({
       key={artistId}
       name={artist.name}
       numStars={0}
-      onArtistClick={() => dispatch(toggleArtistResultExpanded(artistId))}
+      onArtistClick={() => dispatch(toggleArtistResultExpanded({ artistId, isExpanded }))}
       upcomingSongs={upcoming}
       starredSongs={starredSongs}
       style={style}
@@ -93,7 +93,8 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
   const dispatch = useAppDispatch()
   const artists = useAppSelector(state => state.artists)
   const expandedArtistResults = useAppSelector(state => state.library.expandedArtistResults)
-  const { filterStr, filterStarred, filterDownloaded } = useAppSelector(state => state.library)
+  const collapsedArtistResults = useAppSelector(state => state.library.collapsedArtistResults)
+  const { filterStr } = useAppSelector(state => state.library)
   const tree = useAppSelector(getSearchTree)
 
   const listRef = useRef<ListImperativeAPI | null>(null)
@@ -107,7 +108,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
     const node = tree[index - 1]
     let height = ROW_HEIGHT_ARTIST
 
-    if (node.autoExpanded || expandedArtistResults.includes(node.artistId)) {
+    if (isNodeExpanded(node, expandedArtistResults, collapsedArtistResults)) {
       height += node.songIds.length * ROW_HEIGHT_SONG
     }
 
@@ -127,11 +128,10 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
       rowProps={{
         dispatch,
         artists,
-        filterStarred,
-        filterDownloaded,
         filterKeywords,
         tree,
         expandedArtistResults,
+        collapsedArtistResults,
       }}
       rowHeight={rowHeight}
       numRows={tree.length + 1}

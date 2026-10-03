@@ -147,33 +147,32 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
       <span className={styles.freq}>{formatFreq(freq)}</span>
       {editing
         ? (
-          <input
-            ref={inputRef}
-            className={styles.editor}
-            value={draft}
-            inputMode='decimal'
-            autoComplete='off'
-            onChange={e => setDraft(e.target.value)}
-            onBlur={commitEditing}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitEditing()
-              if (e.key === 'Escape') setEditing(false)
-            }}
-            aria-label={`${formatFreq(freq)} Hz gain in dB`}
-          />
-        )
+            <input
+              ref={inputRef}
+              className={styles.editor}
+              value={draft}
+              inputMode='decimal'
+              autoComplete='off'
+              onChange={e => setDraft(e.target.value)}
+              onBlur={commitEditing}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitEditing()
+                if (e.key === 'Escape') setEditing(false)
+              }}
+              aria-label={`${formatFreq(freq)} Hz gain in dB`}
+            />
+          )
         : (
-          <button
-            type='button'
-            className={styles.value}
-            onClick={startEditing}
-            disabled={disabled}
-            aria-label={`${formatFreq(freq)} Hz gain ${formatGain(gain)}, activate to edit`}
-          >
-            {formatGain(gain)}
-          </button>
-        )
-      }
+            <button
+              type='button'
+              className={styles.value}
+              onClick={startEditing}
+              disabled={disabled}
+              aria-label={`${formatFreq(freq)} Hz gain ${formatGain(gain)}, activate to edit`}
+            >
+              {formatGain(gain)}
+            </button>
+          )}
     </div>
   )
 }

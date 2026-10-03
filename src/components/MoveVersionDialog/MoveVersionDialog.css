@@ -1,0 +1,41 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.file {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-gray-5);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.groupTitle {
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  color: var(--btn-danger-bg-color);
+  font-size: var(--font-size-s);
+  margin: var(--space-s) 0 0;
+}
+
+.btnContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+}

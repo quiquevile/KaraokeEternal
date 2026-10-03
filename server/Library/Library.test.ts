@@ -314,17 +314,17 @@ describe('Library.get download flag', () => {
     db.run('INSERT INTO paths (path, priority, data) VALUES (?, ?, ?)', ['/downloads', 0, '{}'])
     const pathId = (db.get<{ pathId: number }>('SELECT pathId FROM paths WHERE path = ?', ['/downloads']) as { pathId: number }).pathId
     db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)', [songId, pathId, 'dl-song.mp4', 200])
-    db.run("INSERT INTO prefs (key, data) VALUES ('youtubeDownloadPathId', ?)", [String(pathId)])
+    db.run('INSERT INTO prefs (key, data) VALUES (\'youtubeDownloadPathId\', ?)', [String(pathId)])
 
     return songId
   }
 
   const clearDownloadSetup = () => {
-    db.run("DELETE FROM media WHERE relPath = 'dl-song.mp4'")
-    db.run("DELETE FROM songs WHERE title = 'DL Song'")
-    db.run("DELETE FROM artists WHERE name = 'DL Artist'")
-    db.run("DELETE FROM paths WHERE path = '/downloads'")
-    db.run("DELETE FROM prefs WHERE key = 'youtubeDownloadPathId'")
+    db.run('DELETE FROM media WHERE relPath = \'dl-song.mp4\'')
+    db.run('DELETE FROM songs WHERE title = \'DL Song\'')
+    db.run('DELETE FROM artists WHERE name = \'DL Artist\'')
+    db.run('DELETE FROM paths WHERE path = \'/downloads\'')
+    db.run('DELETE FROM prefs WHERE key = \'youtubeDownloadPathId\'')
     Library.cache.version = null
   }
 

@@ -58,6 +58,17 @@ export const deleteMedia = createAsyncThunk(
   },
 )
 
+export const moveMedia = createAsyncThunk(
+  'songInfo/moveMedia',
+  async ({ songId, mediaId, destDir }: { songId: number, mediaId: number, destDir: string }, thunkAPI) => {
+    await api.post(`media/${mediaId}/move`, {
+      body: { destDir },
+    })
+    // refresh versions (path + relPath); the dialog stays open
+    thunkAPI.dispatch(showSongInfo(songId))
+  },
+)
+
 export const setMediaGain = createAsyncThunk(
   SONG_INFO_SET_MEDIA_GAIN,
   async ({ songId, mediaId, rgTrackGain }: { songId: number, mediaId: number, rgTrackGain: number | null }, thunkAPI) => {
@@ -165,6 +176,9 @@ const songInfoReducer = createReducer(initialState, (builder) => {
     })
     .addCase(deleteMedia.rejected, (state, action) => {
       state.error = action.error.message ?? 'could not delete versions'
+    })
+    .addCase(moveMedia.rejected, (state, action) => {
+      state.error = action.error.message ?? 'could not move file'
     })
     .addCase(updateSong.rejected, (state, action) => {
       state.error = action.error.message ?? 'could not save song'

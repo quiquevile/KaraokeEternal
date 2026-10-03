@@ -31,6 +31,12 @@
   margin-right: auto;
 }
 
+.error {
+  color: var(--btn-danger-bg-color);
+  font-size: var(--font-size-s);
+  margin: 0;
+}
+
 .bands {
   display: flex;
   gap: var(--space-m);

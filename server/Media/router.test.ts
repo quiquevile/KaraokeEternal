@@ -3,8 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('fs', () => ({
   default: {
     createReadStream: vi.fn().mockReturnValue({ on: vi.fn() }),
+    existsSync: vi.fn(),
+    renameSync: vi.fn(),
+    statSync: vi.fn(() => { throw new Error('ENOENT') }),
   },
   createReadStream: vi.fn().mockReturnValue({ on: vi.fn() }),
+  existsSync: vi.fn(),
+  renameSync: vi.fn(),
+  statSync: vi.fn(() => { throw new Error('ENOENT') }),
 }))
 
 vi.mock('node:fs/promises', () => ({
@@ -18,6 +24,10 @@ vi.mock('node:fs/promises', () => ({
 
 vi.mock('unzipit', () => ({
   unzip: vi.fn(),
+}))
+
+vi.mock('../lib/getFolders.js', () => ({
+  default: vi.fn(),
 }))
 
 vi.mock('../Media/Media.js', () => ({
@@ -369,5 +379,111 @@ describe('Media loudness gain', () => {
       rgTrackPeak: null,
     }))
     expect(ctx.body).toEqual({ mediaId: 123, rgTrackGain: null })
+  })
+})
+
+describe('Media move targets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('lists configured folders with subfolders (admin)', async () => {
+    const { default: getFolders } = await import('../lib/getFolders.js')
+    vi.mocked(getFolders).mockImplementation(async (dir: string) => (
+      dir === '/audio' ? ['/audio/set1'] : []
+    ))
+    vi.mocked(Prefs.get).mockReturnValue({
+      paths: { result: [1], entities: { 1: { path: '/audio' } } },
+    } as unknown as ReturnType<typeof Prefs.get>)
+    const ctx = { ...makeCtx({ isAdmin: true }), method: 'GET', path: '/api/media/move-targets' }
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(ctx.body).toEqual({
+      paths: [{ pathId: 1, path: '/audio', folders: ['', 'set1'] }],
+    })
+  })
+
+  it('rejects non-admins with 401', async () => {
+    const ctx = { ...makeCtx({ isAdmin: false }), method: 'GET', path: '/api/media/move-targets' }
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+  })
+})
+
+describe('Media version move', () => {
+  const movePrefs = {
+    paths: { result: [1, 2], entities: { 1: { path: '/audio' }, 2: { path: '/video' } } },
+  } as unknown as ReturnType<typeof Prefs.get>
+
+  const moveCtx = (user: object, body: object) => ({
+    ...makeCtx(user),
+    method: 'POST',
+    path: '/api/media/123/move',
+    request: { method: 'POST', body },
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(Media.search).mockReturnValue(mockSearchResult({ pathId: 1, relPath: 'set1/song.mp3' }))
+    vi.mocked(Prefs.get).mockReturnValue(movePrefs)
+  })
+
+  it('moves the file and updates pathId/relPath (admin)', async () => {
+    const fsPromises = (await import('node:fs/promises')).default
+    const fsMod = (await import('fs')).default
+    vi.mocked(fsPromises.stat).mockResolvedValue({ isDirectory: () => true } as never)
+    vi.mocked(fsMod.existsSync).mockReturnValue(false)
+    const ctx = moveCtx({ isAdmin: true }, { destDir: '/video' })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(fsMod.renameSync).toHaveBeenCalledWith('/audio/set1/song.mp3', '/video/song.mp3')
+    expect(Media.update).toHaveBeenCalledWith({ mediaId: 123, pathId: 2, relPath: 'song.mp3' })
+    expect(ctx.body).toEqual({ mediaId: 123, pathId: 2, relPath: 'song.mp3' })
+  })
+
+  it('moves the mp3+g sidecar along', async () => {
+    const fsPromises = (await import('node:fs/promises')).default
+    const fsMod = (await import('fs')).default
+    vi.mocked(fsPromises.stat).mockResolvedValue({ isDirectory: () => true } as never)
+    vi.mocked(fsMod.existsSync).mockReturnValue(false)
+    vi.mocked(fsMod.statSync).mockImplementation(((p: unknown) => {
+      if (String(p).endsWith('.cdg')) return {}
+      throw new Error('ENOENT')
+    }) as never)
+    const ctx = moveCtx({ isAdmin: true }, { destDir: '/video/live' })
+
+    await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
+    expect(fsMod.renameSync).toHaveBeenCalledWith('/audio/set1/song.mp3', '/video/live/song.mp3')
+    expect(fsMod.renameSync).toHaveBeenCalledWith('/audio/set1/song.cdg', '/video/live/song.cdg')
+    expect(Media.update).toHaveBeenCalledWith({ mediaId: 123, pathId: 2, relPath: 'live/song.mp3' })
+  })
+
+  it('refuses existing destinations with 409 without touching anything', async () => {
+    const fsPromises = (await import('node:fs/promises')).default
+    const fsMod = (await import('fs')).default
+    vi.mocked(fsPromises.stat).mockResolvedValue({ isDirectory: () => true } as never)
+    vi.mocked(fsMod.existsSync).mockReturnValue(true)
+    const ctx = moveCtx({ isAdmin: true }, { destDir: '/video' })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 409 })
+    expect(fsMod.renameSync).not.toHaveBeenCalled()
+    expect(Media.update).not.toHaveBeenCalled()
+  })
+
+  it('rejects destinations outside media folders with 422', async () => {
+    const ctx = moveCtx({ isAdmin: true }, { destDir: '/elsewhere' })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 422 })
+    expect(Media.update).not.toHaveBeenCalled()
+  })
+
+  it('rejects unknown media with 404 and non-admins with 401', async () => {
+    vi.mocked(Media.search).mockReturnValue({ result: [], entities: {} })
+
+    const missing = moveCtx({ isAdmin: true }, { destDir: '/video' })
+    await expect(dispatch(missing, () => {})).rejects.toMatchObject({ status: 404 })
+
+    const forbidden = moveCtx({ isAdmin: false }, { destDir: '/video' })
+    await expect(dispatch(forbidden, () => {})).rejects.toMatchObject({ status: 401 })
   })
 })

@@ -61,7 +61,9 @@ export function isDoubleTap (prev: TapPoint | null, next: TapPoint, maxDelayMs =
 export interface EqPreset {
   name: string
   gains: number[]
-}export const EQ_PRESETS: EqPreset[] = [
+}
+
+export const EQ_PRESETS: EqPreset[] = [
   { name: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
   { name: 'Rock', gains: [5, 4, 3, 1, -1, -1, 1, 3, 4, 5] },
   { name: 'Pop', gains: [3, 4, 4, 2, 0, 0, 1, 2, 3, 4] },

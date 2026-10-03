@@ -1,14 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
 import { formatDuration } from 'lib/dateTime'
 import { closeSongInfo, setMediaGain, setPreferredSong } from 'store/modules/songInfo'
+import MoveVersionDialog from 'components/MoveVersionDialog/MoveVersionDialog'
 import styles from './SongInfo.css'
 
 const SongInfo = () => {
   const { isLoading, isVisible, songId, media } = useAppSelector(state => state.songInfo)
   const isAdmin = useAppSelector(state => state.user.isAdmin)
+  const [moveMediaId, setMoveMediaId] = useState<number | null>(null)
 
   const dispatch = useAppDispatch()
   const handleCloseSongInfo = () => dispatch(closeSongInfo())
@@ -32,6 +34,12 @@ const SongInfo = () => {
     return (
       <div key={item.mediaId} className={styles.media}>
         {item.path + (item.path.indexOf('/') === 0 ? '/' : '\\') + item.relPath}
+        {isAdmin && (
+          <span>
+            &nbsp;
+            <a onClick={() => setMoveMediaId(mediaId)}>(Move)</a>
+          </span>
+        )}
         <br />
         <span className={styles.label}>Duration: </span>
         {formatDuration(item.duration)}
@@ -105,6 +113,14 @@ const SongInfo = () => {
           </Button>
         </div>
       </div>
+      {moveMediaId !== null && songId !== null && (
+        <MoveVersionDialog
+          songId={songId}
+          mediaId={moveMediaId}
+          fileName={media.entities[moveMediaId]?.relPath ?? ''}
+          onClose={() => setMoveMediaId(null)}
+        />
+      )}
     </Modal>
   )
 }

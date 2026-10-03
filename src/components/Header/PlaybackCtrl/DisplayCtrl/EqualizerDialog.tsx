@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { saveEqPreset, type EqPresetSlot } from 'store/modules/prefs'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
@@ -47,6 +47,7 @@ const EqualizerDialog = ({
   const dispatch = useAppDispatch()
   const storedPresets = useAppSelector(state => state.prefs.eqPresets)
   const maySavePresets = useAppSelector(state => canSaveEqPresets(state.user))
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // global custom slots (Flat until saved); recall works for anyone who
   // can open this dialog, saving needs the nested permission
@@ -61,11 +62,19 @@ const EqualizerDialog = ({
 
   const handleSaveCustom = (name: EqPresetSlot) => {
     // mark the slot live only once it is really stored (dialog stays open)
-    dispatch(saveEqPreset({ name, gains: eqGains.slice() })).then((action) => {
-      if (saveEqPreset.fulfilled.match(action)) {
-        onRequestOptions({ eqPreset: name })
-      }
-    })
+    setSaveError(null)
+    dispatch(saveEqPreset({ name, gains: eqGains.slice() }))
+      .then((action) => {
+        if (saveEqPreset.fulfilled.match(action)) {
+          onRequestOptions({ eqPreset: name })
+          return
+        }
+
+        throw new Error(action.error.message ?? 'could not save preset')
+      })
+      .catch((err: unknown) => {
+        setSaveError(err instanceof Error ? err.message : String(err))
+      })
   }
 
   // persist the live values shown above to the room; closing via the
@@ -85,7 +94,7 @@ const EqualizerDialog = ({
         <div className={styles.saveRow}>
           {maySavePresets && (
             <div className={styles.saveSlots}>
-              {EQ_CUSTOM_SLOTS.map(name => {
+              {EQ_CUSTOM_SLOTS.map((name) => {
                 // active when the slot holds exactly what is playing:
                 // instant feedback on save, no status round-trip needed
                 const isActive = eqEnabled && equalGains(storedPresets?.[name] ?? EQ_PRESETS[0].gains, eqGains)
@@ -155,6 +164,9 @@ const EqualizerDialog = ({
             />
           ))}
         </div>
+
+        {saveError
+          && <p className={styles.error}>{saveError}</p>}
       </div>
     </Modal>
   )

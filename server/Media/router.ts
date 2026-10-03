@@ -10,6 +10,8 @@ import KoaRouter from '@koa/router'
 import Library from '../Library/Library.js'
 import Media from './Media.js'
 import Prefs from '../Prefs/Prefs.js'
+import getFolders from '../lib/getFolders.js'
+import { assertNoRenameClash, atomicRenameAll } from '../lib/fsUtils.js'
 import { can } from '../lib/permissions.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import fileTypes from './fileTypes.js'
@@ -22,6 +24,9 @@ const audioExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].mimeType.s
 
 // refuse to buffer absurd archives into memory (mp3+g zips are kilobytes)
 const MAX_ZIP_BYTES = 256 * 1024 * 1024
+
+// exact path first: '/:mediaId' below would swallow it
+router.get('/move-targets', handleMoveTargets)
 
 // stream a media file
 router.get('/:mediaId', async (ctx) => {
@@ -113,6 +118,47 @@ router.get('/:mediaId', async (ctx) => {
   ctx.body = buffer ? Readable.from(buffer) : fs.createReadStream(file)
 })
 
+// list configured media folders with their subfolders as move targets
+// (admin only); '' is the folder itself
+export async function handleMoveTargets (ctx) {
+  requireAdmin(ctx)
+
+  const { paths } = Prefs.get()
+  const out: Array<{ pathId: number, path: string, folders: string[] }> = []
+
+  for (const pathId of paths.result) {
+    const base = paths.entities[pathId]?.path
+    if (!base) continue
+
+    out.push({ pathId, path: base, folders: ['', ...await listSubfolders(base, base, 10)] })
+  }
+
+  ctx.body = { paths: out }
+}
+
+async function listSubfolders (dir: string, base: string, depth: number): Promise<string[]> {
+  if (depth <= 0) return []
+
+  let entries: string[]
+  try {
+    entries = await getFolders(dir)
+  } catch {
+    return []
+  }
+
+  const rel: string[] = []
+  for (const entry of entries) {
+    if (path.basename(entry).startsWith('.')) continue
+
+    // forward slashes everywhere: the client joins them onto base paths
+    const relEntry = path.relative(base, entry).split(path.sep).join('/')
+    rel.push(relEntry)
+    rel.push(...await listSubfolders(entry, base, depth - 1))
+  }
+
+  return rel.sort()
+}
+
 // delete a single media version (admin only); purges the whole song
 // when it was the last version left
 export async function handleDeleteMedia (ctx) {
@@ -186,6 +232,93 @@ export async function handleUpdateMedia (ctx) {
 }
 
 router.put('/:mediaId', handleUpdateMedia)
+
+// move a version's file to another folder inside the media library
+// (admin only); the mp3+g sidecar travels along when present
+export async function handleMoveMedia (ctx) {
+  requireAdmin(ctx)
+
+  const mediaId = parseIdParam(ctx, 'mediaId')
+  const destDir = ctx.request.body?.destDir
+
+  if (typeof destDir !== 'string' || !destDir || !path.isAbsolute(destDir)) {
+    ctx.throw(422, 'destDir must be an absolute path')
+  }
+
+  const found = Media.search({ mediaId })
+
+  if (!found.result.length) {
+    ctx.throw(404, `mediaId ${mediaId} not found`)
+  }
+
+  const current = found.entities[mediaId]
+  const { paths } = Prefs.get()
+
+  // resolve destDir to a configured media folder (longest prefix wins)
+  let target: { pathId: number, base: string } | null = null
+
+  for (const pathId of paths.result) {
+    const base = paths.entities[pathId]?.path
+    if (!base) continue
+
+    const rel = path.relative(base, destDir)
+    if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) {
+      if (!target || base.length > target.base.length) target = { pathId, base }
+    }
+  }
+
+  if (!target) {
+    ctx.throw(422, 'destination is not inside a media folder')
+  }
+
+  const basePath = paths.entities[current.pathId]?.path
+
+  if (!basePath) {
+    ctx.throw(404, 'media path not found')
+  }
+
+  let destStat
+  try {
+    destStat = await fsPromises.stat(destDir)
+  } catch {
+    ctx.throw(422, 'destination folder not found')
+  }
+
+  if (!destStat.isDirectory()) {
+    ctx.throw(422, 'destination is not a folder')
+  }
+
+  const from = path.join(basePath, current.relPath)
+
+  try {
+    await fsPromises.stat(from)
+  } catch {
+    ctx.throw(404, 'media file not found')
+  }
+
+  const to = path.join(destDir, path.basename(current.relPath))
+  const renames = [{ from, to }]
+  const cdg = getCdgName(from)
+
+  if (cdg) {
+    renames.push({ from: cdg, to: path.join(destDir, path.basename(cdg)) })
+  }
+
+  try {
+    assertNoRenameClash(renames)
+    atomicRenameAll(renames)
+  } catch (err) {
+    mapDomainError(ctx, err)
+  }
+
+  const relPath = path.relative(target.base, to).split(path.sep).join('/')
+  Media.update({ mediaId, pathId: target.pathId, relPath })
+
+  ctx.status = 200
+  ctx.body = { mediaId, pathId: target.pathId, relPath }
+}
+
+router.post('/:mediaId/move', handleMoveMedia)
 
 // set isPreferred flag
 router.all('/:mediaId/prefer', (ctx) => {

@@ -27,10 +27,17 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
     // ordered: the filtered list drops a closed own room, so re-seed it
     // afterwards (member views like QR and persisted options keep working
     // while closed); failures are already recorded in their slices
-    dispatch(fetchRooms()).then(
-      () => { dispatch(fetchOwnRoom()) },
-      () => { dispatch(fetchOwnRoom()) },
-    )
+    const refresh = async () => {
+      try {
+        await dispatch(fetchRooms())
+      } finally {
+        dispatch(fetchOwnRoom())
+      }
+    }
+
+    refresh().catch(() => {
+      // handled above: each failure lands in its own slice
+    })
     dispatch(fetchCurrentRoomStatus())
     if (canQueueForOthers) dispatch(fetchDownloadUsers(user.roomId ?? null))
   }, [dispatch, canQueueForOthers, user.roomId])

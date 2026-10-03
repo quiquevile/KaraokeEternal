@@ -27,10 +27,17 @@ interface CustomRowProps {
   expandedArtists: number[]
   filterKeywords: string[]
   filterStarred: boolean
+  filterDownloaded: boolean
   artistsResult: number[]
   songsResult: number[]
   expandedArtistResults: number[]
 }
+
+// with the downloaded filter on, an expanded artist stays consistent
+// with the songs section; otherwise expansion is unfiltered as always
+const visibleArtistSongs = (songIds: number[], songsResult: number[], filterDownloaded: boolean): number[] => (
+  filterDownloaded ? songIds.filter(songId => songsResult.includes(songId)) : songIds
+)
 
 // this is outside the SearchResults component to keep the reference as stable as possible,
 // as react-window will re-render the list (breaking animations) when RowComponent changes
@@ -42,6 +49,7 @@ const RowComponent = ({
   artists,
   filterKeywords,
   filterStarred,
+  filterDownloaded,
   artistsResult,
   songsResult,
   expandedArtistResults,
@@ -56,6 +64,7 @@ const RowComponent = ({
         {artistsResult.length}
         {' '}
         {filterStarred ? 'starred ' : ''}
+        {filterDownloaded ? 'downloaded ' : ''}
         {artistsResult.length === 1 ? 'artist' : 'artists'}
       </div>
     )
@@ -65,10 +74,11 @@ const RowComponent = ({
   if (index > 0 && index < artistsResult.length + 1) {
     const artistId = artistsResult[index - 1]
     const artist = artists.entities[artistId]
+    const artistSongIds = visibleArtistSongs(artist.songIds, songsResult, filterDownloaded)
 
     return (
       <ArtistItem
-        artistSongIds={artist.songIds}
+        artistSongIds={artistSongIds}
         // numStars={props.starredArtistCounts[artistId] || 0}
         filterKeywords={filterKeywords}
         isExpanded={expandedArtistResults.includes(artistId)}
@@ -90,6 +100,7 @@ const RowComponent = ({
         {songsResult.length}
         {' '}
         {filterStarred ? 'starred ' : ''}
+        {filterDownloaded ? 'downloaded ' : ''}
         {songsResult.length === 1 ? 'song' : 'songs'}
       </div>
     )
@@ -111,7 +122,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
   const dispatch = useAppDispatch()
   const artists = useAppSelector(state => state.artists)
   const expandedArtistResults = useAppSelector(state => state.library.expandedArtistResults)
-  const { filterStr, filterStarred } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterDownloaded } = useAppSelector(state => state.library)
   const { artistsResult, songsResult } = useAppSelector(getSearchResults)
 
   const listRef = useRef<ListImperativeAPI | null>(null)
@@ -127,7 +138,9 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
       let height = ROW_HEIGHT_ARTIST
 
       if (expandedArtistResults.includes(artistId)) {
-        height += artists.entities[artistId].songIds.length * ROW_HEIGHT_SONG
+        height += visibleArtistSongs(
+          artists.entities[artistId].songIds, songsResult, filterDownloaded,
+        ).length * ROW_HEIGHT_SONG
       }
 
       return height
@@ -154,6 +167,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
         dispatch,
         artists,
         filterStarred,
+        filterDownloaded,
         filterKeywords,
         artistsResult,
         songsResult,

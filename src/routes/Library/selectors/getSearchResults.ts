@@ -48,12 +48,18 @@ const getSongsByKeyword = createSelector(
     }).map(match => match.item as unknown as number)
   })
 
-// #2: starred/hidden filters
+// #2: starred/hidden/downloaded filters
 const getArtistsByView = createSelector(
-  [getArtistsByKeyword, getFilterStarred, getStarredArtists],
-  (artistsWithKeyword, filterStarred, starredArtists) =>
+  [getArtistsByKeyword, getArtists, getFilterStarred, getStarredArtists, getFilterDownloaded, getSongs],
+  (artistsWithKeyword, artists, filterStarred, starredArtists, filterDownloaded, songs) =>
     artistsWithKeyword.filter((artistId) => {
-      return filterStarred ? starredArtists.includes(artistId) : true
+      if (filterStarred && !starredArtists.includes(artistId)) return false
+
+      if (filterDownloaded
+        && !(artists.entities[artistId]?.songIds ?? []).some(songId => songs.entities[songId]?.isDownloaded)
+      ) return false
+
+      return true
     }),
 )
 

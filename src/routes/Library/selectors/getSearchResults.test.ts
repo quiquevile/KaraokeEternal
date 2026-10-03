@@ -70,4 +70,20 @@ describe('getSearchResults', () => {
     expect(getSearchResults(withFilter('', true, true)).songsResult).toEqual([])
     expect(getSearchResults(withFilter('dancing', false, true)).songsResult).toEqual([10])
   })
+
+  it('hides artists without downloaded songs', () => {
+    const res = getSearchResults(withFilter('', false, true))
+
+    expect(res.artistsResult).toEqual([1])
+    expect(res.songsResult).toEqual([10])
+  })
+
+  it('combines keyword filtering with the downloaded filter', () => {
+    // 'queen' matches the artist name Queen and the song Dancing Queen;
+    // the downloaded filter then hides artist 2 (no downloads)
+    const res = getSearchResults(withFilter('queen', false, true))
+
+    expect(res.artistsResult).toEqual([])
+    expect(res.songsResult).toEqual([10])
+  })
 })

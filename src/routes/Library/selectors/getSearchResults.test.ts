@@ -13,17 +13,17 @@ const state = {
   songs: {
     result: [10, 20],
     entities: {
-      10: { songId: 10, artistId: 1, title: 'Dancing Queen' },
-      20: { songId: 20, artistId: 2, title: 'Bohemian Rhapsody' },
+      10: { songId: 10, artistId: 1, title: 'Dancing Queen', isDownloaded: true },
+      20: { songId: 20, artistId: 2, title: 'Bohemian Rhapsody', isDownloaded: false },
     },
   },
-  library: { filterStr: '', filterStarred: false },
+  library: { filterStr: '', filterStarred: false, filterDownloaded: false },
   userStars: { starredArtists: [2], starredSongs: [20] },
 } as unknown as RootState
 
-const withFilter = (filterStr: string, filterStarred = false): RootState => ({
+const withFilter = (filterStr: string, filterStarred = false, filterDownloaded = false): RootState => ({
   ...state,
-  library: { filterStr, filterStarred },
+  library: { filterStr, filterStarred, filterDownloaded },
 } as unknown as RootState)
 
 describe('getSearchResults', () => {
@@ -58,5 +58,16 @@ describe('getSearchResults', () => {
 
     expect(res.artistsResult).toEqual([])
     expect(res.songsResult).toEqual([20])
+  })
+
+  it('filters to downloaded songs', () => {
+    const res = getSearchResults(withFilter('', false, true))
+
+    expect(res.songsResult).toEqual([10])
+  })
+
+  it('combines downloaded, starred and keyword filters', () => {
+    expect(getSearchResults(withFilter('', true, true)).songsResult).toEqual([])
+    expect(getSearchResults(withFilter('dancing', false, true)).songsResult).toEqual([10])
   })
 })

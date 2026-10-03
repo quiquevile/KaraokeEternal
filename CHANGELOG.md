@@ -12,6 +12,7 @@
 
 - Songs can be retagged from the library or the queue, with media files renamed automatically to match
 - Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
+- Admins can filter the library to songs with at least one version in the YouTube download folder
 - All changes are pushed live to every connected client
 
 ### Permissions

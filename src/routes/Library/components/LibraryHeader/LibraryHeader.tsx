@@ -1,13 +1,16 @@
 import React, { useState, useRef } from 'react'
 import clsx from 'clsx'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { setFilterStr, resetFilterStr, toggleFilterStarred } from '../../modules/library'
+import { setFilterStr, resetFilterStr, toggleFilterDownloaded, toggleFilterStarred } from '../../modules/library'
 import Button from 'components/Button/Button'
 import styles from './LibraryHeader.css'
 
 const LibraryHeader = () => {
   const dispatch = useAppDispatch()
-  const { filterStr, filterStarred } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterDownloaded } = useAppSelector(state => state.library)
+  const showDownloadFilter = useAppSelector(state =>
+    state.user.isAdmin && state.prefs.youtubeDownloadPathId != null,
+  )
 
   const searchInput = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(filterStr)
@@ -47,6 +50,15 @@ const LibraryHeader = () => {
           icon='CLEAR'
           onClick={clearSearch}
           className={clsx(styles.btnClear, styles.active)}
+        />
+      )}
+      {showDownloadFilter && (
+        <Button
+          className={clsx(styles.btnDownload, filterDownloaded && styles.active)}
+          icon='DOWNLOAD'
+          onClick={() => dispatch(toggleFilterDownloaded())}
+          aria-label='Show only downloaded songs'
+          aria-pressed={filterDownloaded}
         />
       )}
       <Button

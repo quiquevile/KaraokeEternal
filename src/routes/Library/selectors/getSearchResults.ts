@@ -7,6 +7,7 @@ const getArtists = (state: RootState) => state.artists
 const getSongs = (state: RootState) => state.songs
 const getFilterStr = (state: RootState) => state.library.filterStr.trim().toLowerCase()
 const getFilterStarred = (state: RootState) => state.library.filterStarred
+const getFilterDownloaded = (state: RootState) => state.library.filterDownloaded
 const getStarredArtists = (state: RootState) => ensureState(state.userStars).starredArtists
 const getStarredSongs = (state: RootState) => ensureState(state.userStars).starredSongs
 
@@ -57,10 +58,12 @@ const getArtistsByView = createSelector(
 )
 
 const getSongsByView = createSelector(
-  [getSongsByKeyword, getFilterStarred, getStarredSongs],
-  (songsWithKeyword, filterStarred, starredSongs) =>
+  [getSongsByKeyword, getFilterStarred, getStarredSongs, getFilterDownloaded, getSongs],
+  (songsWithKeyword, filterStarred, starredSongs, filterDownloaded, songs) =>
     songsWithKeyword.filter((songId) => {
-      return filterStarred ? starredSongs.includes(songId) : true
+      if (filterStarred && !starredSongs.includes(songId)) return false
+      if (filterDownloaded && !songs.entities[songId]?.isDownloaded) return false
+      return true
     }),
 )
 

@@ -46,3 +46,9 @@
     height: 3rem;
   }
 }
+
+.btnDownload {
+  svg {
+    height: 3rem;
+  }
+}

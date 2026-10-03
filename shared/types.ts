@@ -10,6 +10,8 @@ export interface Song {
   songId: number
   title: string
   numMedia: number
+  // whether any version lives in the configured YouTube download folder
+  isDownloaded?: boolean
 }
 
 export interface QueueItem {

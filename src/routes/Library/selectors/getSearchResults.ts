@@ -8,7 +8,6 @@ const getSongs = (state: RootState) => state.songs
 const getFilterStr = (state: RootState) => state.library.filterStr.trim().toLowerCase()
 const getFilterStarred = (state: RootState) => state.library.filterStarred
 const getFilterDownloaded = (state: RootState) => state.library.filterDownloaded
-const getStarredArtists = (state: RootState) => ensureState(state.userStars).starredArtists
 const getStarredSongs = (state: RootState) => ensureState(state.userStars).starredSongs
 
 const getArtistSearcher = createSelector(
@@ -27,58 +26,53 @@ const getSongSearcher = createSelector(
   }),
 )
 
-// #1: keyword filters
-const getArtistsByKeyword = createSelector(
-  [getArtists, getFilterStr, getArtistSearcher],
-  (artists, str, searcher) => {
-    if (!str) return artists.result
+export interface SearchTreeNode {
+  artistId: number
+  songIds: number[]
+  autoExpanded: boolean
+}
 
-    return searcher.search(str, {
-      returnMatchData: true,
-    }).map(match => match.item as unknown as number)
-  })
+// the search view is always an artist tree (never loose songs): an artist
+// is listed when its name matches or one of its songs matches (and passes
+// the starred/downloaded filters); a name-matching artist lists all its
+// passing songs, otherwise only the title-matching ones
+const getSearchTree = createSelector(
+  [getArtists, getSongs, getArtistSearcher, getSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterDownloaded],
+  (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterDownloaded) => {
+    const hasText = str.length > 0
+    const nameHits = new Set<number>(hasText
+      ? artistSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
+      : [])
+    const titleHits = new Set<number>(hasText
+      ? songSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
+      : [])
 
-const getSongsByKeyword = createSelector(
-  [getSongs, getFilterStr, getSongSearcher],
-  (songs, str, searcher) => {
-    if (!str) return songs.result
-
-    return searcher.search(str, {
-      returnMatchData: true,
-    }).map(match => match.item as unknown as number)
-  })
-
-// #2: starred/hidden/downloaded filters
-const getArtistsByView = createSelector(
-  [getArtistsByKeyword, getArtists, getFilterStarred, getStarredArtists, getFilterDownloaded, getSongs],
-  (artistsWithKeyword, artists, filterStarred, starredArtists, filterDownloaded, songs) =>
-    artistsWithKeyword.filter((artistId) => {
-      if (filterStarred && !starredArtists.includes(artistId)) return false
-
-      if (filterDownloaded
-        && !(artists.entities[artistId]?.songIds ?? []).some(songId => songs.entities[songId]?.isDownloaded)
-      ) return false
-
-      return true
-    }),
-)
-
-const getSongsByView = createSelector(
-  [getSongsByKeyword, getFilterStarred, getStarredSongs, getFilterDownloaded, getSongs],
-  (songsWithKeyword, filterStarred, starredSongs, filterDownloaded, songs) =>
-    songsWithKeyword.filter((songId) => {
+    const flagOK = (songId: number): boolean => {
       if (filterStarred && !starredSongs.includes(songId)) return false
       if (filterDownloaded && !songs.entities[songId]?.isDownloaded) return false
       return true
-    }),
+    }
+
+    const tree: SearchTreeNode[] = []
+
+    for (const artistId of artists.result) {
+      const songIds = artists.entities[artistId]?.songIds ?? []
+      const nameOK = !hasText || nameHits.has(artistId)
+      const listed = songIds.filter(songId =>
+        flagOK(songId) && (titleHits.has(songId) || nameOK),
+      )
+
+      if (!listed.length) continue
+
+      tree.push({
+        artistId,
+        songIds: listed,
+        autoExpanded: !hasText || listed.some(songId => titleHits.has(songId)),
+      })
+    }
+
+    return tree
+  },
 )
 
-const getSearchResults = createSelector(
-  [getArtistsByView, getSongsByView],
-  (artistsResult, songsResult) => ({
-    artistsResult,
-    songsResult,
-  }),
-)
-
-export default getSearchResults
+export default getSearchTree

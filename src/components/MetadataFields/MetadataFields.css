@@ -37,6 +37,30 @@
   font-size: var(--font-size-m);
 }
 
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.inputRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.clearBtn {
+  flex: 0 0 auto;
+  width: 32px;
+  min-height: 32px;
+  padding: var(--space-xs);
+  color: var(--btn-active-bg-color);
+  filter: var(--btn-active-filter);
+}
+
+.clearBtn svg {
+  height: 1.5rem;
+}
+
 .swap {
   flex: 0 0 auto;
   align-self: center;

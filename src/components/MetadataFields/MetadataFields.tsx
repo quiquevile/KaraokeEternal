@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import Button from 'components/Button/Button'
 import styles from './MetadataFields.css'
 import type { CaseField } from './useCaseField'
@@ -6,6 +6,37 @@ import type { CaseField } from './useCaseField'
 interface MetadataFieldsProps {
   artist: CaseField
   title: CaseField
+}
+
+const ClearableInput = ({ field, label }: { field: CaseField, label: string }) => {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleClear = () => {
+    field.set('')
+    inputRef.current?.focus()
+  }
+
+  return (
+    <div className={styles.inputRow}>
+      <input
+        ref={inputRef}
+        type='text'
+        value={field.value}
+        onChange={e => field.set(e.currentTarget.value)}
+        aria-label={label}
+      />
+      {field.value ? (
+        <Button
+          icon='CLEAR'
+          className={styles.clearBtn}
+          onClick={handleClear}
+          aria-label={`Clear ${label.toLowerCase()}`}
+        />
+      ) : (
+        <span className={styles.clearBtn} aria-hidden='true' />
+      )}
+    </div>
+  )
 }
 
 const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
@@ -28,7 +59,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
             Aa
           </Button>
         </span>
-        <input type='text' value={artist.value} onChange={e => artist.set(e.currentTarget.value)} />
+        <ClearableInput field={artist} label='Artist' />
       </label>
 
       <Button
@@ -51,7 +82,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
             Aa
           </Button>
         </span>
-        <input type='text' value={title.value} onChange={e => title.set(e.currentTarget.value)} />
+        <ClearableInput field={title} label='Title' />
       </label>
     </div>
   )

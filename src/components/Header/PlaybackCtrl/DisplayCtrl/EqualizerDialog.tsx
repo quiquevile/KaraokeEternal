@@ -34,6 +34,7 @@ const EqualizerDialog = ({
   const handleBand = (index: number, value: number) => {
     const gains = eqGains.slice()
     gains[index] = value
+    setLastRecalledByMe(null)
     onRequestOptions({ eqGains: gains, eqPreset: 'Custom' })
   }
 
@@ -48,6 +49,9 @@ const EqualizerDialog = ({
   const storedPresets = useAppSelector(state => state.prefs.eqPresets)
   const maySavePresets = useAppSelector(state => hasPermission(state.user, 'playerControls'))
   const [saveError, setSaveError] = useState<string | null>(null)
+  // custom slot recalled (or saved) by ME in this dialog: room state is
+  // shared, so only the clicker's own recall highlights up top
+  const [lastRecalledByMe, setLastRecalledByMe] = useState<EqPresetSlot | null>(null)
 
   // own slots, fresh on every open (another window may have saved since)
   useEffect(() => {
@@ -62,6 +66,7 @@ const EqualizerDialog = ({
   }))
 
   const handleRecallCustom = (name: string, gains: number[]) => {
+    setLastRecalledByMe(name as EqPresetSlot)
     onRequestOptions({ eqGains: gains.slice(), eqPreset: name })
   }
 
@@ -71,6 +76,7 @@ const EqualizerDialog = ({
     dispatch(saveEqPreset({ name, gains: eqGains.slice() }))
       .then((action) => {
         if (saveEqPreset.fulfilled.match(action)) {
+          setLastRecalledByMe(name)
           onRequestOptions({ eqPreset: name })
           return
         }
@@ -147,11 +153,11 @@ const EqualizerDialog = ({
           {customPresets.map(preset => (
             <Button
               key={preset.name}
-              variant={eqPreset === preset.name && eqEnabled ? 'primary' : 'default'}
+              variant={eqPreset === preset.name && eqEnabled && lastRecalledByMe === preset.name ? 'primary' : 'default'}
               className={styles.preset}
               onClick={() => handleRecallCustom(preset.name, preset.gains)}
               disabled={!eqEnabled}
-              aria-pressed={eqPreset === preset.name}
+              aria-pressed={eqPreset === preset.name && lastRecalledByMe === preset.name}
             >
               {preset.name}
             </Button>

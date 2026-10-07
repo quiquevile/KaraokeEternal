@@ -5,13 +5,6 @@ export const can = (user: { isAdmin: boolean, permissions?: Record<string, boole
   return user.permissions?.[capability] ?? false
 }
 
-// saving global EQ presets requires the nested playback permission too:
-// a stored eqPresetSave without playerControls grants nothing
-export const canSaveEqPresets = (user: { isAdmin: boolean, permissions?: Record<string, boolean> }): boolean => {
-  if (user.isAdmin) return true
-  return can(user, 'playerControls') && can(user, 'eqPresetSave')
-}
-
 /**
  * Normalizes a permissions value from a request body or the database
  * into a plain object. Returns null when it is neither an object nor

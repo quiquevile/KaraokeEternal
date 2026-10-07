@@ -212,7 +212,3 @@ export default persistReducer({
 
 export const hasPermission = (state: UserState, permission: Permission): boolean =>
   state.isAdmin || (state.permissions?.[permission] ?? false)
-
-// saving global EQ presets requires the nested playback permission too
-export const canSaveEqPresets = (state: UserState): boolean =>
-  state.isAdmin || (hasPermission(state, 'playerControls') && hasPermission(state, 'eqPresetSave'))

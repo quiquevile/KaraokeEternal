@@ -4,6 +4,7 @@ import crypto from '../lib/crypto.js'
 import Queue from '../Queue/Queue.js'
 import { randomChars } from '../lib/util.js'
 import { parsePermissions } from '../lib/permissions.js'
+import { ValidationError } from '../lib/Errors.js'
 import { User as UserType } from '../../shared/types.js'
 
 export type ServerUser = UserType & {
@@ -19,6 +20,9 @@ export const USERNAME_MAX_LENGTH = 128
 export const PASSWORD_MIN_LENGTH = 6
 export const NAME_MIN_LENGTH = 2
 export const NAME_MAX_LENGTH = 50
+
+export const EQ_PRESET_SLOTS = ['P1', 'P2', 'P3']
+export const EQ_BAND_COUNT = 10
 
 class User {
   /**
@@ -198,6 +202,47 @@ class User {
     }
 
     return user
+  }
+
+  /**
+   * Per-user EQ preset slots ({ P1: gains, ... }); missing slots are Flat
+   */
+  static getEqPresets (userId: number): Record<string, number[]> {
+    return (User.getUserData(userId)?.eqPresets ?? {}) as Record<string, number[]>
+  }
+
+  static setEqPreset (userId: number, name: string, gains: number[]): Record<string, number[]> {
+    if (!EQ_PRESET_SLOTS.includes(name)) {
+      throw new ValidationError('Invalid preset slot')
+    }
+
+    if (!Array.isArray(gains)
+      || gains.length !== EQ_BAND_COUNT
+      || gains.some(g => typeof g !== 'number' || !Number.isFinite(g))
+    ) {
+      throw new ValidationError('Invalid preset gains')
+    }
+
+    const data = User.getUserData(userId)
+    const next = { ...((data?.eqPresets ?? {}) as Record<string, number[]>), [name]: gains }
+    db.run('UPDATE users SET data = ? WHERE userId = ?', [JSON.stringify({ ...data, eqPresets: next }), userId])
+
+    return next
+  }
+
+  static getUserData (userId: number): Record<string, unknown> {
+    const row = db.get<{ data: string }>('SELECT data FROM users WHERE userId = ?', [userId])
+
+    if (!row) {
+      throw new Error('User not found')
+    }
+
+    try {
+      const data: unknown = JSON.parse(row.data ?? '{}')
+      return (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>
+    } catch {
+      return {}
+    }
   }
 
   /**

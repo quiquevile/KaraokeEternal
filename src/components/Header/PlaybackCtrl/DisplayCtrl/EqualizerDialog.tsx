@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { saveEqPreset, type EqPresetSlot } from 'store/modules/prefs'
+import { fetchEqPresets, saveEqPreset, type EqPresetSlot } from 'store/modules/prefs'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
-import { canSaveEqPresets } from 'store/modules/user'
+import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Modal, { ModalProps } from 'components/Modal/Modal'
@@ -46,8 +46,13 @@ const EqualizerDialog = ({
 
   const dispatch = useAppDispatch()
   const storedPresets = useAppSelector(state => state.prefs.eqPresets)
-  const maySavePresets = useAppSelector(state => canSaveEqPresets(state.user))
+  const maySavePresets = useAppSelector(state => hasPermission(state.user, 'playerControls'))
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // own slots, fresh on every open (another window may have saved since)
+  useEffect(() => {
+    dispatch(fetchEqPresets())
+  }, [dispatch])
 
   // global custom slots (Flat until saved); recall works for anyone who
   // can open this dialog, saving needs the nested permission

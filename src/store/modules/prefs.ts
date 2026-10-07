@@ -97,8 +97,20 @@ export const fetchGainStatus = createAsyncThunk(
 
 export type EqPresetSlot = 'P1' | 'P2' | 'P3'
 
-// persist one global EQ preset slot (admins or holders of the nested
-// permission); the response carries the whole merged map
+// the caller's own EQ preset slots (per-user storage, never shared)
+export const fetchEqPresets = createAsyncThunk(
+  'prefs/fetchEqPresets',
+  async (_, thunkAPI) => {
+    const response = await api.get('/eq-presets') as Partial<Record<EqPresetSlot, number[]>>
+
+    thunkAPI.dispatch(receivePrefs({ eqPresets: response }))
+
+    return response
+  },
+)
+
+// persist one of the caller's own EQ preset slots (admins or playback
+// controllers); the response carries the whole merged map
 export const saveEqPreset = createAsyncThunk(
   'prefs/saveEqPreset',
   async ({ name, gains }: { name: EqPresetSlot, gains: number[] }, thunkAPI) => {

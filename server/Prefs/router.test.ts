@@ -19,15 +19,24 @@ vi.mock('../Scanner/GainScan.js', () => ({
   stopGainScan: stopGainScanMock,
 }))
 
+vi.mock('../User/User.js', () => ({
+  default: {
+    getEqPresets: vi.fn(),
+    setEqPreset: vi.fn(),
+  },
+}))
+
 import {
   handleGainScan,
   handleGainStatus,
+  handleGetEqPresets,
   handleSaveEqPreset,
   handleScanAll,
   handleScanPath,
   handleScanStop,
 } from './router.js'
 import Prefs from './Prefs.js'
+import User from '../User/User.js'
 import type { RouterContext } from './router.js'
 
 function makeCtx (overrides: Record<string, unknown> = {}): RouterContext {
@@ -130,79 +139,83 @@ describe('gain/scan endpoints', () => {
   })
 })
 
+describe('handleGetEqPresets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns the caller’s own slots', async () => {
+    vi.mocked(User.getEqPresets).mockReturnValue({ P1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+    const ctx = makeCtx({ user: { isAdmin: false, userId: 5, username: 'op' } })
+
+    await handleGetEqPresets(ctx)
+
+    expect(User.getEqPresets).toHaveBeenCalledWith(5)
+    expect(ctx.body).toEqual({ P1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+  })
+
+  it('rejects anonymous users with 401', async () => {
+    const ctx = makeCtx({ user: { isAdmin: false, userId: null } })
+
+    await expect(handleGetEqPresets(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(User.getEqPresets).not.toHaveBeenCalled()
+  })
+})
+
 describe('handleSaveEqPreset', () => {
   const gains = [1, 0, 0, 0, 0, 0, 0, 0, 0, -1]
-  const saver = { isAdmin: false, userId: 5, username: 'op', permissions: { playerControls: true, eqPresetSave: true } }
-  const storedPrefs = (eqPresets?: object) => {
-    vi.spyOn(Prefs, 'get').mockReturnValue({ ...(eqPresets ? { eqPresets } : {}) } as never)
-    return vi.spyOn(Prefs, 'set').mockReturnValue(true)
-  }
+  const saver = { isAdmin: false, userId: 5, username: 'op', permissions: { playerControls: true } }
 
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('merges one slot over the stored presets', async () => {
-    const setSpy = storedPrefs({ P1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+  it('saves into the caller’s own slots', async () => {
+    vi.mocked(User.setEqPreset).mockReturnValue({ P2: gains })
     const ctx = makeCtx({ user: saver, request: { body: { name: 'P2', gains } } })
 
     await handleSaveEqPreset(ctx)
 
-    expect(setSpy).toHaveBeenCalledWith('eqPresets', { P1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], P2: gains })
-    expect(ctx.body).toEqual({ P1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], P2: gains })
+    expect(User.setEqPreset).toHaveBeenCalledWith(5, 'P2', gains)
+    expect(ctx.body).toEqual({ P2: gains })
   })
 
-  it('broadcasts the merged presets to every client', async () => {
-    storedPrefs()
-    const ctx = makeCtx({ user: saver, request: { body: { name: 'P1', gains } } })
-
-    await handleSaveEqPreset(ctx)
-
-    expect(ctx.io.emit).toHaveBeenCalledWith('action', {
-      type: 'prefs/PREFS_PUSH',
-      payload: { eqPresets: { P1: gains } },
-    })
-  })
-
-  it('lets admins save without the permission', async () => {
-    const setSpy = storedPrefs()
+  it('lets admins save without playback permissions', async () => {
+    vi.mocked(User.setEqPreset).mockReturnValue({ P1: gains })
     const ctx = makeCtx({ request: { body: { name: 'P1', gains } } })
 
     await handleSaveEqPreset(ctx)
 
-    expect(setSpy).toHaveBeenCalledWith('eqPresets', { P1: gains })
+    expect(User.setEqPreset).toHaveBeenCalledWith(1, 'P1', gains)
   })
 
-  it('rejects holders of playerControls alone with 401', async () => {
-    const setSpy = vi.spyOn(Prefs, 'set').mockReturnValue(true)
+  it('rejects users without playback controls with 401', async () => {
     const ctx = makeCtx({
-      user: { isAdmin: false, userId: 5, username: 'op', permissions: { playerControls: true } },
+      user: { isAdmin: false, userId: 5, username: 'op', permissions: { playerAccess: true } },
       request: { body: { name: 'P1', gains } },
     })
 
     await expect(handleSaveEqPreset(ctx)).rejects.toMatchObject({ status: 401 })
-    expect(setSpy).not.toHaveBeenCalled()
+    expect(User.setEqPreset).not.toHaveBeenCalled()
   })
 
-  it('rejects bad slots and gains with 422', async () => {
-    const setSpy = storedPrefs()
-
-    const badSlot = makeCtx({ user: saver, request: { body: { name: 'P9', gains } } })
-    await expect(handleSaveEqPreset(badSlot)).rejects.toMatchObject({ status: 422 })
-
-    const badGains = makeCtx({ user: saver, request: { body: { name: 'P1', gains: [0, 0] } } })
-    await expect(handleSaveEqPreset(badGains)).rejects.toMatchObject({ status: 422 })
-
-    const nanGains = makeCtx({
-      user: saver,
-      request: { body: { name: 'P1', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, Number.NaN] } },
+  it('rejects anonymous users with 401', async () => {
+    const ctx = makeCtx({
+      user: { isAdmin: false, userId: null },
+      request: { body: { name: 'P1', gains } },
     })
-    await expect(handleSaveEqPreset(nanGains)).rejects.toMatchObject({ status: 422 })
 
-    expect(setSpy).not.toHaveBeenCalled()
+    await expect(handleSaveEqPreset(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(User.setEqPreset).not.toHaveBeenCalled()
+  })
+
+  it('maps model errors to their status', async () => {
+    const { ValidationError } = await import('../lib/Errors.js')
+    vi.mocked(User.setEqPreset).mockImplementation(() => {
+      throw new ValidationError('Invalid preset gains')
+    })
+    const ctx = makeCtx({ user: saver, request: { body: { name: 'P1', gains: [0, 0] } } })
+
+    await expect(handleSaveEqPreset(ctx)).rejects.toMatchObject({ status: 422 })
   })
 })

@@ -8,10 +8,10 @@ import Prefs from './Prefs.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
-import { parseIdParam, requireAdmin } from '../lib/http.js'
-import { canSaveEqPresets } from '../lib/permissions.js'
+import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
+import { can } from '../lib/permissions.js'
+import User from '../User/User.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
-import { PREFS_PUSH } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
 
 export interface RouterContext {
@@ -45,48 +45,37 @@ router.get('/', (ctx) => {
     return
   }
 
-  // non-admins only get roles (+ global EQ presets, which any playback
-  // controller may recall)
-  const eqPresets = (prefs as unknown as Record<string, unknown>).eqPresets ?? null
-  ctx.body = { roles: prefs.roles, eqPresets }
+  // non-admins only get roles
+  ctx.body = { roles: prefs.roles }
 })
 
-// number of equalizer bands (mirrors EQ_FREQUENCIES in
-// src/routes/Player/lib/equalizer.ts, not importable here)
-const EQ_BAND_COUNT = 10
+// logged-in user's own EQ preset slots (per-user storage, never shared)
+export async function handleGetEqPresets (ctx: RouterContext): Promise<void> {
+  if (ctx.user?.userId == null) ctx.throw(401)
 
-const EQ_PRESET_SLOTS = ['P1', 'P2', 'P3']
+  ctx.body = User.getEqPresets(ctx.user.userId)
+}
 
-// save a global EQ preset slot (admins or holders of the nested permission)
+router.get('/eq-presets', ctx => handleGetEqPresets(ctx as unknown as RouterContext))
+
+// save one of the caller's own EQ preset slots (admins or playback
+// controllers); slots are private, so nothing is broadcast
 export async function handleSaveEqPreset (ctx: RouterContext): Promise<void> {
-  if (!ctx.user || !canSaveEqPresets(ctx.user)) ctx.throw(401)
+  if (ctx.user?.userId == null) ctx.throw(401)
+  if (!ctx.user.isAdmin && !can(ctx.user, 'playerControls')) ctx.throw(401)
 
   const body = (ctx.request as unknown as RequestWithBody).body
   const { name, gains } = body
 
-  if (typeof name !== 'string' || !EQ_PRESET_SLOTS.includes(name)) {
-    ctx.throw(422, 'Invalid preset slot')
+  try {
+    ctx.body = User.setEqPreset(
+      ctx.user.userId,
+      name as string,
+      gains as number[],
+    )
+  } catch (err) {
+    mapDomainError(ctx, err)
   }
-
-  if (!Array.isArray(gains)
-    || gains.length !== EQ_BAND_COUNT
-    || gains.some(g => typeof g !== 'number' || !Number.isFinite(g))
-  ) {
-    ctx.throw(422, 'Invalid preset gains')
-  }
-
-  const current = ((Prefs.get() as unknown as Record<string, unknown>).eqPresets ?? {}) as Record<string, number[]>
-  const next = { ...current, [name as string]: gains as number[] }
-  Prefs.set('eqPresets', next)
-
-  // global slots are shared live: every connected client (including open
-  // equalizer dialogs) recalls the fresh values without refetching
-  ctx.io.emit('action', {
-    type: PREFS_PUSH,
-    payload: { eqPresets: next },
-  })
-
-  ctx.body = next
 }
 
 router.put('/eq-presets', ctx => handleSaveEqPreset(ctx as unknown as RouterContext))

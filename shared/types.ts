@@ -95,7 +95,6 @@ export type Permission
     | 'queueReplay'
     | 'playerAccess'
     | 'playerControls'
-    | 'eqPresetSave'
     | 'youtubeDownload'
     | 'downloadForOthers'
 

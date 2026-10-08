@@ -24,7 +24,8 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/build ./build
 COPY --from=build /app/assets ./assets
-COPY --chmod=755 --from=build /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --from=build /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV NODE_ENV=production \
     KES_PORT=8080 \

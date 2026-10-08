@@ -120,7 +120,7 @@ const EqualizerDialog = ({
               })}
             </div>
           )}
-          <Button variant='primary' onClick={handleSave}>Save</Button>
+          <Button variant='primary' onClick={handleSave}>Done</Button>
         </div>
       )}
     >

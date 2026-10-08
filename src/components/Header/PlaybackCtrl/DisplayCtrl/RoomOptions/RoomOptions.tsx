@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import QRPrefs from './QRPrefs/QRPrefs'
-import { updateCurrentRoomOptions } from 'store/modules/rooms'
+import { qrUpdateOf, updateCurrentRoomOptions } from 'store/modules/rooms'
 import type { IRoomPrefs } from 'shared/types'
 
 // Room QR options for the current room (Display dialog). The sole editor
 // of QR prefs: no password box here, so non-admins can never touch keys.
-// Changes persist debounced (and flushed on unmount).
+// Changes persist debounced (and flushed on unmount). Only the qr key is
+// ever sent: the local copy of the remaining prefs may be stale and must
+// not clobber them (e.g. a newer room EQ save).
 const RoomOptions = () => {
   const roomId = useAppSelector(state => state.user.roomId)
   const roomPrefs = useAppSelector(state =>
@@ -42,12 +44,17 @@ const RoomOptions = () => {
 
   const handleChange = (next: Partial<IRoomPrefs>) => {
     setPrefs(next as IRoomPrefs)
-    pending.current = next
+
+    const queued = qrUpdateOf(next)
+    if (!queued) return
+
+    pending.current = queued
 
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
+      const toSend = pending.current
       pending.current = null
-      dispatch(updateCurrentRoomOptions({ prefs: next }))
+      if (toSend) dispatch(updateCurrentRoomOptions({ prefs: toSend }))
     }, 400)
   }
 

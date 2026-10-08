@@ -4,6 +4,7 @@ import reducer, {
   createRoom,
   fetchOwnRoom,
   fetchRooms,
+  qrUpdateOf,
   removeRoom,
   roomPrefsPush,
   updateCurrentRoomOptions,
@@ -108,6 +109,17 @@ describe('fetchOwnRoom', () => {
 
     store.dispatch(fetchOwnRoom.rejected(new Error('gone'), 'req1', undefined))
     expect(store.getState().rooms.error).toBe('gone')
+  })
+})
+
+describe('qrUpdateOf', () => {
+  it('extracts only the qr key, dropping stale siblings', () => {
+    expect(qrUpdateOf({
+      qr: { isEnabled: true, opacity: 0.5, size: 0.5 },
+      eq: { eqEnabled: true, eqGains: [0], eqPreset: 'x' },
+    })).toEqual({ qr: { isEnabled: true, opacity: 0.5, size: 0.5 } })
+    expect(qrUpdateOf({ eq: { eqEnabled: true, eqGains: [0], eqPreset: 'x' } })).toBeNull()
+    expect(qrUpdateOf({})).toBeNull()
   })
 })
 

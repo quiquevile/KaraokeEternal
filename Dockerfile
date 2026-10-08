@@ -8,7 +8,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# compiled unit tests never run inside the image; drop them to keep it lean
+RUN npm run build && find build -name '*.test.js' -delete
 
 FROM node:24-alpine
 
@@ -23,8 +24,7 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/build ./build
 COPY --from=build /app/assets ./assets
-COPY --from=build /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY --chmod=755 --from=build /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENV NODE_ENV=production \
     KES_PORT=8080 \

@@ -33,6 +33,13 @@ export function equalGains (a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((gain, index) => gain === b[index])
 }
 
+// whether a custom slot highlights as active: only when it holds an
+// explicitly stored curve matching what is playing (unsaved slots all
+// fall back to Flat and must never highlight together)
+export function isSlotActive (stored: number[] | undefined, live: number[], eqEnabled: boolean): boolean {
+  return eqEnabled && stored !== undefined && equalGains(stored, live)
+}
+
 export interface TapPoint {
   pointerId: number
   time: number

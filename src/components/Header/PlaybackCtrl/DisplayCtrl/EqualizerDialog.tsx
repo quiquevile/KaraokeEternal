@@ -7,7 +7,7 @@ import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Modal, { ModalProps } from 'components/Modal/Modal'
 import EqualizerBand from './EqualizerBand'
-import { EQ_FREQUENCIES, EQ_PRESETS, equalGains } from 'routes/Player/lib/equalizer'
+import { EQ_FREQUENCIES, EQ_PRESETS, isSlotActive } from 'routes/Player/lib/equalizer'
 import styles from './EqualizerDialog.css'
 import { PlaybackOptions } from 'shared/types'
 
@@ -102,7 +102,7 @@ const EqualizerDialog = ({
               {EQ_CUSTOM_SLOTS.map((name) => {
                 // active when the slot holds exactly what is playing:
                 // instant feedback on save, no status round-trip needed
-                const isActive = eqEnabled && equalGains(storedPresets?.[name] ?? EQ_PRESETS[0].gains, eqGains)
+                const isActive = isSlotActive(storedPresets?.[name], eqGains, eqEnabled)
 
                 return (
                   <Button
@@ -146,8 +146,9 @@ const EqualizerDialog = ({
           ))}
           {customPresets.map((preset) => {
             // slots are per user but playback is shared: highlight what
-            // is actually playing when it matches MY stored slot
-            const isActive = eqEnabled && equalGains(preset.gains, eqGains)
+            // is actually playing when it matches MY stored slot (an
+            // unsaved slot never highlights, even on Flat)
+            const isActive = isSlotActive(storedPresets?.[preset.name], eqGains, eqEnabled)
 
             return (
               <Button

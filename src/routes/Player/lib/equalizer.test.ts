@@ -9,6 +9,7 @@ import {
   equalGains,
   formatFreq,
   isDoubleTap,
+  isSlotActive,
   parseGainInput,
   setEqualizerGains,
 } from './equalizer'
@@ -82,6 +83,16 @@ describe('equalizer', () => {
     expect(formatFreq(600)).toBe('600')
     expect(formatFreq(1000)).toBe('1k')
     expect(formatFreq(16000)).toBe('16k')
+  })
+
+  it('highlights only explicitly stored matching slots', () => {
+    const flat = new Array(10).fill(0)
+    const rock = [5, 4, 3, 1, -1, -1, 1, 3, 4, 5]
+    expect(isSlotActive([5, 4, 3, 1, -1, -1, 1, 3, 4, 5], rock, true)).toBe(true)
+    expect(isSlotActive(flat, flat.slice(), true)).toBe(true)
+    expect(isSlotActive(undefined, flat, true)).toBe(false)
+    expect(isSlotActive(flat, rock, true)).toBe(false)
+    expect(isSlotActive(rock, rock, false)).toBe(false)
   })
 
   it('detects double taps by time, distance and pointer', () => {

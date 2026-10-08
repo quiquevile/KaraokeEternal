@@ -84,8 +84,15 @@ const AccountForm = ({
   }
 
   const handleTogglePerm = (value: Permission) => {
+    const next = { ...state.perms, [value]: !state.perms[value] }
+
+    // nested permissions live and die with their parent
+    for (const p of PERMISSIONS) {
+      if (p.parent === value && !next[value]) delete next[p.value]
+    }
+
     const cleaned = Object.fromEntries(
-      Object.entries({ ...state.perms, [value]: !state.perms[value] }).filter(([, v]) => v),
+      Object.entries(next).filter(([, v]) => v),
     )
     setState(prev => ({ ...prev, perms: cleaned }))
     updateDirty(cleaned)
@@ -204,12 +211,14 @@ const AccountForm = ({
         >
           <div className={styles.permsContent}>
             {PERMISSIONS.map(p => (
-              <InputCheckbox
-                key={p.value}
-                label={p.label}
-                checked={!!state.perms[p.value]}
-                onChange={() => handleTogglePerm(p.value)}
-              />
+              <div key={p.value} className={p.parent ? styles.permsNested : undefined}>
+                <InputCheckbox
+                  label={p.label}
+                  checked={!!state.perms[p.value]}
+                  disabled={!!p.parent && !state.perms[p.parent]}
+                  onChange={() => handleTogglePerm(p.value)}
+                />
+              </div>
             ))}
           </div>
         </Accordion>

@@ -1,16 +1,27 @@
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import clsx from 'clsx'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { setFilterStr, resetFilterStr, toggleFilterDownloaded, toggleFilterStarred } from '../../modules/library'
+import { fetchPrefs } from 'store/modules/prefs'
 import Button from 'components/Button/Button'
 import styles from './LibraryHeader.css'
 
 const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const { filterStr, filterStarred, filterDownloaded } = useAppSelector(state => state.library)
+  const userId = useAppSelector(state => state.user.userId)
+  const hasDownloadPath = useAppSelector(state => state.prefs.youtubeDownloadPathId != null)
   const showDownloadFilter = useAppSelector(state =>
     state.user.isAdmin && state.prefs.youtubeDownloadPathId != null,
   )
+
+  // the download-folder filter needs global prefs, which are only fetched
+  // at login: re-fetch on mount when missing so the button self-heals
+  useEffect(() => {
+    if (userId !== null && !hasDownloadPath) {
+      dispatch(fetchPrefs())
+    }
+  }, [dispatch, userId, hasDownloadPath])
 
   const searchInput = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(filterStr)

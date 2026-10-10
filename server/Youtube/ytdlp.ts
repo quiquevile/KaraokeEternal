@@ -746,9 +746,10 @@ export async function runYtdl (args: string[], { onLine }: RunYtdlOptions = {}):
       }
 
       const tail = stderr.trim().split('\n').slice(-5).join('\n')
-      const message = tail ? `: ${tail}` : ''
+      // detail stays server-side: paths and versions must not leak
+      if (tail) log.error('yt-dlp failed: %s', tail)
 
-      reject(new Error(`yt-dlp exited with code ${code}${message}`))
+      reject(new Error(`yt-dlp exited with code ${code}`))
     })
   })
 }

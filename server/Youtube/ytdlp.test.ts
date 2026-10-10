@@ -521,6 +521,15 @@ describe('runYtdl', () => {
 
     await expect(runYtdl(['-V'])).rejects.toThrow(/exited with code 1/)
   })
+
+  it('keeps stderr detail out of client-facing errors', async () => {
+    vi.mocked(spawn).mockImplementation(() => fakeChild({
+      stderrLines: ['ERROR: /secret/path boom\n'],
+      code: 1,
+    }) as unknown as ReturnType<typeof spawn>)
+
+    await expect(runYtdl(['-V'])).rejects.toThrow(/^yt-dlp exited with code 1$/)
+  })
 })
 
 describe('getYtdlVersion', () => {

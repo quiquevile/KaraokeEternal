@@ -18,7 +18,7 @@ import {
 import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
 import { DUPLICATE_SONG_MESSAGE } from '../lib/Errors.js'
-import { requireAdmin } from '../lib/http.js'
+import { requireAdmin, requireSameOrigin } from '../lib/http.js'
 import { getErrorMessage } from '../lib/util.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
@@ -104,6 +104,7 @@ export async function handleIdentify (ctx: RouterContext): Promise<void> {
 }
 
 export async function handleStream (ctx: RouterContext): Promise<void> {
+  requireSameOrigin(ctx)
   requireYoutubeAccess(ctx)
   applyYoutubePrefs()
   requireYtdlBin(ctx)

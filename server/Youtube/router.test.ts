@@ -271,6 +271,15 @@ describe('router', () => {
       expect(ctx.body).toEqual({ url: 'https://redirect.example/stream' })
     })
 
+    it('rejects cross-site stream triggers with 403', async () => {
+      const ctx = makeCtx({
+        query: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+        request: { body: {}, headers: { 'sec-fetch-site': 'cross-site' } },
+      })
+      await expect(handleStream(ctx)).rejects.toSatisfy(throwStatus(403))
+      expect(resolveStreamUrl).not.toHaveBeenCalled()
+    })
+
     it('rejects non-YouTube URLs', async () => {
       const ctx = makeCtx({ query: { url: 'https://evil.example/x' } })
       await expect(handleStream(ctx)).rejects.toSatisfy(throwStatus(422))

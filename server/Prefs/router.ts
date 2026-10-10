@@ -8,7 +8,7 @@ import Prefs from './Prefs.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
-import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
+import { mapDomainError, parseIdParam, requireAdmin, requireSameOrigin } from '../lib/http.js'
 import { can } from '../lib/permissions.js'
 import User from '../User/User.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
@@ -152,6 +152,7 @@ router.delete('/path/:pathId', (ctx) => {
 
 // scan a media path
 export async function handleScanPath (ctx: RouterContext): Promise<void> {
+  requireSameOrigin(ctx)
   requireAdmin(ctx)
 
   if (isGainActive()) ctx.throw(409, 'Gain measurement in progress')
@@ -166,6 +167,7 @@ router.get('/path/:pathId/scan', ctx => handleScanPath(ctx as unknown as RouterC
 
 // scan all media paths
 export async function handleScanAll (ctx: RouterContext): Promise<void> {
+  requireSameOrigin(ctx)
   requireAdmin(ctx)
 
   if (isGainActive()) ctx.throw(409, 'Gain measurement in progress')
@@ -178,6 +180,7 @@ router.get('/paths/scan', ctx => handleScanAll(ctx as unknown as RouterContext))
 
 // stop scanning (also cancels a running gain measurement)
 export async function handleScanStop (ctx: RouterContext): Promise<void> {
+  requireSameOrigin(ctx)
   requireAdmin(ctx)
 
   ctx.status = 200
@@ -190,6 +193,7 @@ router.get('/paths/scan/stop', ctx => handleScanStop(ctx as unknown as RouterCon
 // measure loudness of songs without a stored level (admin only);
 // paused automatically while a library scan runs, resumed afterwards
 export async function handleGainScan (ctx: RouterContext): Promise<void> {
+  requireSameOrigin(ctx)
   requireAdmin(ctx)
 
   if (ctx.isScannerActive()) ctx.throw(409, 'Library scan in progress')

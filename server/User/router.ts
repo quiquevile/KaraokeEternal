@@ -21,6 +21,8 @@ import {
   IMG_MAX_LENGTH,
 } from './User.js'
 import { parseIdParam } from '../lib/http.js'
+import { requireSameOrigin } from '../lib/http.js'
+import type { HttpContext } from '../lib/http.js'
 
 interface File {
   filepath: string
@@ -158,6 +160,7 @@ router.post('/login', ctx => handleLogin(ctx as unknown as RouterContext))
 
 // logout
 router.get('/logout', (ctx) => {
+  requireSameOrigin(ctx as unknown as HttpContext)
   // @todo force socket room leave
   ctx.cookies.set('keToken', '')
   ctx.status = 200

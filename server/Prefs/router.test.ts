@@ -60,6 +60,25 @@ function makeCtx (overrides: Record<string, unknown> = {}): RouterContext {
   } as RouterContext
 }
 
+describe('same-origin protection on mutating GETs', () => {
+  it('rejects cross-site scan triggers with 403 before anything else runs', async () => {
+    const crossSite = { request: { body: {}, headers: { 'sec-fetch-site': 'cross-site' } } }
+
+    await expect(handleScanAll(makeCtx(crossSite))).rejects.toMatchObject({ status: 403 })
+    await expect(handleScanStop(makeCtx(crossSite))).rejects.toMatchObject({ status: 403 })
+    await expect(handleGainScan(makeCtx(crossSite))).rejects.toMatchObject({ status: 403 })
+    await expect(handleScanPath(makeCtx({ ...crossSite, params: { pathId: '3' } })))
+      .rejects.toMatchObject({ status: 403 })
+  })
+
+  it('still allows same-origin and headerless callers', async () => {
+    const sameOrigin = { request: { body: {}, headers: { 'sec-fetch-site': 'same-origin' } } }
+
+    await handleScanStop(makeCtx(sameOrigin))
+    await handleScanStop(makeCtx())
+  })
+})
+
 describe('gain/scan endpoints', () => {
   beforeEach(() => {
     vi.clearAllMocks()

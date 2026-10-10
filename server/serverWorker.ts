@@ -140,6 +140,17 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
   // http request/response logging
   app.use(koaLogger((str, args) => (args.length === 6 && args[3] >= 500) ? log.error(str) : log.debug(str)))
 
+  // baseline security headers (no helmet dependency; HSTS belongs to the
+  // reverse proxy terminating TLS, not to this plain-HTTP app)
+  app.use(async (ctx, next) => {
+    ctx.set('X-Content-Type-Options', 'nosniff')
+    ctx.set('X-Frame-Options', 'SAMEORIGIN')
+    ctx.set('Content-Security-Policy', "frame-ancestors 'self'")
+    ctx.set('Referrer-Policy', 'same-origin')
+
+    await next()
+  })
+
   app.use(koaFavicon(path.join(env.KES_PATH_ASSETS, 'favicon.ico')))
   app.use(koaRange)
   app.use(koaBody({ multipart: true }))

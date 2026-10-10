@@ -5,6 +5,7 @@ import sql from 'sqlate'
 import jsonWebToken from 'jsonwebtoken'
 import crypto from '../lib/crypto.js'
 import { can, parsePermissions } from '../lib/permissions.js'
+import { checkLoginRateLimit, clearLoginAttempts, getClientIp, recordLoginFailure } from '../lib/loginRateLimit.js'
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
@@ -59,13 +60,15 @@ const signToken = (userCtx: object, jwtKey: string): string => (
 )
 
 export interface RouterContext {
-  user: { isAdmin: boolean, userId?: number, username?: string, roomId?: number | null } | undefined
+  user: { isAdmin: boolean, userId?: number, username?: string, name?: string, roomId?: number | null, permissions?: Record<string, boolean> } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
-  request: { body: Record<string, unknown> }
+  request: { body: Record<string, unknown>, headers?: Record<string, string | string[] | undefined> }
   body: unknown
   status: number
   throw: (status: number, message?: string) => never
+  set: (field: string, value: string) => void
+  ip?: string
   jwtKey: string
   cookies: { set: (name: string, value: string, opts?: Record<string, unknown>) => void }
 }
@@ -94,9 +97,24 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
   const roomId = parseInt(body.roomId ?? '', 10) || null
   let user
 
+  // brute-force protection counts credential failures only (room typos
+  // must not lock anyone out)
+  const ip = getClientIp(ctx.request.headers?.['x-forwarded-for'], ctx.ip)
+  const limit = checkLoginRateLimit(ip)
+
+  if (limit.limited) {
+    ctx.set('Retry-After', String(limit.retryAfterSec))
+    ctx.throw(429, 'Too many login attempts')
+  }
+
   try {
     user = await User.validate(body as { username: string, password: string })
+  } catch (err) {
+    recordLoginFailure(ip)
+    ctx.throw(401, err.message)
+  }
 
+  try {
     if (roomId) {
       await Rooms.validate(roomId, body.roomPassword, {
         isOpen: user.role !== 'admin', // admins can sign in to closed rooms
@@ -109,6 +127,8 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
   } catch (err) {
     ctx.throw(401, err.message)
   }
+
+  clearLoginAttempts(ip)
 
   if (crypto.isLegacy(user.password)) {
     const newHash = await crypto.hash(body.password as string)

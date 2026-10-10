@@ -38,6 +38,8 @@ const env = {
   KES_PORT: parseInt(process.env.KES_PORT, 10) || 0,
   KES_ROTATE_KEY: ['1', 'true'].includes(process.env.KES_ROTATE_KEY?.toLowerCase()),
   KES_SCAN: process.env.KES_SCAN?.trim(),
+  KES_LOGIN_MAX_FAILS: parseInt(process.env.KES_LOGIN_MAX_FAILS, 10) || undefined,
+  KES_LOGIN_WINDOW_MIN: parseInt(process.env.KES_LOGIN_WINDOW_MIN, 10) || undefined,
   KES_SCANNER_CONSOLE_LEVEL: parseLevel(process.env.KES_SCANNER_CONSOLE_LEVEL),
   KES_SCANNER_LOG_LEVEL: parseLevel(process.env.KES_SCANNER_LOG_LEVEL),
   KES_SERVER_CONSOLE_LEVEL: parseLevel(process.env.KES_SERVER_CONSOLE_LEVEL),
@@ -88,6 +90,16 @@ const argv = yargs(hideBin(process.argv))
     number: true,
     requiresArg: true,
   })
+  .option('loginMaxFails', {
+    describe: 'Failed logins before throttling (default=5)',
+    number: true,
+    requiresArg: true,
+  })
+  .option('loginWindowMin', {
+    describe: 'Login throttling window in minutes (default=15)',
+    number: true,
+    requiresArg: true,
+  })
   .option('urlPath', {
     describe: 'Web server URL base path (default=/)',
     requiresArg: true,
@@ -120,6 +132,8 @@ const opts = {
   scannerLogLevel: 'KES_SCANNER_LOG_LEVEL',
   serverConsoleLevel: 'KES_SERVER_CONSOLE_LEVEL',
   serverLogLevel: 'KES_SERVER_LOG_LEVEL',
+  loginMaxFails: 'KES_LOGIN_MAX_FAILS',
+  loginWindowMin: 'KES_LOGIN_WINDOW_MIN',
   urlPath: 'KES_URL_PATH',
 }
 

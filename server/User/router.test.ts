@@ -28,6 +28,7 @@ vi.mock('../lib/crypto.js', () => ({
 }))
 
 import { handleLogin, handleUsersNames } from './router.js'
+import { resetLoginRateLimits } from '../lib/loginRateLimit.js'
 import User from './User.js'
 
 const makeSockets = (users: Array<{ userId: number, roomId: number | null }>) => (
@@ -122,14 +123,16 @@ describe('handleLogin', () => {
     password: 'hashed', permissions: {},
   }
 
-  const makeLoginCtx = (body: Record<string, unknown> = {}) => ({
+  const makeLoginCtx = (body: Record<string, unknown> = {}, ip = '127.0.0.1') => ({
     params: {},
     query: {},
-    request: { body },
+    request: { body, headers: {} },
     body: undefined,
     status: 200,
+    ip,
     jwtKey: 'test-key',
     cookies: { set: vi.fn() },
+    set: vi.fn(),
     throw: (status: number, message?: string): never => {
       const err = new Error(message || String(status)) as Error & { status: number }
       err.status = status
@@ -199,5 +202,58 @@ describe('handleLogin', () => {
 
     await expect(handleLogin(ctx as never)).rejects.toMatchObject({ status: 401, message: 'Please select a room' })
     expect(roomsValidateMock).not.toHaveBeenCalled()
+  })
+
+  it('rate-limits credential failures with Retry-After', async () => {
+    process.env.KES_LOGIN_MAX_FAILS = '2'
+    validateMock.mockRejectedValue(new Error('Incorrect username/email or password'))
+    const body = { username: 'pepe', password: 'wrong' }
+    const ip = '10.9.9.9'
+
+    try {
+      for (let i = 0; i < 2; i++) {
+        await expect(handleLogin(makeLoginCtx(body, ip) as never)).rejects.toMatchObject({ status: 401 })
+      }
+
+      const ctx = makeLoginCtx(body, ip)
+      await expect(handleLogin(ctx as never)).rejects.toMatchObject({ status: 429 })
+      expect(ctx.set).toHaveBeenCalledWith('Retry-After', expect.any(String))
+      expect(validateMock).toHaveBeenCalledTimes(2)
+    } finally {
+      delete process.env.KES_LOGIN_MAX_FAILS
+      resetLoginRateLimits()
+    }
+  })
+
+  it('does not count room failures and clears the counter on success', async () => {
+    process.env.KES_LOGIN_MAX_FAILS = '2'
+    const ip = '10.9.9.10'
+
+    try {
+      // credential failures: 1 counted
+      validateMock.mockRejectedValueOnce(new Error('Incorrect username/email or password'))
+      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'wrong' }, ip) as never))
+        .rejects.toMatchObject({ status: 401 })
+
+      // room failure with valid credentials: not counted
+      validateMock.mockResolvedValue(standardUser)
+      roomsValidateMock.mockRejectedValueOnce(new Error('Incorrect room password'))
+      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'secret', roomId: '1' }, ip) as never))
+        .rejects.toMatchObject({ status: 401 })
+
+      // success clears the counter: two more failures still below the limit
+      roomsValidateMock.mockResolvedValue(true)
+      validateMock.mockResolvedValue(adminUser)
+      await handleLogin(makeLoginCtx({ username: 'admin', password: 'secret' }, ip) as never)
+
+      validateMock.mockRejectedValue(new Error('Incorrect username/email or password'))
+      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'wrong' }, ip) as never))
+        .rejects.toMatchObject({ status: 401 })
+      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'wrong' }, ip) as never))
+        .rejects.toMatchObject({ status: 401 })
+    } finally {
+      delete process.env.KES_LOGIN_MAX_FAILS
+      resetLoginRateLimits()
+    }
   })
 })

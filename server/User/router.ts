@@ -263,6 +263,12 @@ router.delete('/user/:userId', async (ctx) => {
     ctx.throw(403)
   }
 
+  const target = User.getById(targetId)
+
+  if (target && target.role === 'admin' && User.countAdmins() <= 1) {
+    ctx.throw(403, 'Cannot delete the last admin')
+  }
+
   User.remove(targetId)
 
   // disconnect their socket session(s)
@@ -379,10 +385,18 @@ router.put('/user/:userId', async (ctx) => {
 
   // changing role?
   if (typeof body.role === 'string' && body.role) {
-    // @todo since we're not ensuring there'd be at least one admin
-    // remaining, changing one's own role is currently disallowed
+    // never strand the system without admins (one's own role is
+    // already disallowed above)
     if (user.role !== 'admin' || targetId === user.userId) {
       ctx.throw(403)
+    }
+
+    if (body.role !== 'admin') {
+      const target = User.getById(targetId)
+
+      if (target && target.role === 'admin' && User.countAdmins() <= 1) {
+        ctx.throw(403, 'Cannot demote the last admin')
+      }
     }
 
     fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${body.role})`)

@@ -246,6 +246,20 @@ class User {
   }
 
   /**
+   * Number of admin users (guarding the last one out of demotions/deletion)
+   */
+  static countAdmins (): number {
+    const query = sql`
+      SELECT COUNT(*) AS count
+      FROM users
+      WHERE roleId = (SELECT roleId FROM roles WHERE name = 'admin')
+    `
+    const res = db.get<{ count: number }>(String(query), query.parameters)
+
+    return res?.count ?? 0
+  }
+
+  /**
    * Remove a user
    */
   static remove (userId: number): void {

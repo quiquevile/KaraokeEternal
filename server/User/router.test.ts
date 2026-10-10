@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import jsonWebToken from 'jsonwebtoken'
 
-const { validateMock, roomsValidateMock } = vi.hoisted(() => ({
+const { validateMock, roomsValidateMock, getByIdMock, countAdminsMock } = vi.hoisted(() => ({
   validateMock: vi.fn(),
   roomsValidateMock: vi.fn(),
+  getByIdMock: vi.fn(),
+  countAdminsMock: vi.fn(),
 }))
 
 vi.mock('./User.js', () => ({
@@ -16,6 +18,8 @@ vi.mock('./User.js', () => ({
       },
     })),
     validate: validateMock,
+    getById: getByIdMock,
+    countAdmins: countAdminsMock,
   },
 }))
 
@@ -28,8 +32,32 @@ vi.mock('../lib/crypto.js', () => ({
 }))
 
 import { handleLogin, handleUsersNames } from './router.js'
+import router from './router.js'
 import { resetLoginRateLimits } from '../lib/loginRateLimit.js'
 import User from './User.js'
+
+const dispatch = router.routes() as (ctx: object, next: () => void) => Promise<void>
+
+const rootAdmin = { userId: 1, username: 'admin', name: 'Admin', role: 'admin', password: 'x', permissions: {} }
+
+const routeCtx = (method: string, path: string, body: object = {}, user: object = rootAdmin) => ({
+  method,
+  path,
+  params: {},
+  query: {},
+  request: { body },
+  body: undefined,
+  status: 200,
+  user,
+  jwtKey: 'test-key',
+  cookies: { set: vi.fn() },
+  io: { fetchSockets: async () => [], to: () => ({ emit: vi.fn() }) },
+  throw: (status: number, message?: string): never => {
+    const err = new Error(message || String(status)) as Error & { status: number }
+    err.status = status
+    throw err
+  },
+})
 
 const makeSockets = (users: Array<{ userId: number, roomId: number | null }>) => (
   users.map(({ userId, roomId }) => ({ user: { userId, roomId } }))
@@ -46,6 +74,30 @@ const makeCtx = (user: object, query: object = {}, sockets: Array<{ userId: numb
     Object.assign(err, { status })
     throw err
   },
+})
+
+describe('last-admin guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('refuses demoting the last admin with 403', async () => {
+    getByIdMock.mockImplementation((id: number) => (
+      id === 1 ? rootAdmin : { ...rootAdmin, userId: 2, username: 'root2' }
+    ))
+    countAdminsMock.mockReturnValue(1)
+    const ctx = routeCtx('PUT', '/api/user/2', { role: 'standard' })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('refuses deleting the last admin with 403', async () => {
+    getByIdMock.mockReturnValue({ ...rootAdmin, userId: 2, username: 'root2' })
+    countAdminsMock.mockReturnValue(1)
+    const ctx = routeCtx('DELETE', '/api/user/2')
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 403 })
+  })
 })
 
 describe('handleUsersNames', () => {

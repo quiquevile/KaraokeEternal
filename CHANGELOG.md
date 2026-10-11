@@ -11,6 +11,7 @@
 ### Library management (admin)
 
 - Songs can be retagged from the library or the queue, with media files renamed automatically to match
+- Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
 - Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
 - Admins can move a version's file (mp3+g sidecar included) to another media folder from Song Info, with name-clash protection
 - Admins can filter the library to songs with at least one version in the YouTube download folder

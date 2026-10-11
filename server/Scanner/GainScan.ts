@@ -209,11 +209,12 @@ async function run (io): Promise<void> {
         const tags = await readTagGain(item.fullPath, { signal })
 
         if (tags) {
+          // dateUpdated keeps the scan-stamped file mtime (it drives the
+          // unchanged-skip, not the gain freshness)
           Media.update({
             mediaId: item.mediaId,
             rgTrackGain: tags.gainDb,
             rgTrackPeak: tags.peakRatio,
-            dateUpdated: Math.round(Date.now() / 1000),
           })
           tagged += 1
         } else {
@@ -226,7 +227,6 @@ async function run (io): Promise<void> {
               mediaId: item.mediaId,
               rgTrackGain: loudness.gainDb,
               rgTrackPeak: loudness.peakRatio,
-              dateUpdated: Math.round(Date.now() / 1000),
             })
             measured += 1
           } else {

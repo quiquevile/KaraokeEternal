@@ -66,6 +66,26 @@ class Media {
   }
 
   /**
+   * Get lightweight media rows for scanner reconciliation (one query per
+   * path instead of one per file).
+   */
+  static scanRows (pathId: number): Record<string, MediaRow> {
+    const rowsByRelPath: Record<string, MediaRow> = {}
+    const query = sql`
+      SELECT *
+      FROM media
+      WHERE pathId = ${pathId}
+    `
+    const rows = db.all<MediaRow>(String(query), query.parameters)
+
+    for (const row of rows) {
+      rowsByRelPath[row.relPath] = row
+    }
+
+    return rowsByRelPath
+  }
+
+  /**
    * Add media file to the library
    */
   static add (media: Record<string, unknown>): number {
@@ -132,6 +152,7 @@ class Media {
    */
   static cleanup (): void {
     let res
+    let totalChanges = 0
 
     // remove media in nonexistent paths
     res = db.run(`
@@ -139,6 +160,7 @@ class Media {
         SELECT media.mediaId FROM media LEFT JOIN paths USING(pathId) WHERE paths.pathId IS NULL
       )
     `)
+    totalChanges += res.changes
     log.info(`cleanup: ${res.changes} media in nonexistent paths`)
 
     // remove songs without associated media
@@ -147,6 +169,7 @@ class Media {
         SELECT songs.songId FROM songs LEFT JOIN media USING(songId) WHERE media.mediaId IS NULL
       )
     `)
+    totalChanges += res.changes
     log.info(`cleanup: ${res.changes} songs with no associated media`)
 
     // remove stars for nonexistent songs
@@ -155,6 +178,7 @@ class Media {
         SELECT songStars.songId FROM songStars LEFT JOIN songs USING(songId) WHERE songs.songId IS NULL
       )
     `)
+    totalChanges += res.changes
     log.info(`cleanup: ${res.changes} stars for nonexistent songs`)
 
     // remove queue items for nonexistent songs
@@ -166,10 +190,13 @@ class Media {
       Queue.remove(row.queueId, row.roomId)
     }
 
+    totalChanges += rows.length
     log.info(`cleanup: ${rows.length} queue items for nonexistent songs`)
 
-    log.info('cleanup: vacuuming database')
-    db.run('VACUUM')
+    if (totalChanges) {
+      log.info('cleanup: vacuuming database')
+      db.run('VACUUM')
+    }
   }
 
   /**

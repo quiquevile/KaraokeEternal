@@ -13,20 +13,24 @@ const log = getLogger('FileScanner:getFiles')
  */
 function getFiles (dir: string, filterFn?: (file: string) => boolean): { file: string, stats: fs.Stats }[] {
   let results: { file: string, stats: fs.Stats }[] = []
-  const list = fs.readdirSync(dir)
+  const list = fs.readdirSync(dir, { withFileTypes: true })
 
-  list.forEach((file) => {
+  list.forEach((dirent) => {
+    const file = path.join(dir, dirent.name)
     let stats
-    file = path.join(dir, file)
+    let isDirectory = dirent.isDirectory()
 
-    try {
-      stats = fs.statSync(file)
-    } catch (err) {
-      log.warn(err.message)
-      return
+    if (dirent.isSymbolicLink()) {
+      try {
+        stats = fs.statSync(file)
+        isDirectory = stats.isDirectory()
+      } catch (err) {
+        log.warn(err.message)
+        return
+      }
     }
 
-    if (stats && stats.isDirectory()) {
+    if (isDirectory) {
       try {
         results = results.concat(getFiles(file, filterFn))
       } catch (err) {
@@ -34,6 +38,13 @@ function getFiles (dir: string, filterFn?: (file: string) => boolean): { file: s
       }
     } else {
       if (!filterFn || filterFn(file)) {
+        try {
+          stats = fs.statSync(file)
+        } catch (err) {
+          log.warn(err.message)
+          return
+        }
+
         results.push({ file, stats })
       }
     }

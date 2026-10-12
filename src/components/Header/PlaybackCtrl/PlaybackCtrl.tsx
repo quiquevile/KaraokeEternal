@@ -9,6 +9,7 @@ import Button from 'components/Button/Button'
 import VolumeSlider from './VolumeSlider/VolumeSlider'
 import NoPlayer from './NoPlayer/NoPlayer'
 import DisplayCtrl from './DisplayCtrl/DisplayCtrl'
+import usePlaybackShortcuts from './usePlaybackShortcuts'
 import styles from './PlaybackCtrl.css'
 import { PlaybackOptions } from 'shared/types'
 
@@ -27,6 +28,8 @@ const PlaybackCtrl = () => {
   const user = useAppSelector(state => state.user)
   const isInRoom = useAppSelector(state => state.user.roomId !== null)
   const status = useAppSelector(state => state.status)
+
+  usePlaybackShortcuts()
 
   const dispatch = useAppDispatch()
   const handleOptions = (opts: PlaybackOptions) => dispatch(requestOptions(opts))

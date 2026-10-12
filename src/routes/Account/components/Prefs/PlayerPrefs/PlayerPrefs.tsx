@@ -8,10 +8,10 @@ import { getPlayerDisplayPrefs } from 'routes/Player/lib/playerDisplay'
 import styles from './PlayerPrefs.css'
 
 const DISPLAY_FIELDS: { key: keyof PlayerDisplayPrefs, label: string }[] = [
-  { key: 'nextUpLeadMs', label: 'Next singer lead time (ms)' },
   { key: 'upNowDurationMs', label: 'Current singer display time (ms)' },
-  { key: 'pitchToastMs', label: 'Pitch display time (ms)' },
+  { key: 'nextUpLeadMs', label: 'Next singer lead time (ms)' },
   { key: 'nextUpBlinkMs', label: 'Next singer blink time (ms)' },
+  { key: 'pitchToastMs', label: 'Pitch display time (ms)' },
 ]
 
 const MsField = ({ fieldKey, label, value }: { fieldKey: keyof PlayerDisplayPrefs, label: string, value: number }) => {

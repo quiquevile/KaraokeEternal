@@ -24,6 +24,9 @@ let total = 0
 let lastPct = 0
 let lastText: string | null = null
 let emit: ReturnType<typeof throttle> | null = null
+// set on finish: a trailing throttled progress may still be in flight and
+// must be dropped instead of re-activating the UI after the final status
+let emitDropped = false
 
 export interface GainStatus {
   active: boolean
@@ -96,7 +99,10 @@ export function startGainScan (io): boolean {
   )
   total = row?.count ?? 0
 
-  emit = throttle(action => io.emit('action', action), 1000)
+  emitDropped = false
+  emit = throttle(action => {
+    if (!emitDropped) io.emit('action', action)
+  }, 1000)
 
   log.info('starting gain scan (%s without level)', total)
   sendStatus({ isScanning: true, pct: 0, text: progressText(0), job: 'gain' })
@@ -253,8 +259,10 @@ async function run (io): Promise<void> {
   if (cancelled) skipped += Math.max(0, total - done())
 
   // drop any pending throttled progress so no stale active status can
-  // land after the final one and re-activate the UI
-  await emit?.cancel()
+  // land after the final one and re-activate the UI (no cancel(): a
+  // fired-but-unrun trailing invoke would see cleared args and reject
+  // with 'nextArgs is null' as an unhandled rejection)
+  emitDropped = true
   emit = null
 
   log.info('gain scan %s (%s measured, %s from tags, %s skipped)',

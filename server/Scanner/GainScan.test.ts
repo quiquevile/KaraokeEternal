@@ -323,6 +323,31 @@ describe('GainScan', () => {
     expect(payloads.slice(finalIndex + 1)).toEqual([])
   }, 10000)
 
+  it('finishes without unhandled rejections from throttled progress', async () => {
+    const unhandled: unknown[] = []
+    const listener = (err: unknown) => { unhandled.push(err) }
+    process.on('unhandledRejection', listener)
+
+    try {
+      dbAllMock
+        .mockReturnValueOnce([
+          { mediaId: 1, pathId: 1, relPath: 'a.mp3' },
+          { mediaId: 2, pathId: 1, relPath: 'b.mp3' },
+        ])
+        .mockReturnValue([])
+      measureMock.mockResolvedValue({ gainDb: -1, peakRatio: 1 })
+
+      startGainScan(io())
+      await waitForIdle()
+      // let any orphaned trailing invocation settle
+      await new Promise(resolve => setTimeout(resolve, 1300))
+
+      expect(unhandled).toEqual([])
+    } finally {
+      process.removeListener('unhandledRejection', listener)
+    }
+  }, 10000)
+
   it('reports idle when no job runs', () => {
     expect(getGainStatus()).toMatchObject({ active: false, paused: false })
   })

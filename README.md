@@ -28,6 +28,8 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 ### Player
 - Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported; Firefox for Android may produce noise when shifting up — Chrome is recommended there).
 - On-screen overlays for the current singer, the pitch value and the upcoming singer, with admin-configurable timings (player display prefs in account Preferences).
+- Always-on song progress with remaining time on the player screen.
+- Global playback keyboard shortcuts: space toggles play/pause, +/- adjust volume, right arrow skips to next, left arrow replays.
 - Replay/restart button in the top playback bar.
 - VLC-style ten-band equalizer, adjustable per player room.
 - ReplayGain leveling with a per-room toggle in the display options (enabled by default) plus manual per-version trim (admin).

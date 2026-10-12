@@ -238,7 +238,12 @@ const PlayerController = (props: PlayerControllerProps) => {
         width={props.width}
         height={props.height}
       />
-      <PitchToast pitchSemitones={player.pitchSemitones} />
+      <PitchToast
+        pitchSemitones={player.pitchSemitones}
+        replayKey={player._lastReplayTime}
+        queueId={player.queueId}
+        mediaId={queueItem ? queueItem.mediaId : null}
+      />
       {roomPrefs?.qr?.isEnabled && isRoomOpen && (
         <PlayerQR
           height={props.height}

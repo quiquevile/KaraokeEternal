@@ -4,27 +4,38 @@ import styles from './PitchToast.css'
 
 interface PitchToastProps {
   pitchSemitones: number
+  // song (re)start signals: replay of the same song only bumps replayKey,
+  // while queueId/mediaId cover advancing to (or restarting) another song
+  replayKey: number
+  queueId: number
+  mediaId: number | null
 }
 
-// transient toast mirroring UpNow on the left edge: shows the newly
-// selected pitch for a moment on every change (mount is silent)
+// transient toast mirroring UpNow on the left edge: shows the current
+// pitch for a moment on every change and on song start (when non-zero;
+// mount is silent)
 const DISPLAY_MS = 2500
 
 const formatPitch = (pitchSemitones: number): string => (
   `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
 )
 
-const PitchToast = ({ pitchSemitones }: PitchToastProps) => {
+const PitchToast = ({ pitchSemitones, replayKey, queueId, mediaId }: PitchToastProps) => {
   const [show, setShow] = useState(false)
   const [text, setText] = useState('')
   const timeoutID = useRef<ReturnType<typeof setTimeout> | null>(null)
   const nodeRef = useRef<HTMLDivElement | null>(null)
-  const prevSemitones = useRef(pitchSemitones)
+  const prev = useRef({ pitchSemitones, replayKey, queueId, mediaId })
 
   useEffect(() => {
-    if (pitchSemitones === prevSemitones.current) return
+    const pitchChanged = prev.current.pitchSemitones !== pitchSemitones
+    const startChanged = prev.current.replayKey !== replayKey ||
+      prev.current.queueId !== queueId ||
+      prev.current.mediaId !== mediaId
 
-    prevSemitones.current = pitchSemitones
+    prev.current = { pitchSemitones, replayKey, queueId, mediaId }
+
+    if (!pitchChanged && !(startChanged && pitchSemitones !== 0)) return
 
     if (timeoutID.current) {
       clearTimeout(timeoutID.current)
@@ -42,7 +53,7 @@ const PitchToast = ({ pitchSemitones }: PitchToastProps) => {
         clearTimeout(timeoutID.current)
       }
     }
-  }, [pitchSemitones])
+  }, [pitchSemitones, replayKey, queueId, mediaId])
 
   return (
     <CSSTransition

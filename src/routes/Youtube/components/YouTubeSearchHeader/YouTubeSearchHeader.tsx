@@ -64,6 +64,9 @@ const YouTubeSearchHeader = () => {
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') handleSearch()
+
+    // native ESC only clears the textbox: clear the results too, like the X
+    if (event.key === 'Escape' && event.currentTarget.value.trim()) clearSearch()
   }
 
   return (

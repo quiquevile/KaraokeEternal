@@ -4,17 +4,20 @@
   right: 0;
   bottom: 0;
   padding: 1.5vh 2vh;
+  display: flex;
+  align-items: center;
+  gap: 2vh;
 }
 
 .time {
   font-size: 2.5vh;
-  text-align: right;
   text-rendering: optimizeLegibility;
   text-shadow: 1px 1px 5px #000;
-  margin-bottom: 0.5vh;
+  white-space: nowrap;
 }
 
 .bar {
+  flex: 1;
   height: 0.8vh;
   border-radius: 0.4vh;
   background-color: rgba(255, 255, 255, 0.25);

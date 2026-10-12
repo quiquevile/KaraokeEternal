@@ -18,11 +18,11 @@ const SongProgress = ({ position, duration }: SongProgressProps) => {
 
   return (
     <div className={styles.container} translate='no'>
-      <div className={styles.time}>
-        {remaining}
-      </div>
       <div className={styles.bar}>
         <div className={styles.fill} style={{ width: `${pct}%` }} />
+      </div>
+      <div className={styles.time}>
+        {remaining}
       </div>
     </div>
   )

@@ -27,8 +27,19 @@
   color: var(--btn-bg-color) !important;
 }
 
+.btnMagnifier {
+  position: relative;
+}
+
 .btnMagnifier svg {
   height: 2.5rem;
+}
+
+.btnMagnifier .ytBadge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1.2rem;
 }
 
 .btnClear {

@@ -8,6 +8,7 @@ import {
   setYoutubeQuery,
 } from 'store/modules/youtube'
 import Button from 'components/Button/Button'
+import Icon from 'components/Icon/Icon'
 import styles from './YouTubeSearchHeader.css'
 
 const parseVideoId = (value: string): string | null => {
@@ -77,7 +78,9 @@ const YouTubeSearchHeader = () => {
         onClick={handleSearch}
         disabled={isSearching || !value.trim()}
         aria-label='Search'
-      />
+      >
+        <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />
+      </Button>
       <input
         type='search'
         className={styles.searchInput}

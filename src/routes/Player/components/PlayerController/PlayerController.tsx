@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Player from '../Player/Player'
 import PlayerTextOverlay from '../PlayerTextOverlay/PlayerTextOverlay'
+import PitchToast from '../PlayerTextOverlay/PitchToast'
 import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
@@ -237,6 +238,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         width={props.width}
         height={props.height}
       />
+      <PitchToast pitchSemitones={player.pitchSemitones} />
       {roomPrefs?.qr?.isEnabled && isRoomOpen && (
         <PlayerQR
           height={props.height}

@@ -22,7 +22,7 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
   const lastToggleTime = useRef<number>(0)
   const [show, setShow] = useState(true)
   const [alternate, setAlternate] = useState(false)
-  const { isPlaying } = useAppSelector(state => state.player)
+  const { isPlaying, isErrored } = useAppSelector(state => state.player)
   const { roomId } = useAppSelector(state => state.user)
 
   const scheduleNextToggle = useCallback(() => {
@@ -110,7 +110,12 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
       }}
     >
       <div
-        className={clsx(styles.container, alternate && styles.alternate)}
+        className={clsx(
+          styles.container,
+          alternate && styles.alternate,
+          // keep clear of the song progress row along the bottom edge
+          isPlaying && queueItem && !isErrored && styles.lifted,
+        )}
         ref={ref}
       >
         <QRCode

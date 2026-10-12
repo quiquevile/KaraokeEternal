@@ -10,6 +10,10 @@
     right: 3vh;
   }
 
+  &.lifted {
+    bottom: 6vh;
+  }
+
   canvas {
     border-radius: var(--border-radius);
   }

@@ -45,13 +45,21 @@ const ACTION_HANDLERS = {
   },
 }
 
-// helper to push prefs to admins
+// helper to push prefs: full prefs to admins, roles plus the player
+// display settings (overlay timings every player screen needs) to the rest
 const pushPrefs = (sock) => {
+  const prefs = Prefs.get() as unknown as { roles: unknown, playerDisplay?: unknown }
+
   for (const s of sock.server.sockets.sockets.values()) {
     if (s.user && s.user.isAdmin) {
       s.emit('action', {
         type: PREFS_PUSH,
-        payload: Prefs.get(),
+        payload: prefs,
+      })
+    } else if (s.user) {
+      s.emit('action', {
+        type: PREFS_PUSH,
+        payload: { roles: prefs.roles, playerDisplay: prefs.playerDisplay },
       })
     }
   }

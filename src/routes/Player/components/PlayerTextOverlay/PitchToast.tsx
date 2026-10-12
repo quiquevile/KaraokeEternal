@@ -4,6 +4,7 @@ import styles from './PitchToast.css'
 
 interface PitchToastProps {
   pitchSemitones: number
+  displayMs: number
   // song (re)start signals: replay of the same song only bumps replayKey,
   // while queueId/mediaId cover advancing to (or restarting) another song
   replayKey: number
@@ -14,13 +15,11 @@ interface PitchToastProps {
 // transient toast mirroring UpNow on the left edge: shows the current
 // pitch for a moment on every change and on song start (when non-zero;
 // mount is silent)
-const DISPLAY_MS = 2500
-
 const formatPitch = (pitchSemitones: number): string => (
   `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
 )
 
-const PitchToast = ({ pitchSemitones, replayKey, queueId, mediaId }: PitchToastProps) => {
+const PitchToast = ({ pitchSemitones, displayMs, replayKey, queueId, mediaId }: PitchToastProps) => {
   const [show, setShow] = useState(false)
   const [text, setText] = useState('')
   const timeoutID = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -46,14 +45,14 @@ const PitchToast = ({ pitchSemitones, replayKey, queueId, mediaId }: PitchToastP
 
     timeoutID.current = setTimeout(() => {
       setShow(false)
-    }, DISPLAY_MS)
+    }, displayMs)
 
     return () => {
       if (timeoutID.current) {
         clearTimeout(timeoutID.current)
       }
     }
-  }, [pitchSemitones, replayKey, queueId, mediaId])
+  }, [pitchSemitones, replayKey, queueId, mediaId, displayMs])
 
   return (
     <CSSTransition

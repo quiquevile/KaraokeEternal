@@ -120,6 +120,7 @@ export interface PlayerState {
   pitchSemitones: number
   pitchSupported: boolean | null
   position: number
+  duration: number
   queueId: number
   rgTrackGain: number | null
   rgTrackPeak: number | null
@@ -150,6 +151,7 @@ const initialState: PlayerState = {
   pitchSemitones: 0,
   pitchSupported: null,
   position: 0,
+  duration: 0,
   queueId: -1,
   rgTrackGain: null,
   rgTrackPeak: null,

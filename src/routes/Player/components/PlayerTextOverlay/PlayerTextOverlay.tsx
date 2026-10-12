@@ -3,6 +3,7 @@ import { useAppDispatch } from 'store/hooks'
 import { requestPlay } from 'store/modules/status'
 import ColorCycle from './ColorCycle/ColorCycle'
 import UpNow from './UpNow/UpNow'
+import NextUp from './NextUp/NextUp'
 import Icon from 'components/Icon/Icon'
 import type { QueueItem } from 'shared/types'
 import styles from './PlayerTextOverlay.css'
@@ -15,6 +16,9 @@ interface PlayerTextOverlayProps {
   isErrored: boolean
   width: number
   height: number
+  upNowDurationMs: number
+  isNextUpVisible: boolean
+  nextUpBlinkMs: number
 }
 
 const PlayerTextOverlay = ({
@@ -25,6 +29,9 @@ const PlayerTextOverlay = ({
   queueItem,
   width,
   height,
+  upNowDurationMs,
+  isNextUpVisible,
+  nextUpBlinkMs,
 }: PlayerTextOverlayProps) => {
   const dispatch = useAppDispatch()
   const handlePlay = () => dispatch(requestPlay())
@@ -58,12 +65,19 @@ const PlayerTextOverlay = ({
       </>
     )
   } else {
-    Component = <UpNow queueItem={queueItem} />
+    Component = <UpNow queueItem={queueItem} displayMs={upNowDurationMs} />
   }
 
   return (
     <div style={{ width, height }} className={styles.container}>
       {Component}
+      {Component && isNextUpVisible && nextQueueItem && (
+        <NextUp
+          key={`${nextQueueItem.queueId}`}
+          displayName={nextQueueItem.userDisplayName}
+          blinkMs={nextUpBlinkMs}
+        />
+      )}
     </div>
   )
 }

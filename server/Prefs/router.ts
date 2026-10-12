@@ -45,8 +45,9 @@ router.get('/', (ctx) => {
     return
   }
 
-  // non-admins only get roles
-  ctx.body = { roles: prefs.roles }
+  // non-admins only get roles and the player display settings
+  // (overlay timings the player screen needs)
+  ctx.body = { roles: prefs.roles, playerDisplay: prefs.playerDisplay }
 })
 
 // logged-in user's own EQ preset slots (per-user storage, never shared)

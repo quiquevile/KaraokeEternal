@@ -19,7 +19,7 @@ interface MP4AlphaPlayerProps {
   onError(error: string): void
   onLoad(): void
   onPlay(): void
-  onStatus(status: { position: number }): void
+  onStatus(status: { position: number, duration: number }): void
 }
 
 class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
@@ -193,6 +193,7 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
   handleTimeUpdate = () => {
     this.props.onStatus({
       position: this.video.currentTime,
+      duration: this.video.duration || 0,
     })
   }
 }

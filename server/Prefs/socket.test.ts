@@ -54,7 +54,7 @@ describe('Prefs socket auth', () => {
     expect(Prefs.setPathPriority).not.toHaveBeenCalled()
   })
 
-  it('pushes prefs only to admin sockets', () => {
+  it('pushes full prefs to admins and display prefs to everyone else', () => {
     const adminEmit = vi.fn()
     const userEmit = vi.fn()
     const ack = vi.fn()
@@ -67,7 +67,11 @@ describe('Prefs socket auth', () => {
 
     expect(Prefs.set).toHaveBeenCalledWith('a', 'b')
     expect(adminEmit).toHaveBeenCalledTimes(1)
-    expect(userEmit).not.toHaveBeenCalled()
+    expect(adminEmit).toHaveBeenCalledWith('action', expect.objectContaining({ payload: {} }))
+    expect(userEmit).toHaveBeenCalledTimes(1)
+    expect(userEmit).toHaveBeenCalledWith('action', expect.objectContaining({
+      payload: { roles: undefined, playerDisplay: undefined },
+    }))
     expect(sock.server.emit).not.toHaveBeenCalled()
   })
 })

@@ -143,6 +143,15 @@ export interface PrefsState {
   youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
   eqPresets?: Partial<Record<EqPresetSlot, number[]>>
+  // player overlay timings (ms), admin-configured; absent until first set
+  playerDisplay?: Partial<PlayerDisplayPrefs>
+}
+
+export interface PlayerDisplayPrefs {
+  nextUpLeadMs: number
+  upNowDurationMs: number
+  pitchToastMs: number
+  nextUpBlinkMs: number
 }
 
 const initialState: PrefsState = {

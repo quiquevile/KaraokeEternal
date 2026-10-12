@@ -14,7 +14,7 @@ interface MP4PlayerProps {
   onError(error: string): void
   onLoad(): void
   onPlay(): void
-  onStatus(status: { position: number }): void
+  onStatus(status: { position: number, duration: number }): void
 }
 
 class MP4Player extends React.Component<MP4PlayerProps> {
@@ -95,6 +95,7 @@ class MP4Player extends React.Component<MP4PlayerProps> {
 
     this.props.onStatus({
       position: this.video.current.currentTime,
+      duration: this.video.current.duration || 0,
     })
   }
 }

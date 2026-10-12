@@ -6,9 +6,10 @@ import styles from './UpNow.css'
 
 interface UpNowProps {
   queueItem: QueueItem
+  displayMs: number
 }
 
-const UpNow = ({ queueItem }: UpNowProps) => {
+const UpNow = ({ queueItem, displayMs }: UpNowProps) => {
   const [show, setShow] = useState(false)
   const timeoutID = useRef<ReturnType<typeof setTimeout> | null>(null)
   const nodeRef = useRef<HTMLDivElement | null>(null)
@@ -24,7 +25,7 @@ const UpNow = ({ queueItem }: UpNowProps) => {
 
     timeoutID.current = setTimeout(() => {
       setShow(false)
-    }, 5000)
+    }, displayMs)
 
     // Cleanup the timeout when component unmounts or queueItem changes
     return () => {
@@ -32,7 +33,7 @@ const UpNow = ({ queueItem }: UpNowProps) => {
         clearTimeout(timeoutID.current)
       }
     }
-  }, [queueItem.queueId])
+  }, [queueItem.queueId, displayMs])
 
   return (
     <CSSTransition

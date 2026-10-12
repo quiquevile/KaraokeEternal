@@ -7,6 +7,7 @@ import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
+import { getPlayerDisplayPrefs, isNextUpVisible } from '../../lib/playerDisplay'
 import { parseNumberArray } from 'lib/util'
 import type { QueueItem } from 'shared/types'
 
@@ -20,6 +21,7 @@ const PlayerController = (props: PlayerControllerProps) => {
   const player = useAppSelector(state => state.player)
   const playerVisualizer = useAppSelector(state => state.playerVisualizer)
   const roomPrefs = useAppSelector(getRoomPrefs)
+  const displayPrefs = getPlayerDisplayPrefs(useAppSelector(state => state.prefs.playerDisplay))
   const roomQrPassword = useAppSelector(state =>
     (typeof state.user.roomId === 'number'
       ? state.rooms.entities[state.user.roomId]?.qrPassword
@@ -38,6 +40,13 @@ const PlayerController = (props: PlayerControllerProps) => {
   const nextQueueItem = queueItem
     ? queue.entities[queue.result[queue.result.indexOf(player.queueId) + 1]]
     : queue.entities[queue.result.find(queueId => !playedIds.includes(queueId))]
+  const showNextUp = isNextUpVisible(
+    player.position,
+    player.duration,
+    displayPrefs.nextUpLeadMs,
+    displayPrefs.upNowDurationMs,
+    !!nextQueueItem,
+  )
 
   const dispatch = useAppDispatch()
   const handleStatus = useCallback((status?: Partial<PlayerState>) => dispatch(playerStatus(status)), [dispatch])
@@ -69,6 +78,7 @@ const PlayerController = (props: PlayerControllerProps) => {
       // pitch only applies to the current song: keep it on restart, reset on change
       pitchSemitones: queueId !== player.queueId ? 0 : player.pitchSemitones,
       position: 0,
+      duration: 0,
       queueId: nextItem.queueId,
       nextUserId: null,
       _isReplayingQueueId: null,
@@ -122,6 +132,7 @@ const PlayerController = (props: PlayerControllerProps) => {
       mediaType: nextQueueItem.mediaType,
       pitchSemitones: 0,
       position: 0,
+      duration: 0,
       queueId: nextQueueItem.queueId,
       nextUserId: null,
       _isPlayingNext: false,
@@ -237,9 +248,13 @@ const PlayerController = (props: PlayerControllerProps) => {
         isErrored={player.isErrored}
         width={props.width}
         height={props.height}
+        upNowDurationMs={displayPrefs.upNowDurationMs}
+        isNextUpVisible={showNextUp}
+        nextUpBlinkMs={displayPrefs.nextUpBlinkMs}
       />
       <PitchToast
         pitchSemitones={player.pitchSemitones}
+        displayMs={displayPrefs.pitchToastMs}
         replayKey={player._lastReplayTime}
         queueId={player.queueId}
         mediaId={queueItem ? queueItem.mediaId : null}

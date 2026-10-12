@@ -43,3 +43,17 @@ export function isNextUpVisible (
 
   return remainingMs <= leadMs && positionS * 1000 >= upNowMs
 }
+
+/**
+ * Remaining time as `-M:SS` for the song progress readout, or null when
+ * the duration is unknown.
+ */
+export function formatRemaining (positionS: number, durationS: number): string | null {
+  if (!(durationS > 0) || !(positionS >= 0)) return null
+
+  const remainingS = Math.max(0, Math.round(durationS - positionS))
+  const minutes = Math.floor(remainingS / 60)
+  const seconds = String(remainingS % 60).padStart(2, '0')
+
+  return `-${minutes}:${seconds}`
+}

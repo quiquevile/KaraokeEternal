@@ -1,0 +1,27 @@
+.container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1.5vh 2vh;
+}
+
+.time {
+  font-size: 2.5vh;
+  text-align: right;
+  text-rendering: optimizeLegibility;
+  text-shadow: 1px 1px 5px #000;
+  margin-bottom: 0.5vh;
+}
+
+.bar {
+  height: 0.8vh;
+  border-radius: 0.4vh;
+  background-color: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+}

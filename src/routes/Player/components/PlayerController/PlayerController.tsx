@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Player from '../Player/Player'
 import PlayerTextOverlay from '../PlayerTextOverlay/PlayerTextOverlay'
 import PitchToast from '../PlayerTextOverlay/PitchToast'
+import SongProgress from '../PlayerTextOverlay/SongProgress/SongProgress'
 import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
@@ -259,6 +260,9 @@ const PlayerController = (props: PlayerControllerProps) => {
         queueId={player.queueId}
         mediaId={queueItem ? queueItem.mediaId : null}
       />
+      {player.isPlaying && queueItem && !player.isErrored && (
+        <SongProgress position={player.position} duration={player.duration} />
+      )}
       {roomPrefs?.qr?.isEnabled && isRoomOpen && (
         <PlayerQR
           height={props.height}

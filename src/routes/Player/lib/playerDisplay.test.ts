@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   PLAYER_DISPLAY_DEFAULTS,
+  formatRemaining,
   getPlayerDisplayPrefs,
   isNextUpVisible,
 } from './playerDisplay'
@@ -37,5 +38,13 @@ describe('playerDisplay', () => {
     // 2 s in on a 20 s song with a 30 s lead: hidden until the UpNow badge is gone
     expect(isNextUpVisible(2, 20, 30000, 5000, true)).toBe(false)
     expect(isNextUpVisible(6, 20, 30000, 5000, true)).toBe(true)
+  })
+
+  it('formats remaining time as -M:SS', () => {
+    expect(formatRemaining(190, 210)).toBe('-0:20')
+    expect(formatRemaining(0, 210)).toBe('-3:30')
+    expect(formatRemaining(209.6, 210)).toBe('-0:00')
+    expect(formatRemaining(0, 0)).toBe(null)
+    expect(formatRemaining(0, NaN)).toBe(null)
   })
 })

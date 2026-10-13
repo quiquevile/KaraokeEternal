@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import InputImage from 'components/InputImage/InputImage'
 import styles from './Create.css'
@@ -22,6 +23,7 @@ const Create = ({
   onSubmit,
   onFirstFieldRef,
 }: CreateProps) => {
+  const intl = useIntl()
   const [name, setName] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [image, setImage] = useState<Blob | undefined>(undefined)
@@ -44,7 +46,7 @@ const Create = ({
             autoComplete='off'
             value={username}
             onChange={e => onUsernameChange(e.target.value)}
-            placeholder='username or email'
+            placeholder={intl.formatMessage({ id: 'account.create.usernameOrEmail', defaultMessage: 'username or email' })}
             ref={onFirstFieldRef}
           />
           <input
@@ -52,12 +54,12 @@ const Create = ({
             autoComplete='new-password'
             value={password}
             onChange={e => onPasswordChange(e.target.value)}
-            placeholder='password'
+            placeholder={intl.formatMessage({ id: 'account.create.password', defaultMessage: 'password' })}
           />
           <input
             type='password'
             autoComplete='new-password'
-            placeholder='confirm password'
+            placeholder={intl.formatMessage({ id: 'account.create.confirmPassword', defaultMessage: 'confirm password' })}
             value={passwordConfirm}
             onChange={e => setPasswordConfirm(e.target.value)}
           />
@@ -68,7 +70,7 @@ const Create = ({
         <InputImage onSelect={setImage} />
         <input
           type='text'
-          placeholder='display name'
+          placeholder={intl.formatMessage({ id: 'account.create.displayName', defaultMessage: 'display name' })}
           value={name}
           onChange={e => setName(e.target.value)}
           ref={guest ? onFirstFieldRef : undefined}
@@ -76,7 +78,7 @@ const Create = ({
       </div>
 
       <Button type='submit' variant='primary'>
-        Join
+        <FormattedMessage id='account.create.join' defaultMessage='Join' />
       </Button>
     </form>
   )

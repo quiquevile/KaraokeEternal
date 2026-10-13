@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
 import clsx from 'clsx'
+import { useIntl } from 'react-intl'
 import InputRadio from 'components/InputRadio/InputRadio'
 import styles from './SelectRoom.css'
 import type { Room } from 'shared/types'
@@ -27,6 +28,11 @@ const SelectRoom = ({
   showAllRooms,
 }: SelectRoomProps) => {
   const roomPasswordRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const intl = useIntl()
+  const roomPasswordText = intl.formatMessage({
+    id: 'account.selectRoom.roomPassword',
+    defaultMessage: 'room password (required)',
+  })
 
   const setPasswordRef = (roomId: number) => (el: HTMLInputElement | null) => {
     roomPasswordRefs.current[roomId] = el
@@ -71,8 +77,8 @@ const SelectRoom = ({
                 autoComplete='off'
                 className={clsx((roomId === null || id !== roomId) && styles.hidden)}
                 onChange={(e) => { onRoomPasswordChange(e.target.value) }}
-                placeholder='room password (required)'
-                aria-label='room password (required)'
+                placeholder={roomPasswordText}
+                aria-label={roomPasswordText}
                 ref={setPasswordRef(id)}
                 value={roomPassword}
               />

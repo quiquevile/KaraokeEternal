@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { fetchRooms } from 'store/modules/rooms'
 import getRoomList from 'routes/Account/selectors/getRoomList'
@@ -31,6 +32,13 @@ const SignedOutView = () => {
   const [showAllRooms, setShowAllRooms] = useState(true)
   const [prevRooms, setPrevRooms] = useState<typeof rooms | null>(null)
   const [focusRequest, setFocusRequest] = useState(0)
+  const intl = useIntl()
+
+  const modeLabels = {
+    returning: intl.formatMessage({ id: 'account.signedOut.modeReturning', defaultMessage: 'Returning user' }),
+    standard: intl.formatMessage({ id: 'account.signedOut.modeStandard', defaultMessage: 'New user' }),
+    guest: intl.formatMessage({ id: 'account.signedOut.modeGuest', defaultMessage: 'Guest' }),
+  }
 
   // once per mount
   useEffect(() => {
@@ -134,7 +142,7 @@ const SignedOutView = () => {
 
       {showRoomSection && (
         <>
-          <h1>Join room...</h1>
+          <h1><FormattedMessage id='account.signedOut.joinRoom' defaultMessage='Join room...' /></h1>
           <SelectRoom
             rooms={rooms}
             roomId={roomId}
@@ -150,15 +158,15 @@ const SignedOutView = () => {
         {allowNew
           ? (
               <>
-                <h1>Join as...</h1>
+                <h1><FormattedMessage id='account.signedOut.joinAs' defaultMessage='Join as...' /></h1>
                 <div className={styles.radioContainer}>
-                  <InputRadio name='type' value='returning' checked={mode === 'returning'} onChange={setMode} label='Returning user' />
-                  {allowNewStandard && <InputRadio name='type' value='standard' checked={mode === 'standard'} onChange={setMode} label='New user' />}
-                  {allowNewGuest && <InputRadio name='type' value='guest' checked={mode === 'guest'} onChange={setMode} label='Guest' />}
+                  <InputRadio name='type' value='returning' checked={mode === 'returning'} onChange={setMode} label={modeLabels.returning} />
+                  {allowNewStandard && <InputRadio name='type' value='standard' checked={mode === 'standard'} onChange={setMode} label={modeLabels.standard} />}
+                  {allowNewGuest && <InputRadio name='type' value='guest' checked={mode === 'guest'} onChange={setMode} label={modeLabels.guest} />}
                 </div>
               </>
             )
-          : <h1>Sign in</h1>}
+          : <h1><FormattedMessage id='account.signedOut.signIn' defaultMessage='Sign in' /></h1>}
 
         {(mode === 'returning' || !allowNew) && (
           <SignIn

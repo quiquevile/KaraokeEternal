@@ -1,1 +1,20 @@
-{}
+{
+  "account.signin.usernameOrEmail": "nombre de usuario o correo",
+  "account.signin.password": "contraseña",
+  "account.signin.submit": "Entrar",
+  "account.create.usernameOrEmail": "nombre de usuario o correo",
+  "account.create.password": "contraseña",
+  "account.create.confirmPassword": "confirmar contraseña",
+  "account.create.displayName": "nombre visible",
+  "account.create.join": "Entrar",
+  "account.selectRoom.roomPassword": "contraseña de la sala (obligatoria)",
+  "account.signedOut.joinRoom": "Entrar en la sala...",
+  "account.signedOut.joinAs": "Entrar como...",
+  "account.signedOut.modeReturning": "Usuario existente",
+  "account.signedOut.modeStandard": "Nuevo usuario",
+  "account.signedOut.modeGuest": "Invitado",
+  "account.signedOut.signIn": "Entrar",
+  "account.firstRun.welcome": "Bienvenido",
+  "account.firstRun.intro": "Crea tu cuenta de <b>administrador</b> para empezar. Todos los datos se guardan localmente y nunca se comparten.",
+  "account.firstRun.createAccount": "Crear cuenta"
+}

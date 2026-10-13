@@ -1,4 +1,5 @@
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { createAccount } from 'store/modules/user'
 import Button from 'components/Button/Button'
@@ -17,17 +18,17 @@ const FirstRun = () => {
   return (
     <div className={styles.container} style={{ maxWidth: Math.max(340, ui.contentWidth * 0.66) }}>
       <Logo className={styles.logo} />
-      <h1>Welcome</h1>
+      <h1><FormattedMessage id='account.firstRun.welcome' defaultMessage='Welcome' /></h1>
       <p>
-        Create your
-        {' '}
-        <b>admin</b>
-        {' '}
-        account to get started. All data is locally stored and never shared.
+        <FormattedMessage
+          id='account.firstRun.intro'
+          defaultMessage='Create your <b>admin</b> account to get started. All data is locally stored and never shared.'
+          values={{ b: chunks => <b>{chunks}</b> }}
+        />
       </p>
       <AccountForm onSubmit={handleCreate} autoFocus>
         <Button variant='primary' type='submit'>
-          Create Account
+          <FormattedMessage id='account.firstRun.createAccount' defaultMessage='Create Account' />
         </Button>
       </AccountForm>
     </div>

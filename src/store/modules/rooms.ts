@@ -13,6 +13,7 @@ import {
   ROOM_PREFS_PUSH,
   ROOM_PREFS_PUSH_REQUEST,
   LOGOUT,
+  SOCKET_AUTH_ERROR,
 } from 'shared/actionTypes'
 
 import HttpApi from 'lib/HttpApi'
@@ -253,6 +254,11 @@ const roomsReducer = createReducer(initialState, (builder) => {
       }
     })
     .addCase(LOGOUT, () => ({
+      ...initialState,
+    }))
+    // same as logout: a dead session must not keep rooms around
+    // (a stale admin-fetched list would leak closed rooms into login)
+    .addCase(SOCKET_AUTH_ERROR, () => ({
       ...initialState,
     }))
 })

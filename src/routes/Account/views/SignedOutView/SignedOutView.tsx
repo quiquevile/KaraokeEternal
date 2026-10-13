@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { fetchRooms } from 'store/modules/rooms'
+import getRoomList from 'routes/Account/selectors/getRoomList'
 import { createAccount, login } from 'store/modules/user'
 import Logo from 'components/Logo/Logo'
 import SelectRoom from './SelectRoom/SelectRoom'
@@ -15,7 +16,9 @@ const SignedOutView = () => {
   const firstFieldRef = useRef<HTMLInputElement | null>(null)
 
   const prefs = useAppSelector(state => state.prefs)
-  const rooms = useAppSelector(state => state.rooms)
+  // pre-filtered to open rooms: closed rooms must never show on login,
+  // even with a stale admin-fetched list in memory
+  const rooms = useAppSelector(getRoomList)
   const ui = useAppSelector(state => state.ui)
   const dispatch = useAppDispatch()
 

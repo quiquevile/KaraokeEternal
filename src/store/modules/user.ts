@@ -200,9 +200,13 @@ const userReducer = createReducer(initialState, (builder) => {
     .addCase(LOGOUT, () => ({
       ...initialState,
     }))
-    .addCase(SOCKET_AUTH_ERROR, () => ({
-      ...initialState,
-    }))
+    .addCase(SOCKET_AUTH_ERROR, () => {
+      // drop the persisted session too: otherwise a stale admin user
+      // resurrects on refresh (mirrors HttpApi.onUnauthorized)
+      Persistor.get().purge()
+
+      return { ...initialState }
+    })
 })
 
 export default persistReducer({

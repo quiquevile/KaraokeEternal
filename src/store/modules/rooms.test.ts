@@ -5,11 +5,13 @@ import reducer, {
   fetchOwnRoom,
   fetchRooms,
   qrUpdateOf,
+  receiveRooms,
   removeRoom,
   roomPrefsPush,
   updateCurrentRoomOptions,
   updateRoom,
 } from './rooms'
+import { SOCKET_AUTH_ERROR } from 'shared/actionTypes'
 import type { IRoomPrefs } from 'shared/types'
 
 const qrPrefs = (overrides: object = {}): IRoomPrefs => ({
@@ -162,5 +164,27 @@ describe('roomPrefsPush', () => {
 
     store.dispatch(roomPrefsPush({ roomId: 1, prefs: qrPrefs(), status: 'open' }))
     expect(store.getState().rooms.entities[1].status).toBe('open')
+  })
+})
+
+describe('socket auth error', () => {
+  it('resets rooms so stale lists cannot leak closed rooms into login', () => {
+    const store = makeStore()
+
+    // stale admin-fetched list with a closed room
+    store.dispatch(receiveRooms({
+      result: [1, 2],
+      entities: {
+        1: { roomId: 1, name: 'Open', status: 'open' },
+        2: { roomId: 2, name: 'Closed', status: 'closed' },
+      },
+    }))
+    expect(store.getState().rooms.result).toEqual([1, 2])
+
+    store.dispatch({ type: SOCKET_AUTH_ERROR })
+
+    expect(store.getState().rooms.result).toEqual([])
+    expect(store.getState().rooms.entities).toEqual({})
+    expect(store.getState().rooms.filterStatus).toBe('open')
   })
 })

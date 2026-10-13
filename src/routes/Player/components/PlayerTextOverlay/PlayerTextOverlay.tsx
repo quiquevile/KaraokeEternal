@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useIntl } from 'react-intl'
 import { useAppDispatch } from 'store/hooks'
 import { requestPlay } from 'store/modules/status'
 import ColorCycle from './ColorCycle/ColorCycle'
@@ -34,13 +35,19 @@ const PlayerTextOverlay = ({
   nextUpBlinkMs,
 }: PlayerTextOverlayProps) => {
   const dispatch = useAppDispatch()
+  const intl = useIntl()
   const handlePlay = () => dispatch(requestPlay())
   const [errorOffset] = useState(() => Math.random() * -300)
 
   let Component
 
   if (isQueueEmpty || (isAtQueueEnd && !nextQueueItem)) {
-    Component = <ColorCycle text='CAN HAZ MOAR SONGZ?' className={styles.backdrop} />
+    Component = (
+      <ColorCycle
+        text={intl.formatMessage({ id: 'player.overlay.moreSongs', defaultMessage: 'CAN HAZ MOAR SONGZ?' })}
+        className={styles.backdrop}
+      />
+    )
   } else if (!queueItem || (isAtQueueEnd && nextQueueItem)) {
     Component = (
       <>
@@ -52,7 +59,11 @@ const PlayerTextOverlay = ({
             </linearGradient>
           </defs>
         </svg>
-        <button className={styles.playButton} onClick={handlePlay} aria-label='Play'>
+        <button
+          className={styles.playButton}
+          onClick={handlePlay}
+          aria-label={intl.formatMessage({ id: 'player.overlay.play', defaultMessage: 'Play' })}
+        >
           <Icon icon='PLAY' />
         </button>
       </>
@@ -60,8 +71,16 @@ const PlayerTextOverlay = ({
   } else if (isErrored) {
     Component = (
       <>
-        <ColorCycle text='OOPS...' offset={errorOffset} className={styles.backdrop} />
-        <ColorCycle text='SEE QUEUE FOR DETAILS' offset={errorOffset} className={styles.backdrop} />
+        <ColorCycle
+          text={intl.formatMessage({ id: 'player.overlay.oops', defaultMessage: 'OOPS...' })}
+          offset={errorOffset}
+          className={styles.backdrop}
+        />
+        <ColorCycle
+          text={intl.formatMessage({ id: 'player.overlay.seeQueue', defaultMessage: 'SEE QUEUE FOR DETAILS' })}
+          offset={errorOffset}
+          className={styles.backdrop}
+        />
       </>
     )
   } else {

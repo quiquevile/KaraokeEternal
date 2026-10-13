@@ -193,5 +193,10 @@
   "queue.item.requeue": "Pedir otra vez",
   "queue.item.replay": "Repetir canción",
   "queue.item.remove": "Quitar canción",
-  "queue.item.skip": "Saltar canción"
+  "queue.item.skip": "Saltar canción",
+  "player.overlay.moreSongs": "¿MÁS CANCIONES?",
+  "player.overlay.play": "Reproducir",
+  "player.overlay.oops": "VAYA...",
+  "player.overlay.seeQueue": "MIRA LA COLA PARA DETALLES",
+  "player.nextUp.next": "Siguiente: {name}"
 }

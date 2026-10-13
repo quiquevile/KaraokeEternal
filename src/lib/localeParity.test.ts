@@ -43,12 +43,15 @@ const MIGRATED_FILES = [
   'src/components/MoveVersionDialog/MoveVersionDialog.tsx',
   'src/routes/Queue/views/QueueView.tsx',
   'src/routes/Queue/components/QueueItem/QueueItem.tsx',
+  'src/routes/Player/components/PlayerTextOverlay/PlayerTextOverlay.tsx',
+  'src/routes/Player/components/PlayerTextOverlay/NextUp/NextUp.tsx',
 ]
 
 const collectIds = (source: string): string[] => {
   const ids: string[] = []
-  // `id` props/params and `labelId` data fields
-  const pattern = /\b(?:id|labelId)\s*[:=]\s*['"]([^'"]+)['"]/g
+  // `id` props/params and `labelId` data fields; message IDs are always
+  // namespaced (dotted), which also skips SVG ids like play-icon-gradient
+  const pattern = /\b(?:id|labelId)\s*[:=]\s*['"]([^'"]*\.[^'"]*)['"]/g
 
   let match: RegExpExecArray | null
 

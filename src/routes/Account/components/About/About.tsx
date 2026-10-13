@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
+import { FormattedMessage, useIntl } from 'react-intl'
 import Panel from 'components/Panel/Panel'
 import Icon from 'components/Icon/Icon'
 import Logo from 'components/Logo/Logo'
@@ -14,9 +15,14 @@ const curYear = new Date().getFullYear()
 const About = () => {
   const [isChangelogOpen, setChangelogOpen] = useState(false)
   const toggleChangelog = () => setChangelogOpen(prevState => !prevState)
+  const intl = useIntl()
+  const changelogTitle = intl.formatMessage({ id: 'account.about.changelog', defaultMessage: 'Changelog & Sponsors' })
 
   return (
-    <Panel title='About' contentClassName={styles.content}>
+    <Panel
+      title={intl.formatMessage({ id: 'account.about.title', defaultMessage: 'About' })}
+      contentClassName={styles.content}
+    >
       <>
         {/* @ts-expect-error: global via Webpack */}
         <a href={__KE_URL_HOME__} target='_blank' rel='noreferrer'>
@@ -33,11 +39,13 @@ const About = () => {
           {__KE_VERSION__}
         </p>
         <p>
-          <a className={styles.pseudolink} onClick={toggleChangelog}>Changelog &amp; Sponsors</a>
+          <a className={styles.pseudolink} onClick={toggleChangelog}>{changelogTitle}</a>
           {' '}
           |
           {' '}
-          <a href='/licenses.txt' target='_blank'>Licenses</a>
+          <a href='/licenses.txt' target='_blank'>
+            <FormattedMessage id='account.about.licenses' defaultMessage='Licenses' />
+          </a>
         </p>
 
         <div className={styles.ghButtonContainer}>
@@ -67,13 +75,13 @@ const About = () => {
 
         {isChangelogOpen && (
           <Modal
-            title='Changelog & Sponsors'
+            title={changelogTitle}
             className={styles.changelog}
             onClose={toggleChangelog}
             scrollable
             buttons={(
               <Button variant='primary' onClick={toggleChangelog}>
-                Done
+                <FormattedMessage id='account.about.done' defaultMessage='Done' />
               </Button>
             )}
           >

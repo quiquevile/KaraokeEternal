@@ -1,4 +1,5 @@
 import React from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
@@ -13,6 +14,7 @@ interface UserPrefsProps {
 
 const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
   const roles = useAppSelector(state => state.prefs.roles)
+  const intl = useIntl()
 
   const getRoleId = (roleName: string) => {
     return roles.result.find(roleId => roles.entities[roleId].name === roleName)
@@ -43,14 +45,16 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
       headingComponent={(
         <div className={styles.heading}>
           <Icon icon='PERSON' />
-          <div className={styles.title}>Users</div>
+          <div className={styles.title}>
+            <FormattedMessage id='account.userPrefs.title' defaultMessage='Users' />
+          </div>
         </div>
       )}
     >
       <div className={styles.content}>
         <div className={styles.field}>
           <InputCheckbox
-            label='Allow new standard users'
+            label={intl.formatMessage({ id: 'account.userPrefs.allowStandard', defaultMessage: 'Allow new standard users' })}
             name='standard'
             checked={allowNewStandard}
             onChange={handleChange}
@@ -58,7 +62,7 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
         </div>
         <div className={styles.field}>
           <InputCheckbox
-            label='Allow new guests'
+            label={intl.formatMessage({ id: 'account.userPrefs.allowGuests', defaultMessage: 'Allow new guests' })}
             name='guest'
             checked={allowNewGuest}
             onChange={handleChange}

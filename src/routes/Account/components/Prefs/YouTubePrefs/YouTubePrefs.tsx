@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
 import Button from 'components/Button/Button'
@@ -12,6 +13,7 @@ const DirField = ({ value }: { value: string }) => {
   const [dir, setDir] = useState(value)
   const [isChoosing, setChoosing] = useState(false)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   const handleSave = () => {
     dispatch(setPref({ key: 'youtubeYtdlDir', data: dir.trim() || '' }))
@@ -41,7 +43,7 @@ const DirField = ({ value }: { value: string }) => {
           size={20}
           className={styles.browse}
           onClick={() => setChoosing(true)}
-          aria-label='Browse for yt-dlp folder'
+          aria-label={intl.formatMessage({ id: 'account.youtubePrefs.browse', defaultMessage: 'Browse for yt-dlp folder' })}
         />
       </div>
 
@@ -60,6 +62,7 @@ const YouTubePrefs = () => {
   const youtubeYtdlDir = useAppSelector(state => state.prefs.youtubeYtdlDir)
   const paths = useAppSelector(state => state.prefs.paths)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   const selectedPathId = youtubeDownloadPathId != null && paths.result.includes(youtubeDownloadPathId)
     ? youtubeDownloadPathId
@@ -79,28 +82,34 @@ const YouTubePrefs = () => {
       headingComponent={(
         <div className={styles.heading}>
           <Icon icon='NAV_YOUTUBE' size={32} className={styles.icon} />
-          <div className={styles.title}>YouTube</div>
+          <div className={styles.title}>
+            <FormattedMessage id='account.youtubePrefs.title' defaultMessage='YouTube' />
+          </div>
         </div>
       )}
     >
       <div className={styles.content}>
         <div className={styles.config}>
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>yt-dlp folder</span>
+            <span className={styles.fieldLabel}>
+              <FormattedMessage id='account.youtubePrefs.ytdlFolder' defaultMessage='yt-dlp folder' />
+            </span>
             <DirField key={youtubeYtdlDir ?? ''} value={youtubeYtdlDir ?? ''} />
           </label>
 
           <YtdlUpdater />
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Download folder</span>
+            <span className={styles.fieldLabel}>
+              <FormattedMessage id='account.youtubePrefs.downloadFolder' defaultMessage='Download folder' />
+            </span>
             <select
               value={selectedPathId != null ? String(selectedPathId) : ''}
               onChange={handlePathChange}
               disabled={!paths.result.length}
             >
               {!paths.result.length
-                && <option value=''>No media folders</option>}
+                && <option value=''>{intl.formatMessage({ id: 'account.youtubePrefs.noFolders', defaultMessage: 'No media folders' })}</option>}
               {paths.result.map(pathId => (
                 <option key={pathId} value={String(pathId)}>{paths.entities[pathId].path}</option>
               ))}

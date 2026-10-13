@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { formatDateTime } from 'lib/dateTime'
 import Panel from 'components/Panel/Panel'
@@ -11,6 +12,7 @@ import styles from './Rooms.css'
 
 const Rooms = () => {
   const [editorRoom, setEditorRoom] = useState(null)
+  const intl = useIntl()
 
   const { isEditorOpen, filterStatus } = useAppSelector(state => state.rooms)
   const rooms = useAppSelector(getRoomList)
@@ -57,21 +59,24 @@ const Rooms = () => {
 
   const roomsFilter = (
     <select className={styles.roomsFilter} onChange={handleFilterChange} value={filterStatus === false ? 'all' : filterStatus as string}>
-      <option key='all' value='all'>All</option>
-      <option key='open' value='open'>Open</option>
-      <option key='closed' value='closed'>Closed</option>
+      <option key='all' value='all'>{intl.formatMessage({ id: 'account.rooms.filterAll', defaultMessage: 'All' })}</option>
+      <option key='open' value='open'>{intl.formatMessage({ id: 'account.rooms.filterOpen', defaultMessage: 'Open' })}</option>
+      <option key='closed' value='closed'>{intl.formatMessage({ id: 'account.rooms.filterClosed', defaultMessage: 'Closed' })}</option>
     </select>
   )
 
   return (
-    <Panel title='Rooms' titleComponent={roomsFilter}>
+    <Panel
+      title={intl.formatMessage({ id: 'account.rooms.title', defaultMessage: 'Rooms' })}
+      titleComponent={roomsFilter}
+    >
       <>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Created</th>
+              <th><FormattedMessage id='account.rooms.name' defaultMessage='Name' /></th>
+              <th><FormattedMessage id='account.rooms.status' defaultMessage='Status' /></th>
+              <th><FormattedMessage id='account.rooms.created' defaultMessage='Created' /></th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +86,7 @@ const Rooms = () => {
 
         <br />
         <Button onClick={handleOpen} variant='primary'>
-          Create Room
+          <FormattedMessage id='account.rooms.createRoom' defaultMessage='Create Room' />
         </Button>
 
         {isEditorOpen && <EditRoom onClose={handleClose} room={editorRoom} />}

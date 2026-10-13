@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
 import Button from 'components/Button/Button'
@@ -7,18 +8,24 @@ import { requestGainScan, setPref, type PlayerDisplayPrefs } from 'store/modules
 import { getPlayerDisplayPrefs } from 'routes/Player/lib/playerDisplay'
 import styles from './PlayerPrefs.css'
 
-const DISPLAY_FIELDS: { key: keyof PlayerDisplayPrefs, label: string }[] = [
-  { key: 'upNowDurationMs', label: 'Current singer display time (ms)' },
-  { key: 'nextUpLeadMs', label: 'Next singer lead time (ms)' },
-  { key: 'nextUpBlinkMs', label: 'Next singer blink time (ms)' },
-  { key: 'pitchToastMs', label: 'Pitch display time (ms)' },
+const DISPLAY_FIELDS: { key: keyof PlayerDisplayPrefs, labelId: string, defaultLabel: string }[] = [
+  { key: 'upNowDurationMs', labelId: 'account.playerPrefs.upNowDuration', defaultLabel: 'Current singer display time (ms)' },
+  { key: 'nextUpLeadMs', labelId: 'account.playerPrefs.nextUpLead', defaultLabel: 'Next singer lead time (ms)' },
+  { key: 'nextUpBlinkMs', labelId: 'account.playerPrefs.nextUpBlink', defaultLabel: 'Next singer blink time (ms)' },
+  { key: 'pitchToastMs', labelId: 'account.playerPrefs.pitchToast', defaultLabel: 'Pitch display time (ms)' },
 ]
 
-const MsField = ({ fieldKey, label, value }: { fieldKey: keyof PlayerDisplayPrefs, label: string, value: number }) => {
+const MsField = ({ fieldKey, labelId, defaultLabel, value }: {
+  fieldKey: keyof PlayerDisplayPrefs
+  labelId: string
+  defaultLabel: string
+  value: number
+}) => {
   const [text, setText] = useState(String(value))
   const [prevValue, setPrevValue] = useState(value)
   const dispatch = useAppDispatch()
   const stored = useAppSelector(state => state.prefs.playerDisplay)
+  const intl = useIntl()
 
   if (value !== prevValue) {
     setPrevValue(value)
@@ -40,7 +47,9 @@ const MsField = ({ fieldKey, label, value }: { fieldKey: keyof PlayerDisplayPref
 
   return (
     <label className={styles.field}>
-      <span className={styles.fieldLabel}>{label}</span>
+      <span className={styles.fieldLabel}>
+        {intl.formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+      </span>
       <input
         type='number'
         min={0}
@@ -70,7 +79,9 @@ const PlayerPrefs = () => {
       headingComponent={(
         <div className={styles.heading}>
           <Icon icon='TELEVISION_PLAY' size={32} className={styles.icon} />
-          <div className={styles.title}>Player</div>
+          <div className={styles.title}>
+            <FormattedMessage id='account.playerPrefs.title' defaultMessage='Player' />
+          </div>
         </div>
       )}
     >
@@ -78,13 +89,13 @@ const PlayerPrefs = () => {
         {isAdmin && (
           <>
             <div className={styles.config}>
-              {DISPLAY_FIELDS.map(({ key, label }) => (
-                <MsField key={key} fieldKey={key} label={label} value={displayPrefs[key]} />
+              {DISPLAY_FIELDS.map(({ key, labelId, defaultLabel }) => (
+                <MsField key={key} fieldKey={key} labelId={labelId} defaultLabel={defaultLabel} value={displayPrefs[key]} />
               ))}
             </div>
             <div>
               <Button onClick={handleGainScan} variant='default' disabled={isScanning}>
-                Measure ReplayGain
+                <FormattedMessage id='account.playerPrefs.measureGain' defaultMessage='Measure ReplayGain' />
               </Button>
             </div>
           </>

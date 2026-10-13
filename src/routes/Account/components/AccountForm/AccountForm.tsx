@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useIntl } from 'react-intl'
 import Accordion from 'components/Accordion/Accordion'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import InputImage from 'components/InputImage/InputImage'
@@ -58,6 +59,8 @@ const AccountForm = ({
   }, [state.isDirty, onDirtyChange])
 
   const [selectedRole, setSelectedRole] = useState(user?.role ?? '')
+  const intl = useIntl()
+  const isSignedIn = user && user.userId !== null
 
   const updateDirty = (perms: Record<string, boolean> = state.perms) => {
     if (!user || user.userId === null) return
@@ -143,7 +146,9 @@ const AccountForm = ({
           autoComplete='off'
           autoFocus={autoFocus}
           onChange={() => updateDirty()}
-          placeholder={user && user.userId !== null ? 'change username (optional)' : 'username or email'}
+          placeholder={isSignedIn
+            ? intl.formatMessage({ id: 'account.form.changeUsername', defaultMessage: 'change username (optional)' })
+            : intl.formatMessage({ id: 'account.form.usernameOrEmail', defaultMessage: 'username or email' })}
           // https://github.com/facebook/react/issues/23301
           ref={(r) => {
             if (r) username.current = r
@@ -157,7 +162,9 @@ const AccountForm = ({
           type='password'
           autoComplete='new-password'
           onChange={() => updateDirty()}
-          placeholder={user && user.userId !== null ? 'change password (optional)' : 'password'}
+          placeholder={isSignedIn
+            ? intl.formatMessage({ id: 'account.form.changePassword', defaultMessage: 'change password (optional)' })
+            : intl.formatMessage({ id: 'account.form.password', defaultMessage: 'password' })}
           ref={newPassword}
         />
       )}
@@ -166,7 +173,9 @@ const AccountForm = ({
         <input
           type='password'
           autoComplete='new-password'
-          placeholder={user && user.userId !== null ? 'new password confirm' : 'confirm password'}
+          placeholder={isSignedIn
+            ? intl.formatMessage({ id: 'account.form.newPasswordConfirm', defaultMessage: 'new password confirm' })
+            : intl.formatMessage({ id: 'account.form.confirmPassword', defaultMessage: 'confirm password' })}
           ref={newPasswordConfirm}
         />
       )}
@@ -180,7 +189,7 @@ const AccountForm = ({
           type='text'
           defaultValue={user?.name ?? ''}
           onChange={() => updateDirty()}
-          placeholder='display name'
+          placeholder={intl.formatMessage({ id: 'account.form.displayName', defaultMessage: 'display name' })}
           ref={name}
         />
       </div>
@@ -194,10 +203,10 @@ const AccountForm = ({
           }}
           ref={role}
         >
-          <option key='choose' value='' disabled>select role...</option>
-          {user?.role === 'guest' && <option key='guest' value='guest'>Guest</option>}
-          <option key='standard' value='standard'>Standard</option>
-          <option key='admin' value='admin'>Administrator</option>
+          <option key='choose' value='' disabled>{intl.formatMessage({ id: 'account.form.selectRole', defaultMessage: 'select role...' })}</option>
+          {user?.role === 'guest' && <option key='guest' value='guest'>{intl.formatMessage({ id: 'account.form.roleGuest', defaultMessage: 'Guest' })}</option>}
+          <option key='standard' value='standard'>{intl.formatMessage({ id: 'account.form.roleStandard', defaultMessage: 'Standard' })}</option>
+          <option key='admin' value='admin'>{intl.formatMessage({ id: 'account.form.roleAdmin', defaultMessage: 'Administrator' })}</option>
         </select>
       )}
 
@@ -205,7 +214,9 @@ const AccountForm = ({
         <Accordion
           headingComponent={(
             <div className={styles.permsHeading}>
-              <div className={styles.permsTitle}>Permissions</div>
+              <div className={styles.permsTitle}>
+                {intl.formatMessage({ id: 'account.form.permissions', defaultMessage: 'Permissions' })}
+              </div>
             </div>
           )}
         >
@@ -213,7 +224,7 @@ const AccountForm = ({
             {PERMISSIONS.map(p => (
               <div key={p.value} className={p.parent ? styles.permsNested : undefined}>
                 <InputCheckbox
-                  label={p.label}
+                  label={intl.formatMessage({ id: p.labelId, defaultMessage: p.label })}
                   checked={!!state.perms[p.value]}
                   disabled={!!p.parent && !state.perms[p.parent]}
                   onChange={() => handleTogglePerm(p.value)}

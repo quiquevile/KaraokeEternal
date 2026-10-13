@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import Modal from 'components/Modal/Modal'
@@ -26,6 +27,7 @@ interface YtDlpChooserProps {
 
 const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
   const listRef = useRef<HTMLDivElement>(null)
+  const intl = useIntl()
   const [pathInfo, setPathInfo] = useState<ListInfoType>({
     current: null,
     parent: null,
@@ -58,15 +60,17 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
 
   return (
     <Modal
-      title='Select yt-dlp folder'
+      title={intl.formatMessage({ id: 'account.ytdlChooser.title', defaultMessage: 'Select yt-dlp folder' })}
       className={styles.modal}
       onClose={onCancel}
       scrollable
       buttons={(
         <div className={styles.btnContainer}>
-          <Button onClick={onCancel} variant='default'>Cancel</Button>
+          <Button onClick={onCancel} variant='default'>
+            <FormattedMessage id='account.ytdlChooser.cancel' defaultMessage='Cancel' />
+          </Button>
           <Button onClick={handleChoose} variant='primary' disabled={!pathInfo.current}>
-            Select
+            <FormattedMessage id='account.ytdlChooser.select' defaultMessage='Select' />
           </Button>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch } from 'store/hooks'
 import { createRoom, removeRoom, updateRoom, requestPrefsPush } from 'store/modules/rooms'
 import { getFormData } from 'lib/util'
@@ -20,6 +21,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
   const [prevRoom, setPrevRoom] = useState(room)
   const [isPasswordDirty, setIsPasswordDirty] = useState(false)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   if (room !== prevRoom) {
     setPrevRoom(room)
@@ -42,7 +44,10 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
   }
 
   const handleRemoveClick = () => {
-    if (room && confirm(`Remove room "${room.name}" and its queue?`)) {
+    if (room && confirm(intl.formatMessage({
+      id: 'account.editRoom.removeConfirm',
+      defaultMessage: 'Remove room "{name}" and its queue?',
+    }, { name: room.name }))) {
       dispatch(removeRoom(room.roomId))
     }
   }
@@ -71,7 +76,9 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
     <Modal
       className={styles.modal}
       onClose={handleClose}
-      title={room ? 'Edit Room' : 'Create Room'}
+      title={room
+        ? intl.formatMessage({ id: 'account.editRoom.editTitle', defaultMessage: 'Edit Room' })
+        : intl.formatMessage({ id: 'account.editRoom.createTitle', defaultMessage: 'Create Room' })}
     >
       <form onSubmit={handleSubmit} ref={formRef} className={styles.form}>
         <div className={styles.fieldContainer}>
@@ -80,7 +87,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
             autoComplete='off'
             defaultValue={room ? room.name : ''}
             name='name'
-            placeholder='room name'
+            placeholder={intl.formatMessage({ id: 'account.editRoom.name', defaultMessage: 'room name' })}
             // https://github.com/facebook/react/issues/23301
             ref={r => typeof room === 'undefined' ? r?.setAttribute('autofocus', 'true') : undefined}
           />
@@ -92,15 +99,15 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
             name='password'
             onChange={handlePasswordChange}
             onFocus={e => e.target.select()}
-            placeholder='room password (optional)'
+            placeholder={intl.formatMessage({ id: 'account.editRoom.password', defaultMessage: 'room password (optional)' })}
           />
 
           <select
             name='status'
             defaultValue={room?.status ?? 'open'}
           >
-            <option value='open'>Open</option>
-            <option value='closed'>Closed</option>
+            <option value='open'>{intl.formatMessage({ id: 'account.editRoom.statusOpen', defaultMessage: 'Open' })}</option>
+            <option value='closed'>{intl.formatMessage({ id: 'account.editRoom.statusClosed', defaultMessage: 'Closed' })}</option>
           </select>
         </div>
 
@@ -110,15 +117,17 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
 
         <div className={styles.btnContainer}>
           <Button type='submit' variant='primary' className={styles.btn}>
-            {room ? 'Update Room' : 'Create Room'}
+            {room
+              ? <FormattedMessage id='account.editRoom.update' defaultMessage='Update Room' />
+              : <FormattedMessage id='account.editRoom.create' defaultMessage='Create Room' />}
           </Button>
           {room && (
             <Button onClick={handleRemoveClick} className={styles.btn} variant='danger'>
-              Remove Room
+              <FormattedMessage id='account.editRoom.remove' defaultMessage='Remove Room' />
             </Button>
           )}
           <Button onClick={handleClose} variant='default'>
-            Cancel
+            <FormattedMessage id='account.editRoom.cancel' defaultMessage='Cancel' />
           </Button>
         </div>
       </form>

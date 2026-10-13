@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { closeUserEditor, fetchUsers, filterByOnline, filterByRoom, openUserEditor, type UserWithRoomsAndRole } from '../../modules/users'
 import { formatDateTime } from 'lib/dateTime'
@@ -10,6 +11,7 @@ import styles from './Users.css'
 
 const Users = () => {
   const [editorUser, setEditorUser] = useState<UserWithRoomsAndRole | null>(null)
+  const intl = useIntl()
 
   const curUserId = useAppSelector(state => state.user.userId)
   const { isEditorOpen, filterOnline, filterRoomId } = useAppSelector(state => state.users)
@@ -69,9 +71,9 @@ const Users = () => {
 
   const userFilter = (
     <select className={styles.usersFilter} onChange={handleFilterChange} value={filterOnline ? 'online' : filterRoomId || 'all'}>
-      <option key='all' value='all'>All</option>
-      <option key='online' value='online'>Online</option>
-      <optgroup label='Online in...'>
+      <option key='all' value='all'>{intl.formatMessage({ id: 'account.users.filterAll', defaultMessage: 'All' })}</option>
+      <option key='online' value='online'>{intl.formatMessage({ id: 'account.users.filterOnline', defaultMessage: 'Online' })}</option>
+      <optgroup label={intl.formatMessage({ id: 'account.users.filterOnlineIn', defaultMessage: 'Online in...' })}>
         {roomOpts}
       </optgroup>
     </select>
@@ -79,16 +81,16 @@ const Users = () => {
 
   return (
     <Panel
-      title='Users'
+      title={intl.formatMessage({ id: 'account.users.title', defaultMessage: 'Users' })}
       titleComponent={userFilter}
     >
       <>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Joined</th>
+              <th><FormattedMessage id='account.users.username' defaultMessage='Username' /></th>
+              <th><FormattedMessage id='account.users.role' defaultMessage='Role' /></th>
+              <th><FormattedMessage id='account.users.joined' defaultMessage='Joined' /></th>
             </tr>
           </thead>
           <tbody>
@@ -98,7 +100,7 @@ const Users = () => {
 
         <br />
         <Button onClick={handleOpen} variant='primary'>
-          Create User
+          <FormattedMessage id='account.users.createUser' defaultMessage='Create User' />
         </Button>
 
         {isEditorOpen && (

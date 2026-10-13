@@ -1,4 +1,5 @@
 import React from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch } from 'store/hooks'
 import { createUser, removeUser, updateUser } from '../../../modules/users'
 import Button from 'components/Button/Button'
@@ -14,6 +15,7 @@ interface EditUserProps {
 
 const EditUser = ({ user, onClose }: EditUserProps) => {
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   const handleSubmit = (data: FormData) => {
     if (user) dispatch(updateUser({ userId: user.userId, data }))
@@ -21,7 +23,10 @@ const EditUser = ({ user, onClose }: EditUserProps) => {
   }
 
   const handleRemoveClick = () => {
-    if (user && confirm(`Remove user "${user.username}"?\n\nTheir queued songs will also be removed.`)) {
+    if (user && confirm(intl.formatMessage({
+      id: 'account.editUser.removeConfirm',
+      defaultMessage: 'Remove user "{username}"?\n\nTheir queued songs will also be removed.',
+    }, { username: user.username }))) {
       dispatch(removeUser(user.userId))
     }
   }
@@ -30,30 +35,32 @@ const EditUser = ({ user, onClose }: EditUserProps) => {
     <Modal
       className={styles.modal}
       onClose={onClose}
-      title={user ? user.username : 'Create User'}
+      title={user
+        ? user.username
+        : intl.formatMessage({ id: 'account.editUser.createUser', defaultMessage: 'Create User' })}
     >
       <AccountForm user={user} onSubmit={handleSubmit} showRole autoFocus={!user}>
         <div className={styles.btnContainer}>
           {!user && (
             <Button type='submit' className={styles.btn} variant='primary'>
-              Create User
+              <FormattedMessage id='account.editUser.createUser' defaultMessage='Create User' />
             </Button>
           )}
 
           {user && (
             <Button type='submit' className={styles.btn} variant='primary'>
-              Update User
+              <FormattedMessage id='account.editUser.updateUser' defaultMessage='Update User' />
             </Button>
           )}
 
           {user && (
             <Button onClick={handleRemoveClick} className={styles.btn} variant='danger'>
-              Remove User
+              <FormattedMessage id='account.editUser.removeUser' defaultMessage='Remove User' />
             </Button>
           )}
 
           <Button onClick={onClose} variant='default'>
-            Cancel
+            <FormattedMessage id='account.editUser.cancel' defaultMessage='Cancel' />
           </Button>
         </div>
       </AccountForm>

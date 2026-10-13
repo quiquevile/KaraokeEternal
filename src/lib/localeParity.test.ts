@@ -14,11 +14,30 @@ const MIGRATED_FILES = [
   'src/routes/Account/views/SignedOutView/SelectRoom/SelectRoom.tsx',
   'src/routes/Account/views/SignedOutView/SignedOutView.tsx',
   'src/routes/Account/views/FirstRun/FirstRun.tsx',
+  'src/routes/Account/components/Account/Account.tsx',
+  'src/routes/Account/components/AccountForm/AccountForm.tsx',
+  'src/routes/Account/components/AccountForm/permissions.ts',
+  'src/routes/Account/components/Users/Users.tsx',
+  'src/routes/Account/components/Users/EditUser/EditUser.tsx',
+  'src/routes/Account/components/Rooms/Rooms.tsx',
+  'src/routes/Account/components/Rooms/EditRoom/EditRoom.tsx',
+  'src/routes/Account/components/Rooms/EditRoom/UserPrefs/UserPrefs.tsx',
+  'src/routes/Account/components/Prefs/Prefs.tsx',
+  'src/routes/Account/components/Prefs/PathPrefs/PathPrefs.tsx',
+  'src/routes/Account/components/Prefs/PathPrefs/PathInfo/PathInfo.tsx',
+  'src/routes/Account/components/Prefs/PathPrefs/PathChooser/PathChooser.tsx',
+  'src/routes/Account/components/Prefs/PlayerPrefs/PlayerPrefs.tsx',
+  'src/routes/Account/components/Prefs/YouTubePrefs/YouTubePrefs.tsx',
+  'src/routes/Account/components/Prefs/YouTubePrefs/YtDlpChooser/YtDlpChooser.tsx',
+  'src/routes/Account/components/Prefs/YouTubePrefs/YtdlUpdater/YtdlUpdater.tsx',
+  'src/routes/Account/components/LanguagePrefs/LanguagePrefs.tsx',
+  'src/routes/Account/components/About/About.tsx',
 ]
 
 const collectIds = (source: string): string[] => {
   const ids: string[] = []
-  const pattern = /\bid\s*[:=]\s*['"]([^'"]+)['"]/g
+  // `id` props/params and `labelId` data fields
+  const pattern = /\b(?:id|labelId)\s*[:=]\s*['"]([^'"]+)['"]/g
 
   let match: RegExpExecArray | null
 

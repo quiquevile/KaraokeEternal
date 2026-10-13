@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import PathItem from './PathItem/PathItem'
 import Modal from 'components/Modal/Modal'
@@ -25,6 +26,7 @@ interface PathChooserProps {
 
 const PathChooser = ({ onCancel, onChoose }: PathChooserProps) => {
   const listRef = useRef<HTMLDivElement>(null)
+  const intl = useIntl()
   const [pathInfo, setPathInfo] = useState<PathInfoType>({
     current: null,
     parent: null,
@@ -57,17 +59,17 @@ const PathChooser = ({ onCancel, onChoose }: PathChooserProps) => {
 
   return (
     <Modal
-      title='Add Folder'
+      title={intl.formatMessage({ id: 'account.pathChooser.title', defaultMessage: 'Add Folder' })}
       className={styles.modal}
       onClose={onCancel}
       scrollable
       buttons={(
         <div className={styles.btnContainer}>
           <Button onClick={onCancel} variant='default'>
-            Cancel
+            <FormattedMessage id='account.pathChooser.cancel' defaultMessage='Cancel' />
           </Button>
           <Button onClick={handleChoose} variant='primary'>
-            Add Folder
+            <FormattedMessage id='account.pathChooser.addFolder' defaultMessage='Add Folder' />
           </Button>
         </div>
       )}

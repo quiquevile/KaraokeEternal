@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd'
 import HttpApi from 'lib/HttpApi'
@@ -21,6 +22,7 @@ const PathPrefs = () => {
   const [isChoosing, setChoosing] = useState(false)
   const [editingPath, setEditingPath] = useState<Path | null>(null)
   const [priority, setPriority] = useState(paths.result)
+  const intl = useIntl()
 
   const handleCloseChooser = () => setChoosing(false)
   const handleOpenChooser = () => setChoosing(true)
@@ -57,7 +59,10 @@ const PathPrefs = () => {
   }
 
   const handleRemove = (pathId: number) => {
-    if (!confirm(`Remove folder from library?\n\n${paths.entities[pathId].path}`)) {
+    if (!confirm(intl.formatMessage({
+      id: 'account.pathPrefs.removeConfirm',
+      defaultMessage: 'Remove folder from library?\n\n{path}',
+    }, { path: paths.entities[pathId].path }))) {
       return
     }
 
@@ -88,13 +93,15 @@ const PathPrefs = () => {
     <Accordion headingComponent={(
       <div className={styles.heading}>
         <Icon icon='FOLDER_MUSIC' />
-        <div className={styles.title}>Media Folders</div>
+        <div className={styles.title}>
+          <FormattedMessage id='account.pathPrefs.title' defaultMessage='Media Folders' />
+        </div>
       </div>
     )}
     >
       <div className={styles.content}>
         {paths.result.length === 0
-          && <p style={{ marginTop: 0 }}>Add a media folder to get started.</p>}
+          && <p style={{ marginTop: 0 }}><FormattedMessage id='account.pathPrefs.empty' defaultMessage='Add a media folder to get started.' /></p>}
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId='droppable'>
             {provided => (
@@ -119,11 +126,11 @@ const PathPrefs = () => {
         <div className={styles.btnContainer}>
           {paths.result.length > 0 && (
             <Button onClick={handleRefreshAll} variant='default' disabled={isMeasuringGain}>
-              Scan Folders
+              <FormattedMessage id='account.pathPrefs.scanFolders' defaultMessage='Scan Folders' />
             </Button>
           )}
           <Button onClick={handleOpenChooser} variant='primary'>
-            Add Folder
+            <FormattedMessage id='account.pathPrefs.addFolder' defaultMessage='Add Folder' />
           </Button>
         </div>
 

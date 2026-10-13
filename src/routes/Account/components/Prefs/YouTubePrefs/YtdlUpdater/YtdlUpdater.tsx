@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -18,6 +19,7 @@ const YtdlUpdater = () => {
   const dir = useAppSelector(state => state.youtube.ytdlpDir)
   const folder = useAppSelector(state => state.prefs.youtubeYtdlDir)
   const [dismissedEmptyKey, setDismissedEmptyKey] = useState<string | null>(null)
+  const intl = useIntl()
 
   useEffect(() => {
     dispatch(fetchYtdlVersion())
@@ -44,19 +46,27 @@ const YtdlUpdater = () => {
   const canUpdate = !isUpdating && mode === 'managed'
 
   const versionLabel = isUpdating
-    ? 'Updating…'
-    : (version ?? (status === 'empty' ? '—' : 'unknown'))
+    ? intl.formatMessage({ id: 'account.ytdl.updating', defaultMessage: 'Updating…' })
+    : (version ?? (status === 'empty'
+        ? '—'
+        : intl.formatMessage({ id: 'account.ytdl.unknown', defaultMessage: 'unknown' })))
+
+  const updateLabel = intl.formatMessage({ id: 'account.ytdl.update', defaultMessage: 'Update yt-dlp' })
 
   return (
     <div className={styles.container}>
       <div className={styles.status}>
-        <span className={styles.label}>yt-dlp version</span>
+        <span className={styles.label}>
+          <FormattedMessage id='account.ytdl.version' defaultMessage='yt-dlp version' />
+        </span>
         <span className={styles.version}>{versionLabel}</span>
         {!!updatedAt && !isUpdating && (
           <span className={styles.updatedAt}>
-            · updated
-            {' '}
-            {formatUpdatedAt(new Date(updatedAt))}
+            <FormattedMessage
+              id='account.ytdl.updatedAt'
+              defaultMessage='· updated {date}'
+              values={{ date: formatUpdatedAt(new Date(updatedAt)) }}
+            />
           </span>
         )}
         <Button
@@ -64,26 +74,35 @@ const YtdlUpdater = () => {
           onClick={handleUpdate}
           disabled={!canUpdate}
           className={styles.updateButton}
-          title='Update yt-dlp'
-          aria-label='Update yt-dlp'
+          title={updateLabel}
+          aria-label={updateLabel}
         />
       </div>
 
       {status === 'empty' && !(folder || dir) && (
         <div className={styles.emptyHint}>
-          Select a yt-dlp folder to start using YouTube downloads.
+          <FormattedMessage
+            id='account.ytdl.emptyNoFolder'
+            defaultMessage='Select a yt-dlp folder to start using YouTube downloads.'
+          />
         </div>
       )}
 
       {status === 'empty' && (folder || dir) && (
         <div className={styles.emptyHint}>
-          The yt-dlp folder is empty. Download yt-dlp to start using it.
+          <FormattedMessage
+            id='account.ytdl.emptyFolder'
+            defaultMessage='The yt-dlp folder is empty. Download yt-dlp to start using it.'
+          />
         </div>
       )}
 
       {status === 'system' && (
         <div className={styles.systemHint}>
-          A custom yt-dlp binary is used and cannot be updated here.
+          <FormattedMessage
+            id='account.ytdl.systemBinary'
+            defaultMessage='A custom yt-dlp binary is used and cannot be updated here.'
+          />
         </div>
       )}
 
@@ -91,7 +110,7 @@ const YtdlUpdater = () => {
 
       {showEmptyDialog && (
         <Modal
-          title='Download yt-dlp'
+          title={intl.formatMessage({ id: 'account.ytdl.downloadTitle', defaultMessage: 'Download yt-dlp' })}
           className={styles.modal}
           onClose={() => {
             setDismissedEmptyKey(emptyKey)
@@ -104,7 +123,7 @@ const YtdlUpdater = () => {
                   setDismissedEmptyKey(emptyKey)
                 }}
               >
-                Cancel
+                <FormattedMessage id='account.ytdl.cancel' defaultMessage='Cancel' />
               </Button>
               <Button
                 variant='primary'
@@ -113,15 +132,17 @@ const YtdlUpdater = () => {
                   handleUpdate()
                 }}
               >
-                Download
+                <FormattedMessage id='account.ytdl.download' defaultMessage='Download' />
               </Button>
             </div>
           )}
         >
           <div className={styles.emptyText}>
-            The yt-dlp folder
-            <strong>{folder || dir || '…'}</strong>
-            is empty. Download the latest yt-dlp into it now?
+            <FormattedMessage
+              id='account.ytdl.emptyPrompt'
+              defaultMessage='The yt-dlp folder <strong>{folder}</strong> is empty. Download the latest yt-dlp into it now?'
+              values={{ strong: chunks => <strong>{chunks}</strong>, folder: folder || dir || '…' }}
+            />
           </div>
         </Modal>
       )}

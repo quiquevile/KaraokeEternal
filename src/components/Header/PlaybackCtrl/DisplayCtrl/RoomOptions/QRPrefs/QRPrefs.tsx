@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react'
 import clsx from 'clsx'
+import { FormattedMessage, useIntl } from 'react-intl'
 import Accordion from 'components/Accordion/Accordion'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Icon from 'components/Icon/Icon'
@@ -16,6 +17,8 @@ interface QRPrefsProps {
 }
 
 const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
+  const intl = useIntl()
+
   const handleSetPref = useCallback((update: Partial<IRoomPrefs>) => {
     onChange({ ...prefs, ...update })
   }, [onChange, prefs])
@@ -25,18 +28,20 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
       headingComponent={(
         <div className={styles.heading}>
           <Icon icon='QR_CODE' />
-          <div className={styles.title}>Display</div>
+          <div className={styles.title}>
+            <FormattedMessage id='playerOptions.display' defaultMessage='Display' />
+          </div>
         </div>
       )}
     >
       <div className={styles.content}>
         <fieldset className={styles.qrBox}>
           <legend>
-            <label>QR code</label>
+            <label><FormattedMessage id='playerOptions.qrCode' defaultMessage='QR code' /></label>
           </legend>
           <div className={styles.field}>
             <InputCheckbox
-              label='Show QR code'
+              label={intl.formatMessage({ id: 'playerOptions.showQr', defaultMessage: 'Show QR code' })}
               checked={prefs?.qr?.isEnabled ?? false}
               onChange={event => handleSetPref({ qr: { ...prefs.qr, isEnabled: event.currentTarget.checked } })}
             />
@@ -44,14 +49,16 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
           {passwordPresent && (
             <div className={styles.field}>
               <InputCheckbox
-                label='Include room password'
+                label={intl.formatMessage({ id: 'playerOptions.qrPassword', defaultMessage: 'Include room password' })}
                 checked={prefs?.qr?.includePassword ?? false}
                 onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
               />
             </div>
           )}
           <div className={clsx(styles.field)}>
-            <label id='label-qr-size'>Size</label>
+            <label id='label-qr-size'>
+              <FormattedMessage id='playerOptions.qrSize' defaultMessage='Size' />
+            </label>
             <Slider
               className={styles.slider}
               min={0}
@@ -63,7 +70,9 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
             />
           </div>
           <div className={clsx(styles.field)}>
-            <label id='label-qr-opacity'>Opacity</label>
+            <label id='label-qr-opacity'>
+              <FormattedMessage id='playerOptions.qrOpacity' defaultMessage='Opacity' />
+            </label>
             <Slider
               className={styles.slider}
               min={0.25}
@@ -77,7 +86,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
         </fieldset>
         <div className={styles.field}>
           <InputCheckbox
-            label='Show progress bar'
+            label={intl.formatMessage({ id: 'playerOptions.showProgress', defaultMessage: 'Show progress bar' })}
             checked={prefs?.progress?.isEnabled ?? true}
             onChange={event => handleSetPref({ progress: { ...prefs.progress, isEnabled: event.currentTarget.checked } })}
           />

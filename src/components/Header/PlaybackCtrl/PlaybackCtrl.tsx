@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { useLocation } from 'react-router'
 import clsx from 'clsx'
@@ -28,6 +29,7 @@ const PlaybackCtrl = () => {
   const user = useAppSelector(state => state.user)
   const isInRoom = useAppSelector(state => state.user.roomId !== null)
   const status = useAppSelector(state => state.status)
+  const intl = useIntl()
 
   usePlaybackShortcuts()
 
@@ -61,7 +63,9 @@ const PlaybackCtrl = () => {
             className={clsx(styles.btn, status.isPlaying ? styles.pause : styles.play)}
             icon={status.isPlaying ? 'PAUSE' : 'PLAY'}
             onClick={status.isPlaying ? handlePause : handlePlay}
-            aria-label={status.isPlaying ? 'Pause' : 'Play'}
+            aria-label={status.isPlaying
+              ? intl.formatMessage({ id: 'player.pause', defaultMessage: 'Pause' })
+              : intl.formatMessage({ id: 'player.play', defaultMessage: 'Play' })}
           />
 
           <Button
@@ -69,7 +73,7 @@ const PlaybackCtrl = () => {
             className={clsx(styles.btn, styles.next)}
             icon='PLAY_NEXT'
             onClick={handlePlayNext}
-            aria-label='Play Next'
+            aria-label={intl.formatMessage({ id: 'player.playNext', defaultMessage: 'Play Next' })}
           />
 
           {(hasPermission(user, 'queueReplay')) && (
@@ -78,7 +82,7 @@ const PlaybackCtrl = () => {
               className={clsx(styles.btn, styles.next)}
               icon='REPLAY_SMALL'
               onClick={handleReplay}
-              aria-label='Replay'
+              aria-label={intl.formatMessage({ id: 'player.replay', defaultMessage: 'Replay' })}
             />
           )}
 
@@ -92,7 +96,7 @@ const PlaybackCtrl = () => {
             icon='TUNE'
             onClick={toggleDisplayCtrl}
             size={48}
-            aria-label='Player Options'
+            aria-label={intl.formatMessage({ id: 'player.playerOptions', defaultMessage: 'Player Options' })}
           />
 
           {isPlayer && screenfull.isEnabled && (
@@ -100,7 +104,7 @@ const PlaybackCtrl = () => {
               className={clsx(styles.btn, styles.fullscreen)}
               icon='FULLSCREEN'
               onClick={handleFullscreen}
-              aria-label='Enter Fullscreen'
+              aria-label={intl.formatMessage({ id: 'player.fullscreen', defaultMessage: 'Enter Fullscreen' })}
             />
           )}
 

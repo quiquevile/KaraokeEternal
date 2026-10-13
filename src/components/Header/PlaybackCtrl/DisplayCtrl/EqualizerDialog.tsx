@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { fetchEqPresets, saveEqPreset, type EqPresetSlot } from 'store/modules/prefs'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
@@ -29,6 +30,7 @@ const EqualizerDialog = ({
   onRequestOptions,
   onClose,
 }: EqualizerDialogProps) => {
+  const intl = useIntl()
   const handleToggle = () => onRequestOptions({ eqEnabled: !eqEnabled })
 
   const handleBand = (index: number, value: number) => {
@@ -94,7 +96,7 @@ const EqualizerDialog = ({
   return (
     <Modal
       onClose={onClose}
-      title='Equalizer'
+      title={intl.formatMessage({ id: 'equalizer.title', defaultMessage: 'Equalizer' })}
       buttons={(
         <div className={styles.saveRow}>
           {maySavePresets && (
@@ -111,7 +113,10 @@ const EqualizerDialog = ({
                     className={styles.preset}
                     onClick={() => handleSaveCustom(name)}
                     disabled={!eqEnabled}
-                    aria-label={`Save current equalizer as ${name}`}
+                    aria-label={intl.formatMessage({
+                      id: 'equalizer.saveSlot',
+                      defaultMessage: 'Save current equalizer as {name}',
+                    }, { name })}
                     aria-pressed={isActive}
                   >
                     {name}
@@ -120,13 +125,15 @@ const EqualizerDialog = ({
               })}
             </div>
           )}
-          <Button variant='primary' onClick={handleSave}>Done</Button>
+          <Button variant='primary' onClick={handleSave}>
+            <FormattedMessage id='equalizer.done' defaultMessage='Done' />
+          </Button>
         </div>
       )}
     >
       <div className={styles.container}>
         <InputCheckbox
-          label='Equalizer'
+          label={intl.formatMessage({ id: 'equalizer.enabled', defaultMessage: 'Equalizer' })}
           checked={eqEnabled}
           onChange={handleToggle}
         />

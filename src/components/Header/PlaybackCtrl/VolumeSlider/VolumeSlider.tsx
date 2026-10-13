@@ -1,4 +1,5 @@
 import React from 'react'
+import { useIntl } from 'react-intl'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
 import styles from './VolumeSlider.css'
@@ -14,7 +15,7 @@ interface HandleProps {
 }
 
 // volume slider handle/grabber
-const handle = (node: React.ReactElement<HandleProps>, { value }: { value: number }) => {
+const makeHandle = (label: string) => (node: React.ReactElement<HandleProps>, { value }: { value: number }) => {
   const icon = (() => {
     if (value === 0) return 'VOLUME_OFF'
     if (value < 0.4) return 'VOLUME_MUTE'
@@ -24,7 +25,7 @@ const handle = (node: React.ReactElement<HandleProps>, { value }: { value: numbe
 
   // rc-slider passes a node (div) to which we add style and children
   return React.cloneElement(node, {
-    'aria-label': 'Volume',
+    'aria-label': label,
     'className': styles.handle,
   }, (
     <Icon icon={icon} />
@@ -32,10 +33,12 @@ const handle = (node: React.ReactElement<HandleProps>, { value }: { value: numbe
 }
 
 const VolumeSlider = ({ volume, onVolumeChange }: VolumeSliderProps) => {
+  const intl = useIntl()
+
   return (
     <Slider
       className={styles.slider}
-      handle={handle}
+      handle={makeHandle(intl.formatMessage({ id: 'player.volume', defaultMessage: 'Volume' }))}
       min={0}
       max={1}
       onChange={onVolumeChange}

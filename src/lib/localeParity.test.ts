@@ -51,6 +51,14 @@ const MIGRATED_FILES = [
   'src/routes/Youtube/components/YouTubeDownloads/YouTubeDownloads.tsx',
   'src/routes/Youtube/components/YouTubePreviewDialog/YouTubePreviewDialog.tsx',
   'src/routes/Youtube/components/YouTubeMetadataDialog/YouTubeMetadataDialog.tsx',
+  'src/components/Header/PlaybackCtrl/NoPlayer/NoPlayer.tsx',
+  'src/components/Header/PlaybackCtrl/VolumeSlider/VolumeSlider.tsx',
+  'src/components/Header/PlaybackCtrl/PlaybackCtrl.tsx',
+  'src/components/Header/PlaybackCtrl/DisplayCtrl/DisplayCtrl.tsx',
+  'src/components/Header/PlaybackCtrl/DisplayCtrl/EqualizerDialog.tsx',
+  'src/components/Header/PlaybackCtrl/DisplayCtrl/EqualizerBand.tsx',
+  'src/components/Header/PlaybackCtrl/DisplayCtrl/RoomOptions/QRPrefs/QRPrefs.tsx',
+  'src/components/Header/UpNext/UpNext.tsx',
 ]
 
 const collectIds = (source: string): string[] => {

@@ -42,6 +42,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 ### Docker
 - Ready-to-build image and compose file (`Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh`).
 - Resource-friendly defaults for small hosts (capped node heap and ffmpeg threads), tunable per deployment with `NODE_OPTIONS` and `KES_FFMPEG_THREADS`.
+- HTTP compression (brotli/gzip) for text responses; binary media streams untouched.
 
 ---
 

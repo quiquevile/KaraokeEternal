@@ -9,6 +9,7 @@ import jsonWebToken from 'jsonwebtoken'
 import Koa from 'koa'
 import koaRouter from '@koa/router'
 import { koaBody } from 'koa-body'
+import koaCompress from 'koa-compress'
 import koaFavicon from 'koa-favicon'
 import koaLogger from 'koa-logger'
 import koaMount from 'koa-mount'
@@ -152,6 +153,9 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
   })
 
   app.use(koaFavicon(path.join(env.KES_PATH_ASSETS, 'favicon.ico')))
+  // compress text responses (JS/CSS/JSON/API): negotiated br/gzip,
+  // 1 KB threshold, binary media types skipped by default
+  app.use(koaCompress())
   app.use(koaRange)
   app.use(koaBody({ multipart: true }))
 

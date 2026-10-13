@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { FormattedMessage } from 'react-intl'
 import { useAppSelector } from 'store/hooks'
 import { Link } from 'react-router'
 import ArtistList from '../components/ArtistList/ArtistList'
@@ -42,12 +43,14 @@ const LibraryView = () => {
 
       {!isLoading && songsResult.length === 0 && (
         <TextOverlay className={styles.empty}>
-          <h1>Library Empty</h1>
+          <h1><FormattedMessage id='library.empty.title' defaultMessage='Library Empty' /></h1>
           {isAdmin && (
             <p>
-              <Link to='/account'>Add media folders</Link>
-              {' '}
-              to get started.
+              <FormattedMessage
+                id='library.empty.admin'
+                defaultMessage='<link>Add media folders</link> to get started.'
+                values={{ link: chunks => <Link to='/account'>{chunks}</Link> }}
+              />
             </p>
           )}
         </TextOverlay>

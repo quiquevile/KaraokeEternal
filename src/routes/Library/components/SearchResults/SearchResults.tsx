@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { FormattedMessage } from 'react-intl'
 import { ensureState } from 'redux-optimistic-ui'
 import { RootState } from 'store/store'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
@@ -59,10 +60,11 @@ const RowComponent = ({
 
     return (
       <div key='treeHeading' style={style} className={styles.artistsHeading}>
-        {tree.length}
-        {' artists, '}
-        {songCount}
-        {' songs'}
+        <FormattedMessage
+          id='library.search.counts'
+          defaultMessage='{artists, plural, one {# artist} other {# artists}}, {songs, plural, one {# song} other {# songs}}'
+          values={{ artists: tree.length, songs: songCount }}
+        />
       </div>
     )
   }

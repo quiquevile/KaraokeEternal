@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal, { ModalProps } from 'components/Modal/Modal'
@@ -27,6 +28,7 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
   const [error, setError] = useState<string | null>(null)
   const [isMoving, setIsMoving] = useState(false)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   useEffect(() => {
     api.get<{ paths: MoveTarget[] }>('/move-targets')
@@ -51,14 +53,14 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
   return (
     <Modal
       onClose={onClose}
-      title='Move file'
+      title={intl.formatMessage({ id: 'moveFile.title', defaultMessage: 'Move file' })}
       buttons={(
         <div className={styles.btnContainer}>
           <Button onClick={onClose} variant='default'>
-            Cancel
+            <FormattedMessage id='moveFile.cancel' defaultMessage='Cancel' />
           </Button>
           <Button onClick={handleMove} variant='primary' disabled={!selected || isMoving}>
-            Move
+            <FormattedMessage id='moveFile.move' defaultMessage='Move' />
           </Button>
         </div>
       )}
@@ -68,7 +70,11 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
           {fileName}
         </p>
 
-        {targets === null && !error && <p>Loading folders…</p>}
+        {targets === null && !error && (
+          <p>
+            <FormattedMessage id='moveFile.loading' defaultMessage='Loading folders…' />
+          </p>
+        )}
 
         {targets !== null && targets.map(target => (
           <div key={target.pathId} className={styles.group}>
@@ -84,7 +90,11 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
                     checked={selected === destDir}
                     onChange={() => setSelected(destDir)}
                   />
-                  <span>{folder === '' ? '(this folder)' : folder}</span>
+                  <span>
+                    {folder === ''
+                      ? intl.formatMessage({ id: 'moveFile.thisFolder', defaultMessage: '(this folder)' })
+                      : folder}
+                  </span>
                 </label>
               )
             })}

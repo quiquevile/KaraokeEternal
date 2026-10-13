@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -11,6 +12,7 @@ const SongInfo = () => {
   const { isLoading, isVisible, songId, media } = useAppSelector(state => state.songInfo)
   const isAdmin = useAppSelector(state => state.user.isAdmin)
   const [moveMediaId, setMoveMediaId] = useState<number | null>(null)
+  const intl = useIntl()
 
   const dispatch = useAppDispatch()
   const handleCloseSongInfo = () => dispatch(closeSongInfo())
@@ -18,7 +20,10 @@ const SongInfo = () => {
   const handleRemovePrefer = (mediaId: number) => dispatch(setPreferredSong({ songId, mediaId, isPreferred: false }))
   const handleGain = (mediaId: number, rgTrackGain: number | null) => {
     if (rgTrackGain === null) {
-      if (!confirm('Clear the level? It will be picked up again on the next scan.')) return
+      if (!confirm(intl.formatMessage({
+        id: 'songInfo.clearLevelConfirm',
+        defaultMessage: 'Clear the level? It will be picked up again on the next scan.',
+      }))) return
     } else {
       rgTrackGain = Math.min(24, Math.max(-24, Math.round(rgTrackGain * 2) / 2))
     }
@@ -37,47 +42,74 @@ const SongInfo = () => {
         {isAdmin && (
           <span>
             &nbsp;
-            <a onClick={() => setMoveMediaId(mediaId)}>(Move)</a>
+            <a onClick={() => setMoveMediaId(mediaId)}>
+              <FormattedMessage id='songInfo.move' defaultMessage='(Move)' />
+            </a>
           </span>
         )}
         <br />
-        <span className={styles.label}>Duration: </span>
+        <span className={styles.label}>
+          <FormattedMessage id='songInfo.duration' defaultMessage='Duration: ' />
+        </span>
         {formatDuration(item.duration)}
         <br />
-        <span className={styles.label}>Media ID: </span>
+        <span className={styles.label}>
+          <FormattedMessage id='songInfo.mediaId' defaultMessage='Media ID: ' />
+        </span>
         {mediaId}
         <br />
-        <span className={styles.label}>Level: </span>
+        <span className={styles.label}>
+          <FormattedMessage id='songInfo.level' defaultMessage='Level: ' />
+        </span>
         {gain === null ? '—' : `${gain > 0 ? '+' : ''}${gain.toFixed(1)} dB`}
         {isAdmin && (
           <span className={styles.stepper}>
             {' '}
-            <a onClick={() => handleGain(mediaId, (gain ?? 0) - 0.5)}>(−)</a>
+            <a
+              onClick={() => handleGain(mediaId, (gain ?? 0) - 0.5)}
+              aria-label={intl.formatMessage({ id: 'songInfo.lowerLevel', defaultMessage: 'Lower level' })}
+            >
+              (−)
+            </a>
             {' '}
-            <a onClick={() => handleGain(mediaId, (gain ?? 0) + 0.5)}>(+)</a>
+            <a
+              onClick={() => handleGain(mediaId, (gain ?? 0) + 0.5)}
+              aria-label={intl.formatMessage({ id: 'songInfo.raiseLevel', defaultMessage: 'Raise level' })}
+            >
+              (+)
+            </a>
             {gain !== null && (
               <>
                 {' '}
-                <a onClick={() => handleGain(mediaId, null)}>(reset)</a>
+                <a onClick={() => handleGain(mediaId, null)}>
+                  <FormattedMessage id='songInfo.resetLevel' defaultMessage='(reset)' />
+                </a>
               </>
             )}
           </span>
         )}
         <br />
-        <span className={styles.label}>Preferred: </span>
+        <span className={styles.label}>
+          <FormattedMessage id='songInfo.preferred' defaultMessage='Preferred: ' />
+        </span>
         {isPreferred
           && (
             <span>
-              <strong>Yes</strong>
+              <strong><FormattedMessage id='songInfo.yes' defaultMessage='Yes' /></strong>
 &nbsp;
-              <a onClick={() => handleRemovePrefer(mediaId)}>(Unset)</a>
+              <a onClick={() => handleRemovePrefer(mediaId)}>
+                <FormattedMessage id='songInfo.unset' defaultMessage='(Unset)' />
+              </a>
             </span>
           )}
         {!isPreferred
           && (
             <span>
-              No&nbsp;
-              <a onClick={() => handlePrefer(mediaId)}>(Set)</a>
+              <FormattedMessage id='songInfo.no' defaultMessage='No' />
+&nbsp;
+              <a onClick={() => handlePrefer(mediaId)}>
+                <FormattedMessage id='songInfo.set' defaultMessage='(Set)' />
+              </a>
             </span>
           )}
       </div>
@@ -88,7 +120,7 @@ const SongInfo = () => {
     <Modal
       visible={isVisible}
       onClose={handleCloseSongInfo}
-      title='Song Info'
+      title={intl.formatMessage({ id: 'songInfo.title', defaultMessage: 'Song Info' })}
       // style={{
       //   width: '90%',
       //   height: '90%',
@@ -96,20 +128,30 @@ const SongInfo = () => {
     >
       <div className={styles.container}>
         <p>
-          <span className={styles.label}>Song ID: </span>
+          <span className={styles.label}>
+            <FormattedMessage id='songInfo.songId' defaultMessage='Song ID: ' />
+          </span>
           {songId}
           <br />
-          <span className={styles.label}>Media Files: </span>
+          <span className={styles.label}>
+            <FormattedMessage id='songInfo.mediaFiles' defaultMessage='Media Files: ' />
+          </span>
           {isLoading ? '?' : media.result.length}
         </p>
 
         <div className={styles.mediaContainer}>
-          {isLoading ? <p>Loading...</p> : mediaDetails}
+          {isLoading
+            ? (
+                <p>
+                  <FormattedMessage id='songInfo.loading' defaultMessage='Loading...' />
+                </p>
+              )
+            : mediaDetails}
         </div>
 
         <div>
           <Button variant='primary' onClick={handleCloseSongInfo}>
-            Done
+            <FormattedMessage id='songInfo.done' defaultMessage='Done' />
           </Button>
         </div>
       </div>

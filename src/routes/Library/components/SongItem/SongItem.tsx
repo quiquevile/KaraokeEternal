@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
 import Highlighter from 'react-highlight-words'
+import { useIntl } from 'react-intl'
 import { useSwipeable } from 'react-swipeable'
 import Button from 'components/Button/Button'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
@@ -50,6 +51,7 @@ const SongItem = ({
   filterKeywords,
 }: SongItemProps) => {
   const [isExpanded, setExpanded] = useState(false)
+  const intl = useIntl()
 
   const handleClick = () => {
     if (ignoreMouseup) ignoreMouseup = false
@@ -112,16 +114,16 @@ const SongItem = ({
           isStarred={isStarred}
           count={numStars}
         />
-        <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide>
+        <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage({ id: 'library.song.info', defaultMessage: 'Song info' })}>
           <Icon icon='INFO_OUTLINE' />
         </Button>
         {isAdmin && (
-          <Button onClick={handleEditClick} className={clsx(styles.btn, styles.info)} data-hide aria-label='Edit song'>
+          <Button onClick={handleEditClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage({ id: 'library.song.edit', defaultMessage: 'Edit song' })}>
             <Icon icon='EDIT' />
           </Button>
         )}
         {isAdmin && (
-          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.danger)} data-hide aria-label='Delete song'>
+          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.danger)} data-hide aria-label={intl.formatMessage({ id: 'library.song.delete', defaultMessage: 'Delete song' })}>
             <Icon icon='DELETE' />
           </Button>
         )}

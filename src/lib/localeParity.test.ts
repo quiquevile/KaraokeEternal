@@ -32,6 +32,15 @@ const MIGRATED_FILES = [
   'src/routes/Account/components/Prefs/YouTubePrefs/YtdlUpdater/YtdlUpdater.tsx',
   'src/routes/Account/components/LanguagePrefs/LanguagePrefs.tsx',
   'src/routes/Account/components/About/About.tsx',
+  'src/routes/Library/components/LibraryHeader/LibraryHeader.tsx',
+  'src/routes/Library/components/SearchResults/SearchResults.tsx',
+  'src/routes/Library/components/SongItem/SongItem.tsx',
+  'src/routes/Library/views/LibraryView.tsx',
+  'src/components/SongInfo/SongInfo.tsx',
+  'src/components/EditSongDialog/EditSongDialog.tsx',
+  'src/components/MetadataFields/MetadataFields.tsx',
+  'src/components/DeleteSongDialog/DeleteSongDialog.tsx',
+  'src/components/MoveVersionDialog/MoveVersionDialog.tsx',
 ]
 
 const collectIds = (source: string): string[] => {

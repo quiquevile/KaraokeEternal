@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import clsx from 'clsx'
+import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { setFilterStr, resetFilterStr, toggleFilterDownloaded, toggleFilterStarred } from '../../modules/library'
@@ -13,6 +14,7 @@ import styles from './LibraryHeader.css'
 const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const intl = useIntl()
   const { filterStr, filterStarred, filterDownloaded } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
   const canDownload = hasPermission(user, 'youtubeDownload')
@@ -71,14 +73,16 @@ const LibraryHeader = () => {
         className={clsx(styles.btnMagnifier, filterStr && styles.active)}
         icon='MAGNIFIER'
         onClick={handleMagnifierClick}
-        aria-label={filterStr ? 'Search YouTube' : 'Search library'}
+        aria-label={filterStr
+          ? intl.formatMessage({ id: 'library.header.searchYoutube', defaultMessage: 'Search YouTube' })
+          : intl.formatMessage({ id: 'library.header.searchLibrary', defaultMessage: 'Search library' })}
       >
         {filterStr && <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />}
       </Button>
       <input
         type='search'
         className={styles.searchInput}
-        placeholder='search'
+        placeholder={intl.formatMessage({ id: 'library.header.search', defaultMessage: 'search' })}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -89,6 +93,7 @@ const LibraryHeader = () => {
           icon='CLEAR'
           onClick={clearSearch}
           className={clsx(styles.btnClear, styles.active)}
+          aria-label={intl.formatMessage({ id: 'library.header.clearSearch', defaultMessage: 'Clear search' })}
         />
       )}
       {showDownloadFilter && (
@@ -96,7 +101,7 @@ const LibraryHeader = () => {
           className={clsx(styles.btnDownload, filterDownloaded && styles.active)}
           icon='DOWNLOAD'
           onClick={() => dispatch(toggleFilterDownloaded())}
-          aria-label='Show only downloaded songs'
+          aria-label={intl.formatMessage({ id: 'library.header.downloadedOnly', defaultMessage: 'Show only downloaded songs' })}
           aria-pressed={filterDownloaded}
         />
       )}
@@ -104,6 +109,8 @@ const LibraryHeader = () => {
         className={clsx(styles.btnStar, filterStarred && styles.active)}
         icon='STAR_FULL'
         onClick={() => dispatch(toggleFilterStarred())}
+        aria-label={intl.formatMessage({ id: 'library.header.starredOnly', defaultMessage: 'Show only starred songs' })}
+        aria-pressed={filterStarred}
       />
     </div>
   )

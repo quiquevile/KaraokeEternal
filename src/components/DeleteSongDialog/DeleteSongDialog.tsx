@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -58,6 +59,7 @@ const VersionRow = ({
 }) => {
   const ext = extOf(media.relPath)
   const previewable = VIDEO_EXTS.includes(ext) || AUDIO_EXTS.includes(ext)
+  const intl = useIntl()
 
   return (
     <li className={styles.version}>
@@ -73,9 +75,13 @@ const VersionRow = ({
           <Button
             className={styles.previewBtn}
             onClick={onPreviewToggle}
-            aria-label={previewOpen ? 'Hide preview' : 'Preview version'}
+            aria-label={previewOpen
+              ? intl.formatMessage({ id: 'deleteSong.hidePreview', defaultMessage: 'Hide preview' })
+              : intl.formatMessage({ id: 'deleteSong.preview', defaultMessage: 'Preview version' })}
           >
-            {previewOpen ? 'Hide' : 'Preview'}
+            {previewOpen
+              ? <FormattedMessage id='deleteSong.hide' defaultMessage='Hide' />
+              : <FormattedMessage id='deleteSong.previewBtn' defaultMessage='Preview' />}
           </Button>
         )}
       </label>
@@ -122,13 +128,11 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
   return (
     <>
       <p className={styles.text}>
-        Delete versions of &ldquo;
-        {artistName}
-        {' '}
-        &ndash;
-        {' '}
-        {song.title}
-        &rdquo;? Deleted files are also removed from every queue.
+        <FormattedMessage
+          id='deleteSong.intro'
+          defaultMessage='Delete versions of “{artist} – {title}”? Deleted files are also removed from every queue.'
+          values={{ artist: artistName, title: song.title }}
+        />
       </p>
 
       <ul className={styles.versions}>
@@ -153,10 +157,14 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
           onClick={handleDeleteSelected}
           disabled={!selected.length}
         >
-          {`Delete selected (${selected.length})`}
+          <FormattedMessage
+            id='deleteSong.deleteSelected'
+            defaultMessage='Delete selected ({count})'
+            values={{ count: selected.length }}
+          />
         </Button>
         <Button variant='danger' onClick={handleDeleteAll}>
-          Delete all
+          <FormattedMessage id='deleteSong.deleteAll' defaultMessage='Delete all' />
         </Button>
       </div>
     </>
@@ -166,11 +174,16 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
 const DeleteSongDialog = () => {
   const deleteSongId = useAppSelector(state => state.songInfo.deleteSongId)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   const handleClose = () => dispatch(closeDeleteSong())
 
   return (
-    <Modal visible={deleteSongId !== null} onClose={handleClose} title='Delete song'>
+    <Modal
+      visible={deleteSongId !== null}
+      onClose={handleClose}
+      title={intl.formatMessage({ id: 'deleteSong.title', defaultMessage: 'Delete song' })}
+    >
       {deleteSongId !== null && <DeleteSongForm key={deleteSongId} songId={deleteSongId} />}
     </Modal>
   )

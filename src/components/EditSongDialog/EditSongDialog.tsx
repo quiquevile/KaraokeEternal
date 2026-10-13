@@ -1,4 +1,5 @@
 import React from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -36,7 +37,7 @@ const EditSongForm = ({
   return (
     <>
       <p className={styles.hint}>
-        Check artist and title
+        <FormattedMessage id='editSong.hint' defaultMessage='Check artist and title' />
       </p>
 
       <MetadataFields artist={artist} title={title} />
@@ -49,14 +50,14 @@ const EditSongForm = ({
           variant='default'
           onClick={handleClose}
         >
-          Cancel
+          <FormattedMessage id='editSong.cancel' defaultMessage='Cancel' />
         </Button>
         <Button
           variant='primary'
           onClick={handleSave}
           disabled={!artist.value.trim() || !title.value.trim()}
         >
-          Save
+          <FormattedMessage id='editSong.save' defaultMessage='Save' />
         </Button>
       </div>
     </>
@@ -75,8 +76,14 @@ const EditSongDialog = () => {
 
   const handleClose = () => dispatch(closeSongEditor())
 
+  const intl = useIntl()
+
   return (
-    <Modal visible={editorSongId !== null} onClose={handleClose} title='Edit song'>
+    <Modal
+      visible={editorSongId !== null}
+      onClose={handleClose}
+      title={intl.formatMessage({ id: 'editSong.title', defaultMessage: 'Edit song' })}
+    >
       {editorSongId !== null && song
         && (
           <EditSongForm

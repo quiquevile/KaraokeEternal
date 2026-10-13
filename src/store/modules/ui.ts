@@ -4,9 +4,11 @@ import {
   FOOTER_HEIGHT_CHANGE,
   HEADER_HEIGHT_CHANGE,
   SHOW_ERROR_MESSAGE,
+  UI_SET_LOCALE,
   UI_WINDOW_RESIZE,
 } from 'shared/actionTypes'
-import { RootState } from 'store/store'
+import { getInitialLocale, persistLocale, type LocaleCode } from 'lib/intl'
+import { AppThunk, RootState } from 'store/store'
 
 const MAX_CONTENT_WIDTH = 768
 let scrollLockTimer: ReturnType<typeof setTimeout> | null
@@ -16,6 +18,15 @@ let scrollLockTimer: ReturnType<typeof setTimeout> | null
 // ------------------------------------
 export const clearErrorMessage = createAction(CLEAR_ERROR_MESSAGE)
 export const showErrorMessage = createAction<string>(SHOW_ERROR_MESSAGE)
+
+// per-device UI language (localStorage, not a server pref: one room,
+// many languages)
+export const setLocale = createAction<LocaleCode>(UI_SET_LOCALE)
+
+export const requestLocale = (locale: LocaleCode): AppThunk => (dispatch) => {
+  persistLocale(locale)
+  dispatch(setLocale(locale))
+}
 
 export const setHeaderHeight = createAsyncThunk<void, number, { state: RootState }>('ui/SET_HEADER_HEIGHT', async (height: number, { dispatch, getState }) => {
   if (getState().ui.headerHeight === height) return
@@ -70,6 +81,7 @@ export interface UIState {
   innerWidth: number
   innerHeight: number
   contentWidth: number
+  locale: LocaleCode
 }
 
 const initialState: UIState = {
@@ -80,6 +92,7 @@ const initialState: UIState = {
   innerWidth: window.innerWidth,
   innerHeight: window.innerHeight,
   contentWidth: Math.min(window.innerWidth, MAX_CONTENT_WIDTH),
+  locale: getInitialLocale(),
 }
 
 const uiReducer = createReducer(initialState, (builder) => {
@@ -101,6 +114,9 @@ const uiReducer = createReducer(initialState, (builder) => {
       state.innerWidth = payload.innerWidth
       state.innerHeight = payload.innerHeight
       state.contentWidth = Math.min(payload.innerWidth, MAX_CONTENT_WIDTH)
+    })
+    .addCase(setLocale, (state, { payload }) => {
+      state.locale = payload
     })
     .addMatcher(
       (action): action is AnyAction => !!action.error,

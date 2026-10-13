@@ -101,6 +101,7 @@ export const FOOTER_HEIGHT_CHANGE = 'ui/FOOTER_HEIGHT_CHANGE'
 export const SHOW_ERROR_MESSAGE = 'ui/SHOW_ERROR_MESSAGE'
 export const CLEAR_ERROR_MESSAGE = 'ui/CLEAR_ERROR_MESSAGE'
 export const UI_WINDOW_RESIZE = 'ui/WINDOW_RESIZE'
+export const UI_SET_LOCALE = 'ui/SET_LOCALE'
 
 // Song Info
 export const SONG_INFO_REQUEST = 'songInfo/SONG_INFO_REQUEST'

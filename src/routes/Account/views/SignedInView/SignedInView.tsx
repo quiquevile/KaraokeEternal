@@ -5,6 +5,7 @@ import { fetchAccount } from 'store/modules/user'
 import usersReducer, { sliceInjectNoOp } from '../../modules/users'
 import About from '../../components/About/About'
 import Account from '../../components/Account/Account'
+import LanguagePrefs from '../../components/LanguagePrefs/LanguagePrefs'
 import Prefs from '../../components/Prefs/Prefs'
 import Rooms from '../../components/Rooms/Rooms'
 import Users from '../../components/Users/Users'
@@ -26,6 +27,8 @@ const SignedInView = () => {
 
   return (
     <>
+      <LanguagePrefs />
+
       {isAdmin
         && <Rooms />}
 

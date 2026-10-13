@@ -1,5 +1,12 @@
 import { createAction, createReducer } from '@reduxjs/toolkit'
-import presets from 'butterchurn-presets/all'
+import {
+  getBasePresetKeys,
+  getExtraPresetKeys,
+  getImagePresetKeys,
+  getMD1PresetKeys,
+  getMinimalPresetKeys,
+  getNonMinimalPresetKeys,
+} from 'butterchurn-presets/presetPackMeta'
 import {
   PLAYER_CMD_OPTIONS,
   PLAYER_LOAD,
@@ -12,7 +19,38 @@ const BAD_PRESETS = [
   'Rovastar & Loadus + Zylot - FractalDrop (Spark Machine v2.0)',
 ]
 
-const _presetKeys = Object.keys(presets).filter(key => !BAD_PRESETS.includes(key))
+// preset key -> data chunk, mirroring the pack merge order of
+// `butterchurn-presets/all` (last pack wins on duplicates): the store
+// only ever handles key strings, so the 3 MB of preset data never
+// enters this bundle and loads on demand in PlayerVisualizer instead
+const _presetChunk = new Map<string, string>()
+
+for (const getKeys of [
+  getBasePresetKeys,
+  getExtraPresetKeys,
+  getImagePresetKeys,
+  getMD1PresetKeys,
+  getMinimalPresetKeys,
+  getNonMinimalPresetKeys,
+]) {
+  const { presets, chunk } = getKeys()
+
+  for (const key of presets) {
+    _presetChunk.set(key, chunk)
+  }
+}
+
+// key order matches the merged pack (Map keeps first-insertion order,
+// last value wins — same as the object spread it replaces)
+const _presetKeys = [..._presetChunk.keys()].filter(key => !BAD_PRESETS.includes(key))
+
+export const presetKeys: readonly string[] = _presetKeys
+
+export const IMAGE_PRESET_CHUNK = 'butterchurn-presets/dist/image.min'
+
+export const presetChunkOf = (presetKey: string): string | null => (
+  _presetChunk.get(presetKey) ?? null
+)
 
 const getPreset = (i: number) => ({
   presetKey: _presetKeys[i],

@@ -5,6 +5,7 @@ import getLogger from '../lib/Log.js'
 import Rooms, { STATUSES } from '../Rooms/Rooms.js'
 import { can } from '../lib/permissions.js'
 import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
+import { ctxLocale, t } from '../lib/locale.js'
 
 interface RequestWithBody {
   body: Record<string, unknown>
@@ -36,11 +37,11 @@ export function handleCurrentRoomStatus (ctx: RouterContext): void {
   if (ctx.user?.userId == null) ctx.throw(401)
 
   const roomId = ctx.user?.roomId
-  if (roomId == null) ctx.throw(404, 'Not in a room')
+  if (roomId == null) ctx.throw(404, t(ctxLocale(ctx), 'server.rooms.noRoom', 'Not in a room'))
 
   const res = Rooms.get(roomId, { status: STATUSES })
   const room = res.entities[roomId]
-  if (!room) ctx.throw(404, 'Room not found')
+  if (!room) ctx.throw(404, t(ctxLocale(ctx), 'server.rooms.notFound', 'Room not found'))
 
   ctx.body = { roomId, status: room.status }
 }
@@ -52,11 +53,11 @@ export function handleCurrentRoom (ctx: RouterContext): void {
   if (ctx.user?.userId == null) ctx.throw(401)
 
   const roomId = ctx.user?.roomId
-  if (roomId == null) ctx.throw(404, 'Not in a room')
+  if (roomId == null) ctx.throw(404, t(ctxLocale(ctx), 'server.rooms.noRoom', 'Not in a room'))
 
   const res = Rooms.get(roomId, { status: STATUSES })
   const room = res.entities[roomId]
-  if (!room) ctx.throw(404, 'Room not found')
+  if (!room) ctx.throw(404, t(ctxLocale(ctx), 'server.rooms.notFound', 'Room not found'))
 
   const prefs = (room.prefs ?? {}) as Partial<IRoomPrefs>
   ctx.body = {
@@ -119,7 +120,7 @@ router.post('/', async (ctx) => {
   requireAdmin(ctx)
 
   try {
-    const res = await Rooms.set(undefined, (ctx.request as unknown as RequestWithBody).body)
+    const res = await Rooms.set(undefined, (ctx.request as unknown as RequestWithBody).body, ctxLocale(ctx))
     log.verbose('%s created a room (roomId: %s)', ctx.user.name, res.lastID)
   } catch (err) {
     mapDomainError(ctx, err)
@@ -135,12 +136,12 @@ export async function handleCurrentRoomUpdate (ctx: RouterContext): Promise<void
   const roomId = ctx.user?.roomId
 
   if (ctx.user?.userId == null) ctx.throw(401)
-  if (roomId == null) ctx.throw(404, 'Not in a room')
+  if (roomId == null) ctx.throw(404, t(ctxLocale(ctx), 'server.rooms.noRoom', 'Not in a room'))
   if (!ctx.user.isAdmin && !can(ctx.user, 'playerControls')) ctx.throw(401)
 
   const prefs = ctx.request.body?.prefs as Record<string, unknown> | undefined
 
-  if (!prefs || typeof prefs !== 'object') ctx.throw(422, 'Nothing to update')
+  if (!prefs || typeof prefs !== 'object') ctx.throw(422, t(ctxLocale(ctx), 'server.common.nothingToUpdate', 'Nothing to update'))
 
   try {
     const merged = Rooms.setRoomOptions(roomId, { prefs })
@@ -172,7 +173,7 @@ export async function handleUpdateRoom (ctx: RouterContext): Promise<void> {
   const roomId = parseIdParam(ctx, 'roomId')
 
   try {
-    await Rooms.set(roomId, (ctx.request as unknown as RequestWithBody).body)
+    await Rooms.set(roomId, (ctx.request as unknown as RequestWithBody).body, ctxLocale(ctx))
   } catch (err) {
     mapDomainError(ctx, err)
   }

@@ -239,7 +239,7 @@ describe('Media version deletion', () => {
     const ctx = deleteCtx({ isAdmin: true })
 
     await expect(dispatch(ctx, () => {})).resolves.toBeUndefined()
-    expect(Library.deleteMedia).toHaveBeenCalledWith(123)
+    expect(Library.deleteMedia).toHaveBeenCalledWith(123, 'en')
     expect(ctx.status).toBe(200)
     expect(ctx.body).toEqual({ mediaId: 123 })
     expect(pushQueuesAndLibrary).toHaveBeenCalled()

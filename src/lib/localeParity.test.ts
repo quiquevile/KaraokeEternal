@@ -87,6 +87,22 @@ describe('locale parity', () => {
       for (const id of collectIds(source)) used.add(id)
     }
 
+    // server message IDs live anywhere under server/ (excluding tests):
+    // same exact-match rule against es.json
+    const serverFiles = walkFiles(path.join(root, 'server'), '.ts')
+      .filter(file => !file.endsWith('.test.ts'))
+
+    for (const file of serverFiles) {
+      const source = fs.readFileSync(file, 'utf8')
+      const pattern = /['"](server\.[a-zA-Z0-9.]+)['"]/g
+
+      let match: RegExpExecArray | null
+
+      while ((match = pattern.exec(source)) !== null) {
+        used.add(match[1])
+      }
+    }
+
     const es = JSON.parse(fs.readFileSync(path.join(root, 'shared/locales/es.json'), 'utf8')) as Record<string, string>
     const keys = new Set(Object.keys(es))
 
@@ -94,3 +110,13 @@ describe('locale parity', () => {
     expect([...keys].filter(key => !used.has(key))).toEqual([])
   })
 })
+
+function walkFiles (dir: string, ext: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const full = path.join(dir, entry.name)
+
+    if (entry.isDirectory()) return walkFiles(full, ext)
+
+    return entry.isFile() && full.endsWith(ext) ? [full] : []
+  })
+}

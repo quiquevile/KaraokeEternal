@@ -21,6 +21,7 @@ import {
   IMG_MAX_LENGTH,
 } from './User.js'
 import { parseIdParam } from '../lib/http.js'
+import { ctxLocale, t } from '../lib/locale.js'
 import { requireSameOrigin } from '../lib/http.js'
 import type { HttpContext } from '../lib/http.js'
 
@@ -106,11 +107,11 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
 
   if (limit.limited) {
     ctx.set('Retry-After', String(limit.retryAfterSec))
-    ctx.throw(429, 'Too many login attempts')
+    ctx.throw(429, t(ctxLocale(ctx), 'server.auth.tooManyAttempts', 'Too many login attempts'))
   }
 
   try {
-    user = await User.validate(body as { username: string, password: string })
+    user = await User.validate(body as { username: string, password: string }, ctxLocale(ctx))
   } catch (err) {
     recordLoginFailure(ip)
     ctx.throw(401, err.message)
@@ -122,9 +123,10 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
         isOpen: user.role !== 'admin', // admins can sign in to closed rooms
         // admins can also skip the room password with their own password
         validatePassword: user.role !== 'admin',
+        locale: ctxLocale(ctx),
       })
     } else if (user.role !== 'admin') {
-      ctx.throw(401, 'Please select a room')
+      ctx.throw(401, t(ctxLocale(ctx), 'server.auth.selectRoom', 'Please select a room'))
     }
   } catch (err) {
     ctx.throw(401, err.message)
@@ -223,7 +225,7 @@ export async function handleUsersNames (ctx) {
   const onlineOnly = ctx.query.online !== undefined && ctx.query.online !== 'false' && ctx.query.online !== '0'
 
   if (ctx.query.roomId !== undefined && (roomId === null || Number.isNaN(roomId))) {
-    ctx.throw(422, 'Invalid roomId')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.users.invalidRoomId', 'Invalid roomId'))
   }
 
   const userRooms: Record<number, number[]> = {}
@@ -266,7 +268,7 @@ router.delete('/user/:userId', async (ctx) => {
   const target = User.getById(targetId)
 
   if (target && target.role === 'admin' && User.countAdmins() <= 1) {
-    ctx.throw(403, 'Cannot delete the last admin')
+    ctx.throw(403, t(ctxLocale(ctx), 'server.users.lastAdminDelete', 'Cannot delete the last admin'))
   }
 
   User.remove(targetId)
@@ -317,11 +319,11 @@ router.put('/user/:userId', async (ctx) => {
   // validate current password if updating own account
   if (targetId === user.userId && !ctx.user.isGuest) {
     if (!password) {
-      ctx.throw(422, 'Current password is required')
+      ctx.throw(422, t(ctxLocale(ctx), 'server.users.currentPasswordRequired', 'Current password is required'))
     }
 
     if (!(await crypto.compare(password, user.password))) {
-      ctx.throw(401, 'Incorrect current password')
+      ctx.throw(401, t(ctxLocale(ctx), 'server.users.incorrectCurrentPassword', 'Incorrect current password'))
     }
   }
 
@@ -333,12 +335,16 @@ router.put('/user/:userId', async (ctx) => {
     username = username.trim()
 
     if (username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
-      ctx.throw(400, `Username or email must have ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} characters`)
+      ctx.throw(400, t(
+        ctxLocale(ctx), 'server.users.usernameLength',
+        'Username or email must have {min}-{max} characters',
+        { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH },
+      ))
     }
 
     // check for duplicate
     if (User.getByUsername(username)) {
-      ctx.throw(409, 'Username or email is not available')
+      ctx.throw(409, t(ctxLocale(ctx), 'server.users.usernameTaken', 'Username or email is not available'))
     }
 
     fields.set('username', username)
@@ -349,7 +355,11 @@ router.put('/user/:userId', async (ctx) => {
     name = name.trim()
 
     if (name.length < NAME_MIN_LENGTH || name.length > NAME_MAX_LENGTH) {
-      ctx.throw(400, `Display name must have ${NAME_MIN_LENGTH}-${NAME_MAX_LENGTH} characters`)
+      ctx.throw(400, t(
+        ctxLocale(ctx), 'server.users.displayNameLength',
+        'Display name must have {min}-{max} characters',
+        { min: NAME_MIN_LENGTH, max: NAME_MAX_LENGTH },
+      ))
     }
 
     fields.set('name', name)
@@ -358,11 +368,15 @@ router.put('/user/:userId', async (ctx) => {
   // changing password?
   if (newPassword && !ctx.user.isGuest) {
     if (newPassword.length < PASSWORD_MIN_LENGTH) {
-      ctx.throw(400, `Password must have at least ${PASSWORD_MIN_LENGTH} characters`)
+      ctx.throw(400, t(
+        ctxLocale(ctx), 'server.users.passwordLength',
+        'Password must have at least {min} characters',
+        { min: PASSWORD_MIN_LENGTH },
+      ))
     }
 
     if (newPassword !== newPasswordConfirm) {
-      ctx.throw(422, 'New passwords do not match')
+      ctx.throw(422, t(ctxLocale(ctx), 'server.users.passwordMismatch', 'New passwords do not match'))
     }
 
     fields.set('password', await crypto.hash(newPassword))
@@ -374,7 +388,11 @@ router.put('/user/:userId', async (ctx) => {
 
     if (imageFile.size > IMG_MAX_LENGTH) {
       await deleteFile(imageFile.filepath)
-      ctx.throw(413, `Image must not exceed ${Math.floor(IMG_MAX_LENGTH / 1024)}KB`)
+      ctx.throw(413, t(
+        ctxLocale(ctx), 'server.users.imageTooLarge',
+        'Image must not exceed {kb}KB',
+        { kb: Math.floor(IMG_MAX_LENGTH / 1024) },
+      ))
     }
 
     fields.set('image', await readFile(imageFile.filepath))
@@ -395,7 +413,7 @@ router.put('/user/:userId', async (ctx) => {
       const target = User.getById(targetId)
 
       if (target && target.role === 'admin' && User.countAdmins() <= 1) {
-        ctx.throw(403, 'Cannot demote the last admin')
+        ctx.throw(403, t(ctxLocale(ctx), 'server.users.lastAdminDemote', 'Cannot demote the last admin'))
       }
     }
 
@@ -426,7 +444,7 @@ router.put('/user/:userId', async (ctx) => {
   const res = db.run(String(query), query.parameters)
 
   if (!res.changes) {
-    ctx.throw(404, `userId ${targetId} not found`)
+    ctx.throw(404, t(ctxLocale(ctx), 'server.users.userNotFound', 'userId {userId} not found', { userId: targetId }))
   }
 
   // emit (potentially) updated queues to each room
@@ -453,7 +471,7 @@ router.put('/user/:userId', async (ctx) => {
       updatedUser = await User.validate({
         username: username || user.username,
         password: newPassword || password,
-      })
+      }, ctxLocale(ctx))
     } catch (err) {
       ctx.throw(401, err.message)
     }
@@ -487,12 +505,12 @@ router.post('/user', async (ctx) => {
   if (!ctx.user.isAdmin) {
     // already signed in?
     if (ctx.user.userId !== null) {
-      ctx.throw(401, 'You are already signed in')
+      ctx.throw(401, t(ctxLocale(ctx), 'server.users.alreadySignedIn', 'You are already signed in'))
     }
 
     // only possible roles; further validated per-room below
     if (typeof body.role !== 'string' || !['guest', 'standard'].includes(body.role)) {
-      ctx.throw(401, 'Invalid role')
+      ctx.throw(401, t(ctxLocale(ctx), 'server.users.invalidRole', 'Invalid role'))
     }
 
     // new users must choose a room at the same time
@@ -500,7 +518,7 @@ router.post('/user', async (ctx) => {
       await Rooms.validate(
         parseInt(body.roomId ?? '', 10),
         body.roomPassword,
-        { role: body.role },
+        { role: body.role, locale: ctxLocale(ctx) },
       )
     } catch (err) {
       ctx.throw(401, err.message)
@@ -512,7 +530,11 @@ router.post('/user', async (ctx) => {
 
     if (imageFile.size > IMG_MAX_LENGTH) {
       await deleteFile(imageFile.filepath)
-      ctx.throw(413, `Image must not exceed ${Math.floor(IMG_MAX_LENGTH / 1024)}KB`)
+      ctx.throw(413, t(
+        ctxLocale(ctx), 'server.users.imageTooLarge',
+        'Image must not exceed {kb}KB',
+        { kb: Math.floor(IMG_MAX_LENGTH / 1024) },
+      ))
     }
 
     image = await readFile(imageFile.filepath)
@@ -521,7 +543,7 @@ router.post('/user', async (ctx) => {
 
   // create user (only admins may preset permissions)
   try {
-    const userId = await User.create({ ...body, permissions: ctx.user.isAdmin ? body.permissions : undefined, image }, body.role)
+    const userId = await User.create({ ...body, permissions: ctx.user.isAdmin ? body.permissions : undefined, image }, body.role, ctxLocale(ctx))
 
     // if admin creating another user, we're done
     if (ctx.user.isAdmin) {
@@ -566,7 +588,7 @@ router.post('/setup', async (ctx) => {
   try {
     // create admin user
     const req = ctx.request as unknown as RequestWithBody
-    const userId = await User.create({ ...req.body as UserBody, image }, 'admin')
+    const userId = await User.create({ ...req.body as UserBody, image }, 'admin', ctxLocale(ctx))
     const user = User.getById(userId, true)
 
     if (!user) {
@@ -586,7 +608,7 @@ router.post('/setup', async (ctx) => {
     const roomRes = db.run(String(roomQuery), roomQuery.parameters)
 
     if (typeof roomRes.lastID !== 'number') {
-      ctx.throw(500, 'Invalid default room lastID')
+      ctx.throw(500, t(ctxLocale(ctx), 'server.users.defaultRoomFailed', 'Invalid default room lastID'))
     }
 
     // create JWT

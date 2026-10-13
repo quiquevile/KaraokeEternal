@@ -5,6 +5,7 @@ import Queue from '../Queue/Queue.js'
 import { randomChars } from '../lib/util.js'
 import { parsePermissions } from '../lib/permissions.js'
 import { ValidationError } from '../lib/Errors.js'
+import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import { User as UserType } from '../../shared/types.js'
 
 export type ServerUser = UserType & {
@@ -93,7 +94,7 @@ class User {
     name?: string
     image?: Buffer
     permissions?: unknown
-  }, role = 'standard') {
+  }, role = 'standard', locale: LocaleCode = DEFAULT_LOCALE) {
     username = username?.trim()
     name = name?.trim()
 
@@ -101,31 +102,39 @@ class User {
 
     if (role !== 'guest') {
       if (!username) {
-        throw new Error('Username or email is required')
+        throw new Error(t(locale, 'server.users.usernameRequired', 'Username or email is required'))
       }
 
       if (username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
-        throw new Error(`Username or email must have ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} characters`)
+        throw new Error(t(
+          locale, 'server.users.usernameLength',
+          'Username or email must have {min}-{max} characters',
+          { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH },
+        ))
       }
 
       if (!newPassword) {
-        throw new Error('Password is required')
+        throw new Error(t(locale, 'server.users.passwordRequired', 'Password is required'))
       }
 
       if (newPassword.length < PASSWORD_MIN_LENGTH) {
-        throw new Error(`Password must have at least ${PASSWORD_MIN_LENGTH} characters`)
+        throw new Error(t(
+          locale, 'server.users.passwordLength',
+          'Password must have at least {min} characters',
+          { min: PASSWORD_MIN_LENGTH },
+        ))
       }
 
       if (!newPasswordConfirm) {
-        throw new Error('Password confirmation is required')
+        throw new Error(t(locale, 'server.users.passwordConfirmRequired', 'Password confirmation is required'))
       }
 
       if (newPassword !== newPasswordConfirm) {
-        throw new Error('New passwords do not match')
+        throw new Error(t(locale, 'server.users.passwordMismatch', 'New passwords do not match'))
       }
 
       if (User.getByUsername(username)) {
-        throw new Error('Username or email is not available')
+        throw new Error(t(locale, 'server.users.usernameTaken', 'Username or email is not available'))
       }
 
       fields.set('username', username)
@@ -149,11 +158,15 @@ class User {
     }
 
     if (!name) {
-      throw new Error('Display name is required')
+      throw new Error(t(locale, 'server.users.displayNameRequired', 'Display name is required'))
     }
 
     if (name.length < NAME_MIN_LENGTH || name.length > NAME_MAX_LENGTH) {
-      throw new Error(`Display name must have ${NAME_MIN_LENGTH}-${NAME_MAX_LENGTH} characters`)
+      throw new Error(t(
+        locale, 'server.users.displayNameLength',
+        'Display name must have {min}-{max} characters',
+        { min: NAME_MIN_LENGTH, max: NAME_MAX_LENGTH },
+      ))
     }
 
     fields.set('name', name)
@@ -190,15 +203,18 @@ class User {
     return res.lastID
   }
 
-  static async validate ({ username, password }: { username?: string, password?: string }) {
+  static async validate (
+    { username, password }: { username?: string, password?: string },
+    locale: LocaleCode = DEFAULT_LOCALE,
+  ) {
     if (!username || !password) {
-      throw new Error('Username/email and password are required')
+      throw new Error(t(locale, 'server.auth.credentialsRequired', 'Username/email and password are required'))
     }
 
     const user = User.getByUsername(username, true) as ServerUser
 
     if (!user || !(await crypto.compare(password, user.password))) {
-      throw new Error('Incorrect username/email or password')
+      throw new Error(t(locale, 'server.auth.incorrectCredentials', 'Incorrect username/email or password'))
     }
 
     return user
@@ -211,16 +227,21 @@ class User {
     return (User.getUserData(userId)?.eqPresets ?? {}) as Record<string, number[]>
   }
 
-  static setEqPreset (userId: number, name: string, gains: number[]): Record<string, number[]> {
+  static setEqPreset (
+    userId: number,
+    name: string,
+    gains: number[],
+    locale: LocaleCode = DEFAULT_LOCALE,
+  ): Record<string, number[]> {
     if (!EQ_PRESET_SLOTS.includes(name)) {
-      throw new ValidationError('Invalid preset slot')
+      throw new ValidationError(t(locale, 'server.users.invalidPresetSlot', 'Invalid preset slot'))
     }
 
     if (!Array.isArray(gains)
       || gains.length !== EQ_BAND_COUNT
       || gains.some(g => typeof g !== 'number' || !Number.isFinite(g))
     ) {
-      throw new ValidationError('Invalid preset gains')
+      throw new ValidationError(t(locale, 'server.users.invalidPresetGains', 'Invalid preset gains'))
     }
 
     const data = User.getUserData(userId)

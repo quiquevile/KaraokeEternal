@@ -1,4 +1,5 @@
 import { ConflictError, NotFoundError, ValidationError } from './Errors.js'
+import { ctxLocale, t } from './locale.js'
 
 export interface HttpContext {
   user?: { isAdmin?: boolean } | null
@@ -22,14 +23,14 @@ export function requireSameOrigin (ctx: HttpContext): void {
   const site = ctx.request?.headers?.['sec-fetch-site']
 
   if (typeof site === 'string' && site !== '' && site !== 'same-origin') {
-    ctx.throw(403, 'Cross-site requests are not allowed here')
+    ctx.throw(403, t(ctxLocale(ctx), 'server.common.crossSite', 'Cross-site requests are not allowed here'))
   }
 }
 
 export function parseIdParam (ctx: HttpContext, name: string): number {
   const id = parseInt(ctx.params[name] ?? '', 10)
 
-  if (Number.isNaN(id)) ctx.throw(422, `Invalid ${name}`)
+  if (Number.isNaN(id)) ctx.throw(422, t(ctxLocale(ctx), 'server.common.invalidParam', 'Invalid {name}', { name }))
 
   return id
 }

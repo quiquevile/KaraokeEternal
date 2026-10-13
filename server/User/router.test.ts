@@ -206,6 +206,7 @@ describe('handleLogin', () => {
     expect(roomsValidateMock).toHaveBeenCalledWith(1, 'wrong', {
       isOpen: false,
       validatePassword: false,
+      locale: 'en',
     })
     expect(ctx.body).toMatchObject({ username: 'admin', roomId: 1, isAdmin: true })
     expect(ctx.cookies.set).toHaveBeenCalledWith('keToken', expect.any(String), expect.anything())
@@ -220,6 +221,18 @@ describe('handleLogin', () => {
     expect(roomsValidateMock).toHaveBeenCalledWith(1, 'wrong', {
       isOpen: true,
       validatePassword: true,
+      locale: 'en',
+    })
+  })
+
+  it('answers room selection errors in the request language', async () => {
+    validateMock.mockResolvedValue(standardUser)
+    const ctx = makeLoginCtx({ username: 'pepe', password: 'secret' })
+    ctx.request.headers = { 'accept-language': 'es-ES,es;q=0.9' }
+
+    await expect(handleLogin(ctx as never)).rejects.toMatchObject({
+      status: 401,
+      message: 'Elige una sala',
     })
   })
 

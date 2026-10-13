@@ -1,4 +1,5 @@
 import Rooms from './Rooms.js'
+import { sockLocale, t } from '../lib/locale.js'
 import {
   ROOM_PREFS_PUSH_REQUEST,
   ROOM_PREFS_PUSH,
@@ -12,7 +13,7 @@ const ACTION_HANDLERS = {
     if (!sock.user.isAdmin || !roomId) {
       acknowledge({
         type: ROOM_PREFS_PUSH_REQUEST + _ERROR,
-        error: 'Unauthorized',
+        error: t(sockLocale(sock), 'server.common.unauthorized', 'Unauthorized'),
       })
 
       return

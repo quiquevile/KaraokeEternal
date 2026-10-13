@@ -1,4 +1,5 @@
 import getLogger from '../lib/Log.js'
+import { sockLocale, t } from '../lib/locale.js'
 import Library from '../Library/Library.js'
 import Prefs from './Prefs.js'
 import { LIBRARY_PUSH, PREFS_PATH_SET_PRIORITY, PREFS_PUSH, PREFS_SET, _ERROR } from '../../shared/actionTypes.js'
@@ -9,7 +10,7 @@ const ACTION_HANDLERS = {
     if (!sock.user.isAdmin) {
       acknowledge({
         type: PREFS_SET + _ERROR,
-        error: 'Unauthorized',
+        error: t(sockLocale(sock), 'server.common.unauthorized', 'Unauthorized'),
       })
 
       return
@@ -24,7 +25,7 @@ const ACTION_HANDLERS = {
     if (!sock.user.isAdmin) {
       acknowledge({
         type: PREFS_PATH_SET_PRIORITY + _ERROR,
-        error: 'Unauthorized',
+        error: t(sockLocale(sock), 'server.common.unauthorized', 'Unauthorized'),
       })
 
       return

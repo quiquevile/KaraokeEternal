@@ -6,6 +6,7 @@ import getLogger from '../lib/Log.js'
 import getCdgName from '../lib/getCdgName.js'
 import { assertNoRenameClash, atomicRenameAll } from '../lib/fsUtils.js'
 import { ConflictError, DUPLICATE_SONG_MESSAGE, NotFoundError, ValidationError } from '../lib/Errors.js'
+import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
@@ -261,23 +262,27 @@ class Library {
   * destination file already exists (nothing is changed in that case).
   * Artists left without songs are removed (their stars are lost with them).
   */
-  static updateSong (songId: number, parsed: { artist: string, artistNorm: string, title: string, titleNorm: string }): void {
+  static updateSong (
+    songId: number,
+    parsed: { artist: string, artistNorm: string, title: string, titleNorm: string },
+    locale: LocaleCode = DEFAULT_LOCALE,
+  ): void {
     if (!Number.isInteger(songId)) {
-      throw new ValidationError('Invalid songId')
+      throw new ValidationError(t(locale, 'server.library.invalidSongId', 'Invalid songId'))
     }
 
     const artist = parsed.artist?.trim()
     const title = parsed.title?.trim()
 
     if (!artist || !title) {
-      throw new ValidationError('Artist and title are required')
+      throw new ValidationError(t(locale, 'server.library.artistTitleRequired', 'Artist and title are required'))
     }
 
     const existingQuery = sql`SELECT artistId AS oldArtistId FROM songs WHERE songId = ${songId}`
     const song = db.get<{ oldArtistId: number }>(String(existingQuery), existingQuery.parameters)
 
     if (!song) {
-      throw new NotFoundError(`songId ${songId} not found`)
+      throw new NotFoundError(t(locale, 'server.library.songNotFound', 'songId {songId} not found', { songId }))
     }
 
     // resolve the target artist without creating it yet, so that a
@@ -285,7 +290,7 @@ class Library {
     const clash = Library.findSong(parsed.artistNorm, parsed.titleNorm)
 
     if (clash !== null && clash !== songId) {
-      throw new ConflictError(DUPLICATE_SONG_MESSAGE)
+      throw new ConflictError(t(locale, 'server.common.duplicateSong', DUPLICATE_SONG_MESSAGE))
     }
 
     const resolved = Library.matchArtist({ artist, artistNorm: parsed.artistNorm })
@@ -304,7 +309,7 @@ class Library {
       const to = path.join(media.path, ...newRelPath.split('/'))
 
       if (!fs.existsSync(from)) {
-        throw new Error(`media file not found: ${from}`)
+        throw new Error(t(locale, 'server.library.mediaFileNotFound', 'media file not found: {path}', { path: from }))
       }
 
       renames.push({ mediaId, from, to, newRelPath })
@@ -461,16 +466,16 @@ class Library {
   * without songs are removed (their stars are lost with them). Files
   * that are already gone from disk are skipped.
   */
-  static deleteSong (songId: number): void {
+  static deleteSong (songId: number, locale: LocaleCode = DEFAULT_LOCALE): void {
     if (!Number.isInteger(songId)) {
-      throw new ValidationError('Invalid songId')
+      throw new ValidationError(t(locale, 'server.library.invalidSongId', 'Invalid songId'))
     }
 
     const existingQuery = sql`SELECT artistId FROM songs WHERE songId = ${songId}`
     const song = db.get<{ artistId: number }>(String(existingQuery), existingQuery.parameters)
 
     if (!song) {
-      throw new NotFoundError(`songId ${songId} not found`)
+      throw new NotFoundError(t(locale, 'server.library.songNotFound', 'songId {songId} not found', { songId }))
     }
 
     // delete files first; missing files are already gone, so skip them
@@ -492,15 +497,15 @@ class Library {
   * disk and its media row. When it was the song's last version, the
   * whole song is purged as in deleteSong.
   */
-  static deleteMedia (mediaId: number): { songId: number } {
+  static deleteMedia (mediaId: number, locale: LocaleCode = DEFAULT_LOCALE): { songId: number } {
     if (!Number.isInteger(mediaId)) {
-      throw new ValidationError('Invalid mediaId')
+      throw new ValidationError(t(locale, 'server.library.invalidMediaId', 'Invalid mediaId'))
     }
 
     const found = Media.search({ mediaId })
 
     if (!found.result.length) {
-      throw new NotFoundError(`mediaId ${mediaId} not found`)
+      throw new NotFoundError(t(locale, 'server.library.mediaNotFound', 'mediaId {mediaId} not found', { mediaId }))
     }
 
     const media = found.entities[mediaId]
@@ -514,7 +519,7 @@ class Library {
     const song = db.get<{ artistId: number }>(String(songQuery), songQuery.parameters)
 
     if (!song) {
-      throw new NotFoundError(`songId ${media.songId} not found`)
+      throw new NotFoundError(t(locale, 'server.library.songNotFound', 'songId {songId} not found', { songId: media.songId }))
     }
 
     Library.deleteFiles(files)

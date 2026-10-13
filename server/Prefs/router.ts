@@ -9,6 +9,7 @@ import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
 import { mapDomainError, parseIdParam, requireAdmin, requireSameOrigin } from '../lib/http.js'
+import { ctxLocale, t } from '../lib/locale.js'
 import { can } from '../lib/permissions.js'
 import User from '../User/User.js'
 import { PREFS_PATHS_CHANGED } from '../../shared/actionTypes.js'
@@ -73,6 +74,7 @@ export async function handleSaveEqPreset (ctx: RouterContext): Promise<void> {
       ctx.user.userId,
       name as string,
       gains as number[],
+      ctxLocale(ctx),
     )
   } catch (err) {
     mapDomainError(ctx, err)
@@ -89,7 +91,7 @@ router.post('/path', (ctx) => {
 
   // required
   if (!dir) {
-    ctx.throw(422, 'Invalid path')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.prefs.invalidPath', 'Invalid path'))
   }
 
   const pathId = Prefs.addPath(dir, {
@@ -156,7 +158,7 @@ export async function handleScanPath (ctx: RouterContext): Promise<void> {
   requireSameOrigin(ctx)
   requireAdmin(ctx)
 
-  if (isGainActive()) ctx.throw(409, 'Gain measurement in progress')
+  if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainInProgress', 'Gain measurement in progress'))
 
   const pathId = parseIdParam(ctx, 'pathId')
 
@@ -171,7 +173,7 @@ export async function handleScanAll (ctx: RouterContext): Promise<void> {
   requireSameOrigin(ctx)
   requireAdmin(ctx)
 
-  if (isGainActive()) ctx.throw(409, 'Gain measurement in progress')
+  if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainInProgress', 'Gain measurement in progress'))
 
   ctx.status = 200
   ctx.startScanner(true)
@@ -197,8 +199,8 @@ export async function handleGainScan (ctx: RouterContext): Promise<void> {
   requireSameOrigin(ctx)
   requireAdmin(ctx)
 
-  if (ctx.isScannerActive()) ctx.throw(409, 'Library scan in progress')
-  if (isGainActive()) ctx.throw(409, 'Gain measurement already running')
+  if (ctx.isScannerActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.scanInProgress', 'Library scan in progress'))
+  if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainAlreadyRunning', 'Gain measurement already running'))
 
   ctx.status = 200
   startGainScan(ctx.io)

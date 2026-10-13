@@ -1,6 +1,7 @@
 import Queue from './Queue.js'
 import Rooms from '../Rooms/Rooms.js'
 import { can } from '../lib/permissions.js'
+import { sockLocale, t } from '../lib/locale.js'
 import { QUEUE_ADD, QUEUE_MOVE, QUEUE_REMOVE, QUEUE_PUSH } from '../../shared/actionTypes.js'
 
 // ------------------------------------
@@ -11,7 +12,7 @@ const ACTION_HANDLERS = {
     const { songId } = payload
 
     try {
-      await Rooms.validate(sock.user.roomId, null, { validatePassword: false })
+      await Rooms.validate(sock.user.roomId, null, { validatePassword: false, locale: sockLocale(sock) })
     } catch (err) {
       return acknowledge({
         type: QUEUE_ADD + '_ERROR',
@@ -40,12 +41,12 @@ const ACTION_HANDLERS = {
     if (!Number.isInteger(queueId) || (prevQueueId !== null && !Number.isInteger(prevQueueId))) {
       return acknowledge({
         type: QUEUE_MOVE + '_ERROR',
-        error: 'Invalid queueId',
+        error: t(sockLocale(sock), 'server.queue.invalidId', 'Invalid queueId'),
       })
     }
 
     try {
-      await Rooms.validate(sock.user.roomId, null, { validatePassword: false })
+      await Rooms.validate(sock.user.roomId, null, { validatePassword: false, locale: sockLocale(sock) })
     } catch (err) {
       return acknowledge({
         type: QUEUE_MOVE + '_ERROR',
@@ -56,7 +57,7 @@ const ACTION_HANDLERS = {
     if (!can(sock.user, 'queueMove') && !(Queue.isOwner(sock.user.userId, queueId))) {
       return acknowledge({
         type: QUEUE_MOVE + '_ERROR',
-        error: 'Cannot move another user\'s song',
+        error: t(sockLocale(sock), 'server.queue.moveOthers', 'Cannot move another user\'s song'),
       })
     }
 
@@ -89,12 +90,12 @@ const ACTION_HANDLERS = {
     if (!ids.length || ids.some(id => !Number.isInteger(id))) {
       return acknowledge({
         type: QUEUE_REMOVE + '_ERROR',
-        error: 'Invalid queueId',
+        error: t(sockLocale(sock), 'server.queue.invalidId', 'Invalid queueId'),
       })
     }
 
     try {
-      await Rooms.validate(sock.user.roomId, null, { validatePassword: false })
+      await Rooms.validate(sock.user.roomId, null, { validatePassword: false, locale: sockLocale(sock) })
     } catch (err) {
       return acknowledge({
         type: QUEUE_REMOVE + '_ERROR',
@@ -105,7 +106,7 @@ const ACTION_HANDLERS = {
     if (!can(sock.user, 'queueDelete') && !(Queue.isOwner(sock.user.userId, ids, sock.user.roomId))) {
       return acknowledge({
         type: QUEUE_REMOVE + '_ERROR',
-        error: 'Cannot remove another user\'s song',
+        error: t(sockLocale(sock), 'server.queue.removeOthers', 'Cannot remove another user\'s song'),
       })
     }
 

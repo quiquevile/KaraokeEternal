@@ -74,7 +74,7 @@ describe('handleUpdateSong', () => {
       title: 'New Title',
       artistNorm: 'ABBA',
       titleNorm: 'New Title',
-    })
+    }, 'en')
     expect(ctx.status).toBe(200)
     expect(ctx.body).toEqual({ 1: { songId: 1, title: 'New Title' } })
     expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
@@ -133,7 +133,7 @@ describe('handleDeleteSong', () => {
 
     await handleDeleteSong(ctx)
 
-    expect(Library.deleteSong).toHaveBeenCalledWith(1)
+    expect(Library.deleteSong).toHaveBeenCalledWith(1, 'en')
     expect(ctx.status).toBe(200)
     expect(ctx.body).toEqual({ songId: 1 })
     expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)

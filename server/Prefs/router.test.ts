@@ -195,7 +195,7 @@ describe('handleSaveEqPreset', () => {
 
     await handleSaveEqPreset(ctx)
 
-    expect(User.setEqPreset).toHaveBeenCalledWith(5, 'P2', gains)
+    expect(User.setEqPreset).toHaveBeenCalledWith(5, 'P2', gains, 'en')
     expect(ctx.body).toEqual({ P2: gains })
   })
 
@@ -205,7 +205,7 @@ describe('handleSaveEqPreset', () => {
 
     await handleSaveEqPreset(ctx)
 
-    expect(User.setEqPreset).toHaveBeenCalledWith(1, 'P1', gains)
+    expect(User.setEqPreset).toHaveBeenCalledWith(1, 'P1', gains, 'en')
   })
 
   it('rejects users without playback controls with 401', async () => {

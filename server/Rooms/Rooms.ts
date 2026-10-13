@@ -2,6 +2,7 @@ import crypto from '../lib/crypto.js'
 import sql from 'sqlate'
 import { db } from '../lib/Database.js'
 import { NotFoundError, ValidationError } from '../lib/Errors.js'
+import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import type { Server } from 'socket.io'
 import type { IRoomPrefs } from '../../shared/types.js'
 
@@ -125,20 +126,28 @@ class Rooms {
     return { result, entities }
   }
 
-  static async set (roomId, room) {
+  static async set (roomId, room, locale: LocaleCode = DEFAULT_LOCALE) {
     const { name, password, status, prefs } = room
     let query
 
     if (!name || !name.trim() || name.length < NAME_MIN_LENGTH || name.length > NAME_MAX_LENGTH) {
-      throw new ValidationError(`Room name must have ${NAME_MIN_LENGTH}-${NAME_MAX_LENGTH} characters`)
+      throw new ValidationError(t(
+        locale, 'server.rooms.nameLength',
+        'Room name must have {min}-{max} characters',
+        { min: NAME_MIN_LENGTH, max: NAME_MAX_LENGTH },
+      ))
     }
 
     if (password && password.length < PASSWORD_MIN_LENGTH) {
-      throw new ValidationError(`Room password must have at least ${PASSWORD_MIN_LENGTH} characters`)
+      throw new ValidationError(t(
+        locale, 'server.rooms.passwordLength',
+        'Room password must have at least {min} characters',
+        { min: PASSWORD_MIN_LENGTH },
+      ))
     }
 
     if (!status || !STATUSES.includes(status)) {
-      throw new ValidationError('Invalid room status')
+      throw new ValidationError(t(locale, 'server.rooms.invalidStatus', 'Invalid room status'))
     }
 
     if (typeof roomId === 'number') {
@@ -220,30 +229,32 @@ class Rooms {
       isOpen = true,
       validatePassword = true,
       role,
+      locale = DEFAULT_LOCALE,
     }: {
       isOpen?: boolean
       validatePassword?: boolean
       role?: string
+      locale?: LocaleCode
     } = {},
   ): Promise<boolean> {
     const res = Rooms.get(roomId, { includePassword: true })
     const room = res.entities[roomId]
 
     if (!room) {
-      throw new Error('Room not found')
+      throw new Error(t(locale, 'server.rooms.notFound', 'Room not found'))
     }
 
     if (isOpen && room.status !== 'open') {
-      throw new Error('Room is no longer open')
+      throw new Error(t(locale, 'server.rooms.noLongerOpen', 'Room is no longer open'))
     }
 
     if (validatePassword && room.password) {
       if (!password) {
-        throw new Error('Room password is required')
+        throw new Error(t(locale, 'server.rooms.passwordRequired', 'Room password is required'))
       }
 
       if (!(await crypto.verifyRoomPassword(password, room.password))) {
-        throw new Error('Incorrect room password')
+        throw new Error(t(locale, 'server.rooms.incorrectPassword', 'Incorrect room password'))
       }
 
       if (!crypto.isEncodedRoomPassword(room.password)) {
@@ -263,11 +274,11 @@ class Rooms {
       const roleId = row?.roleId
 
       if (!roleId) {
-        throw new Error('Role not found')
+        throw new Error(t(locale, 'server.rooms.roleNotFound', 'Role not found'))
       }
 
       if (!room.prefs?.roles?.[roleId]?.allowNew) {
-        throw new Error(`New "${role}" accounts are not allowed in this room`)
+        throw new Error(t(locale, 'server.rooms.newAccountsForbidden', 'New "{role}" accounts are not allowed in this room', { role }))
       }
     }
 

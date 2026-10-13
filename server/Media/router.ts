@@ -16,6 +16,7 @@ import { can } from '../lib/permissions.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import fileTypes from './fileTypes.js'
 import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
+import { ctxLocale, t } from '../lib/locale.js'
 import { LIBRARY_PUSH_SONG } from '../../shared/actionTypes.js'
 const log = getLogger('Media')
 const router = new KoaRouter({ prefix: '/api/media' })
@@ -39,14 +40,14 @@ router.get('/:mediaId', async (ctx) => {
   const mediaId = parseIdParam(ctx, 'mediaId')
 
   if (!type) {
-    ctx.throw(422, 'invalid media type')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.invalidType', 'invalid media type'))
   }
 
   // get media info
   const res = Media.search({ mediaId })
 
   if (!res.result.length) {
-    ctx.throw(404, 'mediaId not found')
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.notFound', 'mediaId not found'))
   }
 
   const { pathId, relPath } = res.entities[mediaId]
@@ -56,14 +57,14 @@ router.get('/:mediaId', async (ctx) => {
   const basePath = paths.entities[pathId]?.path
 
   if (!basePath) {
-    ctx.throw(404, 'media path not found')
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.pathNotFound', 'media path not found'))
   }
 
   let file = path.join(basePath, relPath)
 
   // relPath comes from the scanner, but never serve outside the base path
   if (path.relative(basePath, file).startsWith('..')) {
-    ctx.throw(404, 'media file not found')
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.fileNotFound', 'media file not found'))
   }
 
   let buffer
@@ -75,17 +76,17 @@ router.get('/:mediaId', async (ctx) => {
       const totalSize = Object.values(entries).reduce((sum, entry) => sum + (entry.size ?? 0), 0)
 
       if (totalSize > MAX_ZIP_BYTES) {
-        ctx.throw(413, 'archive too large')
+        ctx.throw(413, t(ctxLocale(ctx), 'server.media.archiveTooLarge', 'archive too large'))
       }
 
       let entry
 
       if (type === 'cdg') {
         entry = Object.keys(entries).find(f => !f.includes('/') && getExt(f) === '.cdg')
-        if (!entry) ctx.throw(404, 'No .cdg file found in archive')
+        if (!entry) ctx.throw(404, t(ctxLocale(ctx), 'server.media.noCdgInArchive', 'No .cdg file found in archive'))
       } else {
         entry = Object.keys(entries).find(f => !f.includes('/') && audioExts.includes(getExt(f)))
-        if (!entry) ctx.throw(404, 'No valid audio file found in archive')
+        if (!entry) ctx.throw(404, t(ctxLocale(ctx), 'server.media.noAudioInArchive', 'No valid audio file found in archive'))
       }
 
       ctx.length = entries[entry].size
@@ -94,7 +95,7 @@ router.get('/:mediaId', async (ctx) => {
     } else {
       if (type === 'cdg') {
         file = getCdgName(file)
-        if (!file) ctx.throw(404, 'The .cdg file could not be found')
+        if (!file) ctx.throw(404, t(ctxLocale(ctx), 'server.media.cdgNotFound', 'The .cdg file could not be found'))
       }
 
       const stats = await fsPromises.stat(file)
@@ -105,14 +106,14 @@ router.get('/:mediaId', async (ctx) => {
     if (err.status) throw err // our own 4xx above
 
     if (err.code === 'ENOENT') {
-      ctx.throw(404, 'media file not found')
+      ctx.throw(404, t(ctxLocale(ctx), 'server.media.fileNotFound', 'media file not found'))
     }
 
     log.error('streaming failed: %s', err.message)
-    ctx.throw(500, 'media stream unavailable')
+    ctx.throw(500, t(ctxLocale(ctx), 'server.media.streamUnavailable', 'media stream unavailable'))
   }
 
-  if (!ctx.type) ctx.throw(404, 'unknown media type')
+  if (!ctx.type) ctx.throw(404, t(ctxLocale(ctx), 'server.media.unknownType', 'unknown media type'))
 
   log.verbose('streaming %s (%sMB)', ctx.type, (ctx.length / 1000000).toFixed(2))
   ctx.body = buffer ? Readable.from(buffer) : fs.createReadStream(file)
@@ -167,7 +168,7 @@ export async function handleDeleteMedia (ctx) {
   const mediaId = parseIdParam(ctx, 'mediaId')
 
   try {
-    Library.deleteMedia(mediaId)
+    Library.deleteMedia(mediaId, ctxLocale(ctx))
   } catch (err) {
     mapDomainError(ctx, err)
   }
@@ -192,20 +193,20 @@ export async function handleUpdateMedia (ctx) {
   const mediaId = parseInt(ctx.params.mediaId, 10)
 
   if (Number.isNaN(mediaId)) {
-    ctx.throw(422, 'Invalid mediaId')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.invalidId', 'Invalid mediaId'))
   }
 
   const rawGain = ctx.request.body?.rgTrackGain
   const rgTrackGain = rawGain === null ? null : Number(rawGain)
 
   if (rgTrackGain !== null && (!Number.isFinite(rgTrackGain) || Math.abs(rgTrackGain) > 24)) {
-    ctx.throw(422, 'rgTrackGain must be a number within ±24 dB')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.gainRange', 'rgTrackGain must be a number within ±24 dB'))
   }
 
   const found = Media.search({ mediaId })
 
   if (!found.result.length) {
-    ctx.throw(404, `mediaId ${mediaId} not found`)
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.idNotFound', 'mediaId {mediaId} not found', { mediaId }))
   }
 
   const current = found.entities[mediaId]
@@ -242,13 +243,13 @@ export async function handleMoveMedia (ctx) {
   const destDir = ctx.request.body?.destDir
 
   if (typeof destDir !== 'string' || !destDir || !path.isAbsolute(destDir)) {
-    ctx.throw(422, 'destDir must be an absolute path')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.destAbsolute', 'destDir must be an absolute path'))
   }
 
   const found = Media.search({ mediaId })
 
   if (!found.result.length) {
-    ctx.throw(404, `mediaId ${mediaId} not found`)
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.idNotFound', 'mediaId {mediaId} not found', { mediaId }))
   }
 
   const current = found.entities[mediaId]
@@ -268,24 +269,24 @@ export async function handleMoveMedia (ctx) {
   }
 
   if (!target) {
-    ctx.throw(422, 'destination is not inside a media folder')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.destOutsideLibrary', 'destination is not inside a media folder'))
   }
 
   const basePath = paths.entities[current.pathId]?.path
 
   if (!basePath) {
-    ctx.throw(404, 'media path not found')
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.pathNotFound', 'media path not found'))
   }
 
   let destStat
   try {
     destStat = await fsPromises.stat(destDir)
   } catch {
-    ctx.throw(422, 'destination folder not found')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.destNotFound', 'destination folder not found'))
   }
 
   if (!destStat.isDirectory()) {
-    ctx.throw(422, 'destination is not a folder')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.media.destNotFolder', 'destination is not a folder'))
   }
 
   const from = path.join(basePath, current.relPath)
@@ -293,7 +294,7 @@ export async function handleMoveMedia (ctx) {
   try {
     await fsPromises.stat(from)
   } catch {
-    ctx.throw(404, 'media file not found')
+    ctx.throw(404, t(ctxLocale(ctx), 'server.media.fileNotFound', 'media file not found'))
   }
 
   const to = path.join(destDir, path.basename(current.relPath))

@@ -3,6 +3,7 @@ import Media from '../Media/Media.js'
 import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
+import { ctxLocale } from '../lib/locale.js'
 import { deriveNorms } from '../Youtube/metadata.js'
 const router = new KoaRouter({ prefix: '/api' })
 
@@ -31,7 +32,7 @@ export async function handleUpdateSong (ctx) {
   const title = typeof ctx.request.body?.title === 'string' ? ctx.request.body.title : ''
 
   try {
-    Library.updateSong(songId, { artist, title, ...deriveNorms(artist, title) })
+    Library.updateSong(songId, { artist, title, ...deriveNorms(artist, title) }, ctxLocale(ctx))
   } catch (err) {
     mapDomainError(ctx, err)
   }
@@ -53,7 +54,7 @@ export async function handleDeleteSong (ctx) {
   const songId = parseIdParam(ctx, 'songId')
 
   try {
-    Library.deleteSong(songId)
+    Library.deleteSong(songId, ctxLocale(ctx))
   } catch (err) {
     mapDomainError(ctx, err)
   }

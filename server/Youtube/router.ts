@@ -19,6 +19,7 @@ import { deriveMetadata, deriveNorms, toFilename } from './metadata.js'
 import { downloadManager } from './downloadManager.js'
 import { DUPLICATE_SONG_MESSAGE } from '../lib/Errors.js'
 import { requireAdmin, requireSameOrigin } from '../lib/http.js'
+import { ctxLocale, t } from '../lib/locale.js'
 import { getErrorMessage } from '../lib/util.js'
 import { findDownloadedFile } from './registerDownload.js'
 import Library from '../Library/Library.js'
@@ -77,7 +78,7 @@ export async function handleSearch (ctx: RouterContext): Promise<void> {
 
   const query = str(bodyOf(ctx).query)
 
-  if (!query) ctx.throw(422, 'query is required')
+  if (!query) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.queryRequired', 'query is required'))
 
   // a pasted YouTube URL resolves to a single video result
   const isDirectUrl = !!parseVideoId(query) && !/\s/.test(query)
@@ -95,7 +96,7 @@ export async function handleIdentify (ctx: RouterContext): Promise<void> {
   const body = bodyOf(ctx)
   const title = str(body.title)
 
-  if (!title) ctx.throw(422, 'title is required')
+  if (!title) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.titleRequired', 'title is required'))
 
   const channel = typeof body.channel === 'string' ? body.channel.trim() : ''
 
@@ -111,7 +112,7 @@ export async function handleStream (ctx: RouterContext): Promise<void> {
 
   const url = str(ctx.query.url)
 
-  if (!parseVideoId(url)) ctx.throw(422, 'invalid YouTube URL')
+  if (!parseVideoId(url)) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.invalidUrl', 'invalid YouTube URL'))
 
   const streamUrl = await resolveStreamUrl(url)
 
@@ -142,27 +143,27 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   const artist = str(body.artist)
   const title = str(body.title)
 
-  if (!parseVideoId(url)) ctx.throw(422, 'invalid YouTube URL')
-  if (!artist) ctx.throw(422, 'artist is required')
-  if (!title) ctx.throw(422, 'title is required')
+  if (!parseVideoId(url)) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.invalidUrl', 'invalid YouTube URL'))
+  if (!artist) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.artistRequired', 'artist is required'))
+  if (!title) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.titleRequired', 'title is required'))
 
   const prefs = applyYoutubePrefs()
   const path = resolveDownloadPath(prefs)
 
-  if (!path) ctx.throw(422, 'could not determine download folder')
+  if (!path) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.noDownloadFolder', 'could not determine download folder'))
 
   // each downloader gets their own subfolder, named after their
   // (filesystem-sanitized) username; existing files stay where they are
   const username = ctx.user?.username?.trim()
 
-  if (!username) ctx.throw(422, 'username is required')
+  if (!username) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.usernameRequired', 'username is required'))
 
   const destDir = pathLib.join(path.destDir, toFilename(username, ''))
 
   // defense in depth: the user folder must stay inside the download root
   // even if sanitization above ever regresses
   if (pathLib.relative(path.destDir, destDir).startsWith('..')) {
-    ctx.throw(422, 'invalid username')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.invalidUsername', 'invalid username'))
   }
 
   await fsPromises.mkdir(destDir, { recursive: true })
@@ -171,7 +172,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   const userId = ctx.user?.userId
 
-  if (typeof userId !== 'number') ctx.throw(422, 'userId is required')
+  if (typeof userId !== 'number') ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.userIdRequired', 'userId is required'))
 
   // optional auto-queue once the download completes
   const rawQueueUserId = body.queueUserId
@@ -182,22 +183,22 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   let queueRoomId: number | null = null
 
   if (queueUserId !== null) {
-    if (!Number.isInteger(queueUserId)) ctx.throw(422, 'invalid queue user')
+    if (!Number.isInteger(queueUserId)) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.invalidQueueUser', 'invalid queue user'))
 
     if (queueUserId !== userId && !can(ctx.user, 'downloadForOthers')) {
-      ctx.throw(403, 'cannot queue downloads for other users')
+      ctx.throw(403, t(ctxLocale(ctx), 'server.youtube.othersForbidden', 'cannot queue downloads for other users'))
     }
 
-    if (!User.getById(queueUserId)) ctx.throw(422, 'queue user not found')
+    if (!User.getById(queueUserId)) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.queueUserNotFound', 'queue user not found'))
 
     queueRoomId = typeof ctx.user?.roomId === 'number' ? ctx.user.roomId : null
 
-    if (queueRoomId === null) ctx.throw(422, 'join a room to queue the download')
+    if (queueRoomId === null) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.joinRoomFirst', 'join a room to queue the download'))
 
     try {
-      await Rooms.validate(queueRoomId, null, { validatePassword: false })
+      await Rooms.validate(queueRoomId, null, { validatePassword: false, locale: ctxLocale(ctx) })
     } catch (err) {
-      ctx.throw(422, err instanceof Error ? err.message : 'Room not found')
+      ctx.throw(422, err instanceof Error ? err.message : t(ctxLocale(ctx), 'server.rooms.notFound', 'Room not found'))
     }
   }
 
@@ -206,13 +207,17 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
 
   // same duplicate rules as song retagging: refuse before downloading anything
   if (Library.findSong(norms.artistNorm, norms.titleNorm) !== null) {
-    ctx.throw(409, DUPLICATE_SONG_MESSAGE)
+    ctx.throw(409, t(ctxLocale(ctx), 'server.common.duplicateSong', DUPLICATE_SONG_MESSAGE))
   }
 
   const existingFile = await findDownloadedFile(destDir, baseName)
 
   if (existingFile) {
-    ctx.throw(409, `File already exists: ${existingFile}`)
+    ctx.throw(409, t(
+      ctxLocale(ctx), 'server.youtube.fileExists',
+      'File already exists: {file}',
+      { file: existingFile },
+    ))
   }
 
   let extraArgs: string[]
@@ -222,7 +227,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
       ? sanitizeExtraArgs(prefs.youtubeDlExtraArgs.trim().split(/\s+/).filter(Boolean))
       : []
   } catch {
-    ctx.throw(422, 'invalid youtubeDlExtraArgs')
+    ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.invalidExtraArgs', 'invalid youtubeDlExtraArgs'))
   }
 
   const job = downloadManager.enqueue({

@@ -260,7 +260,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         queueId={player.queueId}
         mediaId={queueItem ? queueItem.mediaId : null}
       />
-      {player.isPlaying && queueItem && !player.isErrored && (
+      {player.isPlaying && queueItem && !player.isErrored && roomPrefs?.progress?.isEnabled !== false && (
         <SongProgress position={player.position} duration={player.duration} />
       )}
       {roomPrefs?.qr?.isEnabled && isRoomOpen && (

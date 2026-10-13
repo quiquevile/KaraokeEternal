@@ -92,7 +92,7 @@ const PlaybackCtrl = () => {
             icon='TUNE'
             onClick={toggleDisplayCtrl}
             size={48}
-            aria-label='Display Options'
+            aria-label='Player Options'
           />
 
           {isPlayer && screenfull.isEnabled && (

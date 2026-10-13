@@ -52,6 +52,10 @@ export interface IRoomPrefs {
     eqGains: number[]
     eqPreset: string
   }
+  // song progress readout on the player screen (bar + remaining time)
+  progress?: {
+    isEnabled?: boolean
+  }
   user?: {
     isNewAllowed?: boolean
     isGuestAllowed?: boolean

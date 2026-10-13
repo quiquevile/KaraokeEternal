@@ -195,6 +195,9 @@ class Rooms {
       ...(prefs?.eq && typeof prefs.eq === 'object'
         ? { eq: { ...(current.prefs?.eq ?? {}), ...(prefs.eq as Record<string, unknown>) } }
         : {}),
+      ...(prefs?.progress && typeof prefs.progress === 'object'
+        ? { progress: { ...(current.prefs?.progress ?? {}), ...(prefs.progress as Record<string, unknown>) } }
+        : {}),
     }
 
     const query = sql`

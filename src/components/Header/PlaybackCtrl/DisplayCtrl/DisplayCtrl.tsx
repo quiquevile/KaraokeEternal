@@ -108,7 +108,7 @@ const DisplayCtrl = ({
     <Modal
       className={styles.modal}
       onClose={onClose}
-      title='Display'
+      title='Player Options'
       buttons={<Button variant='primary' onClick={onClose}>Done</Button>}
     >
       <div className={styles.container}>

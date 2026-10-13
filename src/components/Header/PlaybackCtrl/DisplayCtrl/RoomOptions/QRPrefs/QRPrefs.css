@@ -23,6 +23,22 @@
   padding: var(--space-m) var(--container-padding);
 }
 
+.qrBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  margin: 0;
+  padding: var(--container-padding);
+  border: 1px solid var(--btn-bg-color);
+  border-radius: var(--border-radius);
+  min-width: 0;
+}
+
+.qrBox legend {
+  font-size: var(--font-size-m);
+  width: fit-content;
+}
+
 .hidden {
   display: none;
 }

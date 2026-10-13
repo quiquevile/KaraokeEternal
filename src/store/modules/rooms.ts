@@ -105,11 +105,16 @@ export const updateCurrentRoomOptions = createAsyncThunk(
   }) as { room: RoomOptionsUpdate },
 )
 
-// QR-only slice of a prefs update: RoomOptions must never send the rest
-// (its local copy may be stale and would clobber e.g. a newer room EQ)
-export const qrUpdateOf = (prefs: Partial<IRoomPrefs>): Partial<IRoomPrefs> | null => (
-  prefs.qr ? { qr: prefs.qr } : null
-)
+// display-only slice of a prefs update: RoomOptions must never send the
+// rest (its local copy may be stale and would clobber e.g. a newer room EQ)
+export const roomDisplayUpdateOf = (prefs: Partial<IRoomPrefs>): Partial<IRoomPrefs> | null => {
+  const update: Partial<IRoomPrefs> = {
+    ...(prefs.qr ? { qr: prefs.qr } : {}),
+    ...(prefs.progress ? { progress: prefs.progress } : {}),
+  }
+
+  return Object.keys(update).length > 0 ? update : null
+}
 
 export const openRoomEditor = createAction(ROOM_EDITOR_OPEN)
 export const closeRoomEditor = createAction(ROOM_EDITOR_CLOSE)

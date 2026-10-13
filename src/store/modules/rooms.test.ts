@@ -4,9 +4,9 @@ import reducer, {
   createRoom,
   fetchOwnRoom,
   fetchRooms,
-  qrUpdateOf,
   receiveRooms,
   removeRoom,
+  roomDisplayUpdateOf,
   roomPrefsPush,
   updateCurrentRoomOptions,
   updateRoom,
@@ -114,14 +114,18 @@ describe('fetchOwnRoom', () => {
   })
 })
 
-describe('qrUpdateOf', () => {
-  it('extracts only the qr key, dropping stale siblings', () => {
-    expect(qrUpdateOf({
+describe('roomDisplayUpdateOf', () => {
+  it('extracts only the display keys, dropping stale siblings', () => {
+    expect(roomDisplayUpdateOf({
       qr: { isEnabled: true, opacity: 0.5, size: 0.5 },
       eq: { eqEnabled: true, eqGains: [0], eqPreset: 'x' },
     })).toEqual({ qr: { isEnabled: true, opacity: 0.5, size: 0.5 } })
-    expect(qrUpdateOf({ eq: { eqEnabled: true, eqGains: [0], eqPreset: 'x' } })).toBeNull()
-    expect(qrUpdateOf({})).toBeNull()
+    expect(roomDisplayUpdateOf({
+      progress: { isEnabled: false },
+      eq: { eqEnabled: true, eqGains: [0], eqPreset: 'x' },
+    })).toEqual({ progress: { isEnabled: false } })
+    expect(roomDisplayUpdateOf({ eq: { eqEnabled: true, eqGains: [0], eqPreset: 'x' } })).toBeNull()
+    expect(roomDisplayUpdateOf({})).toBeNull()
   })
 })
 

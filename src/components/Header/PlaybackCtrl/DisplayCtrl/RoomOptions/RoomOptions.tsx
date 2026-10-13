@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import QRPrefs from './QRPrefs/QRPrefs'
-import { qrUpdateOf, updateCurrentRoomOptions } from 'store/modules/rooms'
+import { roomDisplayUpdateOf, updateCurrentRoomOptions } from 'store/modules/rooms'
 import type { IRoomPrefs } from 'shared/types'
 
 // Room QR options for the current room (Display dialog). The sole editor
@@ -45,7 +45,7 @@ const RoomOptions = () => {
   const handleChange = (next: Partial<IRoomPrefs>) => {
     setPrefs(next as IRoomPrefs)
 
-    const queued = qrUpdateOf(next)
+    const queued = roomDisplayUpdateOf(next)
     if (!queued) return
 
     pending.current = queued

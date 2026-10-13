@@ -8,6 +8,9 @@ const DEFAULT_ROOM_PREFS: IRoomPrefs = {
     opacity: 0.625,
     size: 0.5,
   },
+  progress: {
+    isEnabled: true,
+  },
 }
 
 const getRoomId = (state: RootState) => state.user.roomId

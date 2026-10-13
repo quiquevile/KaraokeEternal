@@ -30,7 +30,8 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - On-screen overlays for the current singer, the pitch value and the upcoming singer, with admin-configurable timings (player display prefs in account Preferences).
 - Always-on song progress with remaining time on the player screen.
 - Visualizer preset data loads on demand per pack: sessions that never show the visualizer (e.g. MP4-only) skip the 3 MB preset pack entirely.
-- Global playback keyboard shortcuts: space toggles play/pause, +/- adjust volume, right arrow skips to next, left arrow replays.
+- Global playback keyboard shortcuts: space toggles play/pause, +/- adjust pitch, up/down adjust volume, right arrow skips to next, left arrow replays, Q toggles the room QR, B toggles the song progress readout, F enters player fullscreen.
+- Player Options dialog (display, sound, QR code and song progress visibility, per room).
 - Replay/restart button in the top playback bar.
 - VLC-style ten-band equalizer, adjustable per player room.
 - ReplayGain leveling with a per-room toggle in the display options (enabled by default) plus manual per-version trim (admin).

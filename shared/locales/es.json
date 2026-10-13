@@ -182,5 +182,16 @@
   "moveFile.cancel": "Cancelar",
   "moveFile.move": "Mover",
   "moveFile.loading": "Cargando carpetas…",
-  "moveFile.thisFolder": "(esta carpeta)"
+  "moveFile.thisFolder": "(esta carpeta)",
+  "queue.view.getRoom": "¡Busca una sala!",
+  "queue.view.signIn": "<link>Entra en una sala</link> para empezar a pedir canciones.",
+  "queue.view.empty": "Cola vacía",
+  "queue.view.tapLibrary": "Toca una canción en la <link>biblioteca</link> para pedirla.",
+  "queue.item.info": "Info de la canción",
+  "queue.item.edit": "Editar canción",
+  "queue.item.moveTop": "Subir arriba",
+  "queue.item.requeue": "Pedir otra vez",
+  "queue.item.replay": "Repetir canción",
+  "queue.item.remove": "Quitar canción",
+  "queue.item.skip": "Saltar canción"
 }

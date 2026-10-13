@@ -41,6 +41,8 @@ const MIGRATED_FILES = [
   'src/components/MetadataFields/MetadataFields.tsx',
   'src/components/DeleteSongDialog/DeleteSongDialog.tsx',
   'src/components/MoveVersionDialog/MoveVersionDialog.tsx',
+  'src/routes/Queue/views/QueueView.tsx',
+  'src/routes/Queue/components/QueueItem/QueueItem.tsx',
 ]
 
 const collectIds = (source: string): string[] => {

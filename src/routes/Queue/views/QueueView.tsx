@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { FormattedMessage } from 'react-intl'
 import { useAppSelector } from 'store/hooks'
 import { ensureState } from 'redux-optimistic-ui'
 import { Link } from 'react-router'
@@ -39,11 +40,13 @@ const QueueView = () => {
     >
       {!isInRoom && (
         <TextOverlay>
-          <h1>Get a Room!</h1>
+          <h1><FormattedMessage id='queue.view.getRoom' defaultMessage='Get a Room!' /></h1>
           <p>
-            <Link to='/account'>Sign in to a room</Link>
-            {' '}
-            to start queueing songs.
+            <FormattedMessage
+              id='queue.view.signIn'
+              defaultMessage='<link>Sign in to a room</link> to start queueing songs.'
+              values={{ link: chunks => <Link to='/account'>{chunks}</Link> }}
+            />
           </p>
         </TextOverlay>
       )}
@@ -52,13 +55,13 @@ const QueueView = () => {
 
       {!isLoading && queue.result.length === 0 && (
         <TextOverlay>
-          <h1>Queue Empty</h1>
+          <h1><FormattedMessage id='queue.view.empty' defaultMessage='Queue Empty' /></h1>
           <p>
-            Tap a song in the
-            {' '}
-            <Link to='/library'>library</Link>
-            {' '}
-            to queue it.
+            <FormattedMessage
+              id='queue.view.tapLibrary'
+              defaultMessage='Tap a song in the <link>library</link> to queue it.'
+              values={{ link: chunks => <Link to='/library'>{chunks}</Link> }}
+            />
           </p>
         </TextOverlay>
       )}

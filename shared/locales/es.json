@@ -65,6 +65,8 @@
   "account.rooms.title": "Salas",
   "account.rooms.name": "Nombre",
   "account.rooms.status": "Estado",
+  "account.rooms.statusOpen": "Abierta",
+  "account.rooms.statusClosed": "Cerrada",
   "account.rooms.created": "Creada",
   "account.rooms.createRoom": "Crear sala",
   "account.userPrefs.title": "Usuarios",

@@ -40,7 +40,9 @@ const Rooms = () => {
       <tr key={String(roomId)}>
         <td translate='no'><a data-room-id={roomId} onClick={handleOpen}>{room.name}</a></td>
         <td>
-          {room.status}
+          {room.status === 'open' && intl.formatMessage({ id: 'account.rooms.statusOpen', defaultMessage: 'Open' })}
+          {room.status === 'closed' && intl.formatMessage({ id: 'account.rooms.statusClosed', defaultMessage: 'Closed' })}
+          {room.status !== 'open' && room.status !== 'closed' && room.status}
           {room.numUsers > 0 && (
             <>
 &nbsp;

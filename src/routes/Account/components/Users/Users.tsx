@@ -59,7 +59,12 @@ const Users = () => {
             )
           </td>
         )}
-        <td>{user.role}</td>
+        <td>
+          {user.role === 'admin' && intl.formatMessage({ id: 'account.form.roleAdmin', defaultMessage: 'Administrator' })}
+          {user.role === 'standard' && intl.formatMessage({ id: 'account.form.roleStandard', defaultMessage: 'Standard' })}
+          {user.role === 'guest' && intl.formatMessage({ id: 'account.form.roleGuest', defaultMessage: 'Guest' })}
+          {!['admin', 'standard', 'guest'].includes(user.role) && user.role}
+        </td>
         <td>{formatDateTime(new Date(user.dateCreated * 1000))}</td>
       </tr>
     )

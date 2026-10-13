@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { useAppSelector } from 'store/hooks'
 import { CSSTransition } from 'react-transition-group'
 import { QRCode } from 'react-qrcode-logo'
+import { isProgressVisible } from '../../lib/playerDisplay'
 import type { QueueItem, IRoomPrefs } from 'shared/types'
 import styles from './PlayerQR.css'
 
@@ -22,8 +23,13 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
   const lastToggleTime = useRef<number>(0)
   const [show, setShow] = useState(true)
   const [alternate, setAlternate] = useState(false)
-  const { isPlaying, isErrored } = useAppSelector(state => state.player)
+  const { isPlaying, isErrored, duration } = useAppSelector(state => state.player)
   const { roomId } = useAppSelector(state => state.user)
+  const progressEnabled = useAppSelector(state =>
+    (typeof state.user.roomId === 'number'
+      ? state.rooms.entities[state.user.roomId]?.prefs?.progress?.isEnabled
+      : undefined) !== false,
+  )
 
   const scheduleNextToggle = useCallback(() => {
     if (maxTimerID.current) {
@@ -114,7 +120,7 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
           styles.container,
           alternate && styles.alternate,
           // keep clear of the song progress row along the bottom edge
-          isPlaying && queueItem && !isErrored && styles.lifted,
+          isProgressVisible(isPlaying, isErrored, duration, progressEnabled, !!queueItem) && styles.lifted,
         )}
         ref={ref}
       >

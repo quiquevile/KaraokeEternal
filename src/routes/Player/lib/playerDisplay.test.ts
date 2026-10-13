@@ -4,6 +4,7 @@ import {
   formatRemaining,
   getPlayerDisplayPrefs,
   isNextUpVisible,
+  isProgressVisible,
 } from './playerDisplay'
 
 describe('playerDisplay', () => {
@@ -46,5 +47,14 @@ describe('playerDisplay', () => {
     expect(formatRemaining(209.6, 210)).toBe('-0:00')
     expect(formatRemaining(0, 0)).toBe(null)
     expect(formatRemaining(0, NaN)).toBe(null)
+  })
+
+  it('shows progress only while playing a known song with the toggle on', () => {
+    expect(isProgressVisible(true, false, 210, true, true)).toBe(true)
+    expect(isProgressVisible(false, false, 210, true, true)).toBe(false)
+    expect(isProgressVisible(true, true, 210, true, true)).toBe(false)
+    expect(isProgressVisible(true, false, 210, false, true)).toBe(false)
+    expect(isProgressVisible(true, false, 210, true, false)).toBe(false)
+    expect(isProgressVisible(true, false, 0, true, true)).toBe(false)
   })
 })

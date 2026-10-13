@@ -8,7 +8,7 @@ import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
-import { getPlayerDisplayPrefs, isNextUpVisible } from '../../lib/playerDisplay'
+import { getPlayerDisplayPrefs, isNextUpVisible, isProgressVisible } from '../../lib/playerDisplay'
 import { parseNumberArray } from 'lib/util'
 import type { QueueItem } from 'shared/types'
 
@@ -260,7 +260,13 @@ const PlayerController = (props: PlayerControllerProps) => {
         queueId={player.queueId}
         mediaId={queueItem ? queueItem.mediaId : null}
       />
-      {player.isPlaying && queueItem && !player.isErrored && roomPrefs?.progress?.isEnabled !== false && (
+      {isProgressVisible(
+        player.isPlaying,
+        player.isErrored,
+        player.duration,
+        roomPrefs?.progress?.isEnabled !== false,
+        !!queueItem,
+      ) && (
         <SongProgress position={player.position} duration={player.duration} />
       )}
       {roomPrefs?.qr?.isEnabled && isRoomOpen && (

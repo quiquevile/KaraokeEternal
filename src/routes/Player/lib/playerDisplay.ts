@@ -47,8 +47,7 @@ export function isNextUpVisible (
 /**
  * Remaining time as `-M:SS` for the song progress readout, or null when
  * the duration is unknown.
- */
-export function formatRemaining (positionS: number, durationS: number): string | null {
+ */export function formatRemaining (positionS: number, durationS: number): string | null {
   if (!(durationS > 0) || !(positionS >= 0)) return null
 
   const remainingS = Math.max(0, Math.round(durationS - positionS))
@@ -56,4 +55,23 @@ export function formatRemaining (positionS: number, durationS: number): string |
   const seconds = String(remainingS % 60).padStart(2, '0')
 
   return `-${minutes}:${seconds}`
+}
+
+/**
+ * Whether the song progress row is on screen: playing an unerrored song
+ * with known duration, and the per-room toggle on. Shared by the readout
+ * itself and the QR badge (which lifts to clear it).
+ */
+export function isProgressVisible (
+  isPlaying: boolean,
+  isErrored: boolean,
+  durationS: number,
+  progressEnabled: boolean,
+  hasQueueItem: boolean,
+): boolean {
+  return isPlaying
+    && !isErrored
+    && hasQueueItem
+    && progressEnabled
+    && durationS > 0
 }

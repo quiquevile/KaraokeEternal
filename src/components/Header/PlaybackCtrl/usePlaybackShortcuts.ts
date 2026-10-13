@@ -79,6 +79,12 @@ const usePlaybackShortcuts = () => {
             }))
           }
           break
+        case '0':
+          e.preventDefault()
+          if (status.pitchSupported !== false) {
+            dispatch(requestOptions({ pitchSemitones: 0 }))
+          }
+          break
         case 'ArrowUp':
           e.preventDefault()
           dispatch(requestVolume(clampVolume(status.volume + VOLUME_STEP)))

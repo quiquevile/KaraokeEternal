@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -72,7 +73,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   return (
     <>
       <p className={styles.hint}>
-        Check artist and title
+        <FormattedMessage id='youtube.download.hint' defaultMessage='Check artist and title' />
       </p>
 
       <MetadataFields artist={artist} title={title} />
@@ -84,13 +85,15 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
             checked={queueChecked}
             onChange={() => setQueueChecked(!queueChecked)}
           />
-          Add to queue
+          <FormattedMessage id='youtube.download.queue' defaultMessage='Add to queue' />
         </label>
       )}
 
       {canQueueForOthers && !roomClosed && (
         <label className={styles.queueRow}>
-          <span className={styles.label}>User</span>
+          <span className={styles.label}>
+            <FormattedMessage id='youtube.download.user' defaultMessage='User' />
+          </span>
           <select
             value={queueUserId ?? user.userId ?? ''}
             onChange={e => setQueueUserId(Number(e.target.value))}
@@ -100,7 +103,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
               <option value={user.userId}>
                 {user.name}
                 {' '}
-                (you)
+                <FormattedMessage id='youtube.download.you' defaultMessage='(you)' />
               </option>
             )}
             {downloadUsers
@@ -123,14 +126,14 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
           variant='default'
           onClick={handleClose}
         >
-          Cancel
+          <FormattedMessage id='youtube.download.cancel' defaultMessage='Cancel' />
         </Button>
         <Button
           variant='primary'
           onClick={handleDownload}
           disabled={!artist.value.trim() || !title.value.trim()}
         >
-          Download
+          <FormattedMessage id='youtube.download.download' defaultMessage='Download' />
         </Button>
       </div>
     </>
@@ -149,9 +152,14 @@ const YouTubeMetadataDialog = () => {
   }, [selected, dispatch])
 
   const handleClose = () => dispatch(closeYoutubeDialog())
+  const intl = useIntl()
 
   return (
-    <Modal visible={!!selected} onClose={handleClose} title='Download song'>
+    <Modal
+      visible={!!selected}
+      onClose={handleClose}
+      title={intl.formatMessage({ id: 'youtube.download.title', defaultMessage: 'Download song' })}
+    >
       {selected
         && <MetadataForm key={selected.id} selected={selected} metadata={metadata} />}
     </Modal>

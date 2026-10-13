@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -9,6 +10,7 @@ import styles from './YouTubePreviewDialog.css'
 const PreviewBody = ({ preview }: { preview: { streamUrl: string | null } }) => {
   const [aspectRatio, setAspectRatio] = useState('16 / 9')
   const [isReady, setIsReady] = useState(false)
+  const intl = useIntl()
 
   const handleLoadedMetadata = (event: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget
@@ -21,7 +23,10 @@ const PreviewBody = ({ preview }: { preview: { streamUrl: string | null } }) => 
   return (
     <div className={styles.container} style={{ aspectRatio }}>
       {!isReady && (
-        <div className={styles.loading} aria-label='Loading preview' />
+        <div
+          className={styles.loading}
+          aria-label={intl.formatMessage({ id: 'youtube.preview.loading', defaultMessage: 'Loading preview' })}
+        />
       )}
       {preview.streamUrl
         && (
@@ -41,6 +46,7 @@ const PreviewBody = ({ preview }: { preview: { streamUrl: string | null } }) => 
 const YouTubePreviewDialog = () => {
   const preview = useAppSelector(state => state.youtube.preview)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   const handleClose = () => dispatch(closeYoutubePreview())
 
@@ -55,20 +61,20 @@ const YouTubePreviewDialog = () => {
     <Modal
       visible={!!preview}
       onClose={handleClose}
-      title='Preview'
+      title={intl.formatMessage({ id: 'youtube.preview.title', defaultMessage: 'Preview' })}
       buttons={(
         <div className={styles.btnContainer}>
           <Button
             variant='default'
             onClick={handleClose}
           >
-            Cancel
+            <FormattedMessage id='youtube.preview.cancel' defaultMessage='Cancel' />
           </Button>
           <Button
             variant='primary'
             onClick={handleDownload}
           >
-            Download
+            <FormattedMessage id='youtube.preview.download' defaultMessage='Download' />
           </Button>
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import clsx from 'clsx'
+import { useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import {
   clearYoutubeResults,
@@ -27,6 +28,7 @@ const YouTubeSearchHeader = () => {
 
   const searchInput = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(query)
+  const intl = useIntl()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setValue(event.target.value)
@@ -80,14 +82,14 @@ const YouTubeSearchHeader = () => {
         icon='MAGNIFIER'
         onClick={handleSearch}
         disabled={isSearching || !value.trim()}
-        aria-label='Search'
+        aria-label={intl.formatMessage({ id: 'youtube.search.submit', defaultMessage: 'Search' })}
       >
         <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />
       </Button>
       <input
         type='search'
         className={styles.searchInput}
-        placeholder='search / YouTube URL'
+        placeholder={intl.formatMessage({ id: 'youtube.search.placeholder', defaultMessage: 'search / YouTube URL' })}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -99,7 +101,7 @@ const YouTubeSearchHeader = () => {
             icon='CLEAR'
             onClick={clearSearch}
             className={clsx(styles.btnClear, styles.active)}
-            aria-label='Clear search'
+            aria-label={intl.formatMessage({ id: 'youtube.search.clear', defaultMessage: 'Clear search' })}
           />
         )}
     </div>

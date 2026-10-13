@@ -1,4 +1,5 @@
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
 import { useAppSelector } from 'store/hooks'
 import YouTubeSearchResult from '../YouTubeSearchResult/YouTubeSearchResult'
 import styles from './YouTubeSearch.css'
@@ -15,7 +16,11 @@ const YouTubeSearch = () => {
         && <p className={styles.error}>{error}</p>}
 
       {!isSearching && !error && hasSearched && results.length === 0
-        && <p className={styles.noResults}>No results found</p>}
+        && (
+          <p className={styles.noResults}>
+            <FormattedMessage id='youtube.search.noResults' defaultMessage='No results found' />
+          </p>
+        )}
 
       {results.length > 0
         && (

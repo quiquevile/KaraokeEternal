@@ -1,4 +1,5 @@
 import React from 'react'
+import { useIntl } from 'react-intl'
 import { useAppDispatch } from 'store/hooks'
 import { openPreview, selectYoutubeResult } from 'store/modules/youtube'
 import type { YouTubeResult } from 'store/modules/youtube'
@@ -7,6 +8,7 @@ import styles from './YouTubeSearchResult.css'
 
 const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   const handlePreview = (event: React.MouseEvent) => {
     event.stopPropagation()
@@ -23,7 +25,7 @@ const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
         type='button'
         className={styles.thumbnailButton}
         onClick={handlePreview}
-        aria-label='Preview'
+        aria-label={intl.formatMessage({ id: 'youtube.result.preview', defaultMessage: 'Preview' })}
       >
         <img className={styles.thumbnail} src={item.thumbnail} alt='' />
         <Icon icon='PLAY' size={40} className={styles.thumbnailPlay} />

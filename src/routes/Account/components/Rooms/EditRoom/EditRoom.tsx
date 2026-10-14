@@ -106,8 +106,8 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
             name='status'
             defaultValue={room?.status ?? 'open'}
           >
-            <option value='open'>{intl.formatMessage({ id: 'account.editRoom.statusOpen', defaultMessage: 'Open' })}</option>
-            <option value='closed'>{intl.formatMessage({ id: 'account.editRoom.statusClosed', defaultMessage: 'Closed' })}</option>
+            <option value='open'>{intl.formatMessage({ id: 'account.rooms.statusOpen', defaultMessage: 'Open' })}</option>
+            <option value='closed'>{intl.formatMessage({ id: 'account.rooms.statusClosed', defaultMessage: 'Closed' })}</option>
           </select>
         </div>
 

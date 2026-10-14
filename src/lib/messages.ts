@@ -19,7 +19,7 @@ export const commonMessages: Record<string, MessageDescriptor> = {
   editSong: { id: 'common.editSong', defaultMessage: 'Edit song' },
   checkArtistTitle: { id: 'common.checkArtistTitle', defaultMessage: 'Check artist and title' },
   password: { id: 'common.password', defaultMessage: 'password' },
-  usernameOrEmail: { id: 'common.usernameOrEmail', defaultMessage: 'username or email' },
+  username: { id: 'common.username', defaultMessage: 'username' },
   displayName: { id: 'common.displayName', defaultMessage: 'display name' },
   confirmPassword: { id: 'common.confirmPassword', defaultMessage: 'confirm password' },
   clearSearch: { id: 'common.clearSearch', defaultMessage: 'Clear search' },

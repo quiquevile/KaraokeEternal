@@ -11,10 +11,10 @@ describe('server locale', () => {
   })
 
   it('translates known IDs and falls back to English', () => {
-    expect(t('es', 'server.auth.incorrectCredentials', 'Incorrect username/email or password'))
-      .toBe('Usuario/correo o contraseña incorrectos')
-    expect(t('fr', 'server.auth.incorrectCredentials', 'Incorrect username/email or password'))
-      .toBe('Incorrect username/email or password')
+    expect(t('es', 'server.auth.incorrectCredentials', 'Incorrect username or password'))
+      .toBe('Usuario o contraseña incorrectos')
+    expect(t('fr', 'server.auth.incorrectCredentials', 'Incorrect username or password'))
+      .toBe('Incorrect username or password')
     expect(t('es', 'server.nope.missing', 'Some English default'))
       .toBe('Some English default')
   })

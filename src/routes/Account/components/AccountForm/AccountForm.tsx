@@ -150,7 +150,7 @@ const AccountForm = ({
           onChange={() => updateDirty()}
           placeholder={isSignedIn
             ? intl.formatMessage(accountMessages.changeUsername)
-            : intl.formatMessage(commonMessages.usernameOrEmail)}
+            : intl.formatMessage(commonMessages.username)}
           // https://github.com/facebook/react/issues/23301
           ref={(r) => {
             if (r) username.current = r

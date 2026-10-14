@@ -48,7 +48,7 @@ const Create = ({
             autoComplete='off'
             value={username}
             onChange={e => onUsernameChange(e.target.value)}
-            placeholder={intl.formatMessage(commonMessages.usernameOrEmail)}
+            placeholder={intl.formatMessage(commonMessages.username)}
             ref={onFirstFieldRef}
           />
           <input

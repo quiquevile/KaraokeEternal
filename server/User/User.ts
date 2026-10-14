@@ -102,13 +102,13 @@ class User {
 
     if (role !== 'guest') {
       if (!username) {
-        throw new Error(t(locale, 'server.users.usernameRequired', 'Username or email is required'))
+        throw new Error(t(locale, 'server.users.usernameRequired', 'Username is required'))
       }
 
       if (username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
         throw new Error(t(
           locale, 'server.users.usernameLength',
-          'Username or email must have {min}-{max} characters',
+          'Username must have {min}-{max} characters',
           { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH },
         ))
       }
@@ -134,7 +134,7 @@ class User {
       }
 
       if (User.getByUsername(username)) {
-        throw new Error(t(locale, 'server.users.usernameTaken', 'Username or email is not available'))
+        throw new Error(t(locale, 'server.users.usernameTaken', 'Username is not available'))
       }
 
       fields.set('username', username)
@@ -208,13 +208,13 @@ class User {
     locale: LocaleCode = DEFAULT_LOCALE,
   ) {
     if (!username || !password) {
-      throw new Error(t(locale, 'server.auth.credentialsRequired', 'Username/email and password are required'))
+      throw new Error(t(locale, 'server.auth.credentialsRequired', 'Username and password are required'))
     }
 
     const user = User.getByUsername(username, true) as ServerUser
 
     if (!user || !(await crypto.compare(password, user.password))) {
-      throw new Error(t(locale, 'server.auth.incorrectCredentials', 'Incorrect username/email or password'))
+      throw new Error(t(locale, 'server.auth.incorrectCredentials', 'Incorrect username or password'))
     }
 
     return user

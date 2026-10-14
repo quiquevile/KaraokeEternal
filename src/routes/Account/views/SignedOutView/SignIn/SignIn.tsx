@@ -29,7 +29,7 @@ const SignIn = ({
       <input
         type='email'
         autoComplete='username'
-        placeholder={intl.formatMessage(commonMessages.usernameOrEmail)}
+        placeholder={intl.formatMessage(commonMessages.username)}
         value={username}
         onChange={e => onUsernameChange(e.target.value)}
         ref={onFirstFieldRef}

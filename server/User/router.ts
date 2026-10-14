@@ -337,14 +337,14 @@ router.put('/user/:userId', async (ctx) => {
     if (username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
       ctx.throw(400, t(
         ctxLocale(ctx), 'server.users.usernameLength',
-        'Username or email must have {min}-{max} characters',
+        'Username must have {min}-{max} characters',
         { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH },
       ))
     }
 
     // check for duplicate
     if (User.getByUsername(username)) {
-      ctx.throw(409, t(ctxLocale(ctx), 'server.users.usernameTaken', 'Username or email is not available'))
+      ctx.throw(409, t(ctxLocale(ctx), 'server.users.usernameTaken', 'Username is not available'))
     }
 
     fields.set('username', username)

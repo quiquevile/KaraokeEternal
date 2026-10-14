@@ -313,7 +313,7 @@
   "common.editSong": "Editar canción",
   "common.checkArtistTitle": "Revisa artista y título",
   "common.password": "contraseña",
-  "common.usernameOrEmail": "nombre de usuario",
+  "common.username": "nombre de usuario",
   "common.displayName": "nombre visible",
   "common.confirmPassword": "confirmar contraseña",
   "common.clearSearch": "Limpiar búsqueda",

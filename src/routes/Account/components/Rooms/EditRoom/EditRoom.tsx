@@ -6,6 +6,8 @@ import { getFormData } from 'lib/util'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
 import UserPrefs from './UserPrefs/UserPrefs'
+import { accountMessages } from '../../../messages'
+import { commonMessages } from '../../../../../lib/messages'
 import type { Room, IRoomPrefs } from 'shared/types'
 import styles from './EditRoom.css'
 
@@ -44,10 +46,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
   }
 
   const handleRemoveClick = () => {
-    if (room && confirm(intl.formatMessage({
-      id: 'account.editRoom.removeConfirm',
-      defaultMessage: 'Remove room "{name}" and its queue?',
-    }, { name: room.name }))) {
+    if (room && confirm(intl.formatMessage(accountMessages.removeConfirm, { name: room.name }))) {
       dispatch(removeRoom(room.roomId))
     }
   }
@@ -77,8 +76,8 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
       className={styles.modal}
       onClose={handleClose}
       title={room
-        ? intl.formatMessage({ id: 'account.editRoom.editTitle', defaultMessage: 'Edit Room' })
-        : intl.formatMessage({ id: 'account.editRoom.createTitle', defaultMessage: 'Create Room' })}
+        ? intl.formatMessage(accountMessages.editTitle)
+        : intl.formatMessage(commonMessages.createRoom)}
     >
       <form onSubmit={handleSubmit} ref={formRef} className={styles.form}>
         <div className={styles.fieldContainer}>
@@ -87,7 +86,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
             autoComplete='off'
             defaultValue={room ? room.name : ''}
             name='name'
-            placeholder={intl.formatMessage({ id: 'account.editRoom.name', defaultMessage: 'room name' })}
+            placeholder={intl.formatMessage(accountMessages.name)}
             // https://github.com/facebook/react/issues/23301
             ref={r => typeof room === 'undefined' ? r?.setAttribute('autofocus', 'true') : undefined}
           />
@@ -99,15 +98,15 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
             name='password'
             onChange={handlePasswordChange}
             onFocus={e => e.target.select()}
-            placeholder={intl.formatMessage({ id: 'account.editRoom.password', defaultMessage: 'room password (optional)' })}
+            placeholder={intl.formatMessage(accountMessages.password)}
           />
 
           <select
             name='status'
             defaultValue={room?.status ?? 'open'}
           >
-            <option value='open'>{intl.formatMessage({ id: 'account.rooms.statusOpen', defaultMessage: 'Open' })}</option>
-            <option value='closed'>{intl.formatMessage({ id: 'account.rooms.statusClosed', defaultMessage: 'Closed' })}</option>
+            <option value='open'>{intl.formatMessage(accountMessages.statusOpen)}</option>
+            <option value='closed'>{intl.formatMessage(accountMessages.statusClosed)}</option>
           </select>
         </div>
 
@@ -118,16 +117,16 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
         <div className={styles.btnContainer}>
           <Button type='submit' variant='primary' className={styles.btn}>
             {room
-              ? <FormattedMessage id='account.editRoom.update' defaultMessage='Update Room' />
-              : <FormattedMessage id='account.editRoom.create' defaultMessage='Create Room' />}
+              ? <FormattedMessage {...accountMessages.editRoomUpdate} />
+              : <FormattedMessage {...commonMessages.createRoom} />}
           </Button>
           {room && (
             <Button onClick={handleRemoveClick} className={styles.btn} variant='danger'>
-              <FormattedMessage id='account.editRoom.remove' defaultMessage='Remove Room' />
+              <FormattedMessage {...accountMessages.remove} />
             </Button>
           )}
           <Button onClick={handleClose} variant='default'>
-            <FormattedMessage id='account.editRoom.cancel' defaultMessage='Cancel' />
+            <FormattedMessage {...commonMessages.cancel} />
           </Button>
         </div>
       </form>

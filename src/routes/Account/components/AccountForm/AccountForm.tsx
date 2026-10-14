@@ -6,6 +6,8 @@ import InputImage from 'components/InputImage/InputImage'
 import { PERMISSIONS } from './permissions'
 import { Permission, UserWithRole } from 'shared/types'
 import styles from './AccountForm.css'
+import { accountMessages } from '../../messages'
+import { commonMessages } from '../../../../lib/messages'
 
 interface AccountFormProps {
   autoFocus?: boolean
@@ -147,8 +149,8 @@ const AccountForm = ({
           autoFocus={autoFocus}
           onChange={() => updateDirty()}
           placeholder={isSignedIn
-            ? intl.formatMessage({ id: 'account.form.changeUsername', defaultMessage: 'change username (optional)' })
-            : intl.formatMessage({ id: 'account.form.usernameOrEmail', defaultMessage: 'username or email' })}
+            ? intl.formatMessage(accountMessages.changeUsername)
+            : intl.formatMessage(commonMessages.usernameOrEmail)}
           // https://github.com/facebook/react/issues/23301
           ref={(r) => {
             if (r) username.current = r
@@ -163,8 +165,8 @@ const AccountForm = ({
           autoComplete='new-password'
           onChange={() => updateDirty()}
           placeholder={isSignedIn
-            ? intl.formatMessage({ id: 'account.form.changePassword', defaultMessage: 'change password (optional)' })
-            : intl.formatMessage({ id: 'account.form.password', defaultMessage: 'password' })}
+            ? intl.formatMessage(accountMessages.changePassword)
+            : intl.formatMessage(commonMessages.password)}
           ref={newPassword}
         />
       )}
@@ -174,8 +176,8 @@ const AccountForm = ({
           type='password'
           autoComplete='new-password'
           placeholder={isSignedIn
-            ? intl.formatMessage({ id: 'account.form.newPasswordConfirm', defaultMessage: 'new password confirm' })
-            : intl.formatMessage({ id: 'account.form.confirmPassword', defaultMessage: 'confirm password' })}
+            ? intl.formatMessage(accountMessages.newPasswordConfirm)
+            : intl.formatMessage(commonMessages.confirmPassword)}
           ref={newPasswordConfirm}
         />
       )}
@@ -189,7 +191,7 @@ const AccountForm = ({
           type='text'
           defaultValue={user?.name ?? ''}
           onChange={() => updateDirty()}
-          placeholder={intl.formatMessage({ id: 'account.form.displayName', defaultMessage: 'display name' })}
+          placeholder={intl.formatMessage(commonMessages.displayName)}
           ref={name}
         />
       </div>
@@ -203,10 +205,10 @@ const AccountForm = ({
           }}
           ref={role}
         >
-          <option key='choose' value='' disabled>{intl.formatMessage({ id: 'account.form.selectRole', defaultMessage: 'select role...' })}</option>
-          {user?.role === 'guest' && <option key='guest' value='guest'>{intl.formatMessage({ id: 'account.form.roleGuest', defaultMessage: 'Guest' })}</option>}
-          <option key='standard' value='standard'>{intl.formatMessage({ id: 'account.form.roleStandard', defaultMessage: 'Standard' })}</option>
-          <option key='admin' value='admin'>{intl.formatMessage({ id: 'account.form.roleAdmin', defaultMessage: 'Administrator' })}</option>
+          <option key='choose' value='' disabled>{intl.formatMessage(accountMessages.selectRole)}</option>
+          {user?.role === 'guest' && <option key='guest' value='guest'>{intl.formatMessage(commonMessages.guest)}</option>}
+          <option key='standard' value='standard'>{intl.formatMessage(accountMessages.roleStandard)}</option>
+          <option key='admin' value='admin'>{intl.formatMessage(accountMessages.roleAdmin)}</option>
         </select>
       )}
 
@@ -215,7 +217,7 @@ const AccountForm = ({
           headingComponent={(
             <div className={styles.permsHeading}>
               <div className={styles.permsTitle}>
-                {intl.formatMessage({ id: 'account.form.permissions', defaultMessage: 'Permissions' })}
+                {intl.formatMessage(accountMessages.permissions)}
               </div>
             </div>
           )}
@@ -224,7 +226,7 @@ const AccountForm = ({
             {PERMISSIONS.map(p => (
               <div key={p.value} className={p.parent ? styles.permsNested : undefined}>
                 <InputCheckbox
-                  label={intl.formatMessage({ id: p.labelId, defaultMessage: p.label })}
+                  label={intl.formatMessage(p.message)}
                   checked={!!state.perms[p.value]}
                   disabled={!!p.parent && !state.perms[p.parent]}
                   onChange={() => handleTogglePerm(p.value)}

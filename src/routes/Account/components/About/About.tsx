@@ -9,6 +9,8 @@ import Button from 'components/Button/Button'
 // @ts-expect-error: not worth configuring TS for this one weird import
 import html from '<PROJECT_ROOT>/CHANGELOG.md'
 import styles from './About.css'
+import { accountMessages } from '../../messages'
+import { commonMessages } from '../../../../lib/messages'
 
 const curYear = new Date().getFullYear()
 
@@ -16,11 +18,11 @@ const About = () => {
   const [isChangelogOpen, setChangelogOpen] = useState(false)
   const toggleChangelog = () => setChangelogOpen(prevState => !prevState)
   const intl = useIntl()
-  const changelogTitle = intl.formatMessage({ id: 'account.about.changelog', defaultMessage: 'Changelog & Sponsors' })
+  const changelogTitle = intl.formatMessage(accountMessages.changelog)
 
   return (
     <Panel
-      title={intl.formatMessage({ id: 'account.about.title', defaultMessage: 'About' })}
+      title={intl.formatMessage(accountMessages.title)}
       contentClassName={styles.content}
     >
       <>
@@ -48,7 +50,7 @@ const About = () => {
           {' '}
           {/* eslint-enable formatjs/no-literal-string-in-jsx */}
           <a href='/licenses.txt' target='_blank'>
-            <FormattedMessage id='account.about.licenses' defaultMessage='Licenses' />
+            <FormattedMessage {...accountMessages.licenses} />
           </a>
         </p>
 
@@ -91,7 +93,7 @@ const About = () => {
             scrollable
             buttons={(
               <Button variant='primary' onClick={toggleChangelog}>
-                <FormattedMessage id='account.about.done' defaultMessage='Done' />
+                <FormattedMessage {...commonMessages.done} />
               </Button>
             )}
           >

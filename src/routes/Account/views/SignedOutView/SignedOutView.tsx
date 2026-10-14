@@ -11,6 +11,8 @@ import InputRadio from 'components/InputRadio/InputRadio'
 import Create from './Create/Create'
 import SignIn from './SignIn/SignIn'
 import styles from './SignedOutView.css'
+import { accountMessages } from '../../messages'
+import { commonMessages } from '../../../../lib/messages'
 
 const SignedOutView = () => {
   const userSectionRef = useRef<HTMLDivElement | null>(null)
@@ -35,9 +37,9 @@ const SignedOutView = () => {
   const intl = useIntl()
 
   const modeLabels = {
-    returning: intl.formatMessage({ id: 'account.signedOut.modeReturning', defaultMessage: 'Returning user' }),
-    standard: intl.formatMessage({ id: 'account.signedOut.modeStandard', defaultMessage: 'New user' }),
-    guest: intl.formatMessage({ id: 'account.signedOut.modeGuest', defaultMessage: 'Guest' }),
+    returning: intl.formatMessage(accountMessages.modeReturning),
+    standard: intl.formatMessage(accountMessages.modeStandard),
+    guest: intl.formatMessage(commonMessages.guest),
   }
 
   // once per mount
@@ -142,7 +144,7 @@ const SignedOutView = () => {
 
       {showRoomSection && (
         <>
-          <h1><FormattedMessage id='account.signedOut.joinRoom' defaultMessage='Join room...' /></h1>
+          <h1><FormattedMessage {...accountMessages.joinRoom} /></h1>
           <SelectRoom
             rooms={rooms}
             roomId={roomId}
@@ -158,7 +160,7 @@ const SignedOutView = () => {
         {allowNew
           ? (
               <>
-                <h1><FormattedMessage id='account.signedOut.joinAs' defaultMessage='Join as...' /></h1>
+                <h1><FormattedMessage {...accountMessages.joinAs} /></h1>
                 <div className={styles.radioContainer}>
                   <InputRadio name='type' value='returning' checked={mode === 'returning'} onChange={setMode} label={modeLabels.returning} />
                   {allowNewStandard && <InputRadio name='type' value='standard' checked={mode === 'standard'} onChange={setMode} label={modeLabels.standard} />}
@@ -166,7 +168,7 @@ const SignedOutView = () => {
                 </div>
               </>
             )
-          : <h1><FormattedMessage id='account.signedOut.signIn' defaultMessage='Sign in' /></h1>}
+          : <h1><FormattedMessage {...accountMessages.signIn} /></h1>}
 
         {(mode === 'returning' || !allowNew) && (
           <SignIn

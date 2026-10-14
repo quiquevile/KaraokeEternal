@@ -5,6 +5,7 @@ import PathItem from './PathItem/PathItem'
 import Modal from 'components/Modal/Modal'
 import HttpApi from 'lib/HttpApi'
 import styles from './PathChooser.css'
+import { commonMessages } from '../../../../../../lib/messages'
 
 const api = new HttpApi('prefs/path')
 
@@ -59,17 +60,17 @@ const PathChooser = ({ onCancel, onChoose }: PathChooserProps) => {
 
   return (
     <Modal
-      title={intl.formatMessage({ id: 'account.pathChooser.title', defaultMessage: 'Add Folder' })}
+      title={intl.formatMessage(commonMessages.addFolder)}
       className={styles.modal}
       onClose={onCancel}
       scrollable
       buttons={(
         <div className={styles.btnContainer}>
           <Button onClick={onCancel} variant='default'>
-            <FormattedMessage id='account.pathChooser.cancel' defaultMessage='Cancel' />
+            <FormattedMessage {...commonMessages.cancel} />
           </Button>
           <Button onClick={handleChoose} variant='primary'>
-            <FormattedMessage id='account.pathChooser.addFolder' defaultMessage='Add Folder' />
+            <FormattedMessage {...commonMessages.addFolder} />
           </Button>
         </div>
       )}

@@ -8,6 +8,8 @@ import Button from 'components/Button/Button'
 import EditUser from './EditUser/EditUser'
 import getUsers from '../../selectors/getUsers'
 import styles from './Users.css'
+import { accountMessages } from '../../messages'
+import { commonMessages } from '../../../../lib/messages'
 
 const Users = () => {
   const [editorUser, setEditorUser] = useState<UserWithRoomsAndRole | null>(null)
@@ -64,9 +66,9 @@ const Users = () => {
           </td>
         )}
         <td>
-          {user.role === 'admin' && intl.formatMessage({ id: 'account.form.roleAdmin', defaultMessage: 'Administrator' })}
-          {user.role === 'standard' && intl.formatMessage({ id: 'account.form.roleStandard', defaultMessage: 'Standard' })}
-          {user.role === 'guest' && intl.formatMessage({ id: 'account.form.roleGuest', defaultMessage: 'Guest' })}
+          {user.role === 'admin' && intl.formatMessage(accountMessages.roleAdmin)}
+          {user.role === 'standard' && intl.formatMessage(accountMessages.roleStandard)}
+          {user.role === 'guest' && intl.formatMessage(commonMessages.guest)}
           {!['admin', 'standard', 'guest'].includes(user.role) && user.role}
         </td>
         <td>{formatDateTime(new Date(user.dateCreated * 1000))}</td>
@@ -80,9 +82,9 @@ const Users = () => {
 
   const userFilter = (
     <select className={styles.usersFilter} onChange={handleFilterChange} value={filterOnline ? 'online' : filterRoomId || 'all'}>
-      <option key='all' value='all'>{intl.formatMessage({ id: 'account.users.filterAll', defaultMessage: 'All' })}</option>
-      <option key='online' value='online'>{intl.formatMessage({ id: 'account.users.filterOnline', defaultMessage: 'Online' })}</option>
-      <optgroup label={intl.formatMessage({ id: 'account.users.filterOnlineIn', defaultMessage: 'Online in...' })}>
+      <option key='all' value='all'>{intl.formatMessage(accountMessages.filterAll2)}</option>
+      <option key='online' value='online'>{intl.formatMessage(accountMessages.filterOnline)}</option>
+      <optgroup label={intl.formatMessage(accountMessages.filterOnlineIn)}>
         {roomOpts}
       </optgroup>
     </select>
@@ -90,16 +92,16 @@ const Users = () => {
 
   return (
     <Panel
-      title={intl.formatMessage({ id: 'account.users.title', defaultMessage: 'Users' })}
+      title={intl.formatMessage(commonMessages.users)}
       titleComponent={userFilter}
     >
       <>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th><FormattedMessage id='account.users.username' defaultMessage='Username' /></th>
-              <th><FormattedMessage id='account.users.role' defaultMessage='Role' /></th>
-              <th><FormattedMessage id='account.users.joined' defaultMessage='Joined' /></th>
+              <th><FormattedMessage {...accountMessages.username} /></th>
+              <th><FormattedMessage {...accountMessages.role} /></th>
+              <th><FormattedMessage {...accountMessages.joined} /></th>
             </tr>
           </thead>
           <tbody>
@@ -109,7 +111,7 @@ const Users = () => {
 
         <br />
         <Button onClick={handleOpen} variant='primary'>
-          <FormattedMessage id='account.users.createUser' defaultMessage='Create User' />
+          <FormattedMessage {...commonMessages.createUser} />
         </Button>
 
         {isEditorOpen && (

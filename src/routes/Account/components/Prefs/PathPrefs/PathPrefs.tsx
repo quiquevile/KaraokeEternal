@@ -12,6 +12,8 @@ import Button from 'components/Button/Button'
 import styles from './PathPrefs.css'
 import { receivePrefs, requestScan, requestScanAll, setPathPriority, setPathPrefs } from 'store/modules/prefs'
 import type { Path } from 'shared/types'
+import { accountMessages } from '../../../messages'
+import { commonMessages } from '../../../../../lib/messages'
 
 const api = new HttpApi('prefs/path')
 
@@ -59,10 +61,7 @@ const PathPrefs = () => {
   }
 
   const handleRemove = (pathId: number) => {
-    if (!confirm(intl.formatMessage({
-      id: 'account.pathPrefs.removeConfirm',
-      defaultMessage: 'Remove folder from library?\n\n{path}',
-    }, { path: paths.entities[pathId].path }))) {
+    if (!confirm(intl.formatMessage(accountMessages.removeConfirm3, { path: paths.entities[pathId].path }))) {
       return
     }
 
@@ -94,14 +93,14 @@ const PathPrefs = () => {
       <div className={styles.heading}>
         <Icon icon='FOLDER_MUSIC' />
         <div className={styles.title}>
-          <FormattedMessage id='account.pathPrefs.title' defaultMessage='Media Folders' />
+          <FormattedMessage {...accountMessages.pathPrefsTitle} />
         </div>
       </div>
     )}
     >
       <div className={styles.content}>
         {paths.result.length === 0
-          && <p style={{ marginTop: 0 }}><FormattedMessage id='account.pathPrefs.empty' defaultMessage='Add a media folder to get started.' /></p>}
+          && <p style={{ marginTop: 0 }}><FormattedMessage {...accountMessages.empty} /></p>}
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId='droppable'>
             {provided => (
@@ -126,11 +125,11 @@ const PathPrefs = () => {
         <div className={styles.btnContainer}>
           {paths.result.length > 0 && (
             <Button onClick={handleRefreshAll} variant='default' disabled={isMeasuringGain}>
-              <FormattedMessage id='account.pathPrefs.scanFolders' defaultMessage='Scan Folders' />
+              <FormattedMessage {...accountMessages.scanFolders} />
             </Button>
           )}
           <Button onClick={handleOpenChooser} variant='primary'>
-            <FormattedMessage id='account.pathPrefs.addFolder' defaultMessage='Add Folder' />
+            <FormattedMessage {...commonMessages.addFolder} />
           </Button>
         </div>
 

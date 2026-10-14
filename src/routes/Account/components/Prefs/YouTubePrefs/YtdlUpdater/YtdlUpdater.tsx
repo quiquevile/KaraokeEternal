@@ -6,6 +6,8 @@ import Modal from 'components/Modal/Modal'
 import { fetchYtdlVersion, updateYtdl } from 'store/modules/youtube'
 import { formatDate } from 'lib/dateTime'
 import styles from './YtdlUpdater.css'
+import { accountMessages } from '../../../../messages'
+import { commonMessages } from '../../../../../../lib/messages'
 
 const YtdlUpdater = () => {
   const dispatch = useAppDispatch()
@@ -46,25 +48,24 @@ const YtdlUpdater = () => {
   const canUpdate = !isUpdating && mode === 'managed'
 
   const versionLabel = isUpdating
-    ? intl.formatMessage({ id: 'account.ytdl.updating', defaultMessage: 'Updating…' })
+    ? intl.formatMessage(accountMessages.updating)
     : (version ?? (status === 'empty'
         ? '—'
-        : intl.formatMessage({ id: 'account.ytdl.unknown', defaultMessage: 'unknown' })))
+        : intl.formatMessage(accountMessages.unknown)))
 
-  const updateLabel = intl.formatMessage({ id: 'account.ytdl.update', defaultMessage: 'Update yt-dlp' })
+  const updateLabel = intl.formatMessage(accountMessages.ytdlUpdate)
 
   return (
     <div className={styles.container}>
       <div className={styles.status}>
         <span className={styles.label}>
-          <FormattedMessage id='account.ytdl.version' defaultMessage='yt-dlp version' />
+          <FormattedMessage {...accountMessages.version} />
         </span>
         <span className={styles.version}>{versionLabel}</span>
         {!!updatedAt && !isUpdating && (
           <span className={styles.updatedAt}>
             <FormattedMessage
-              id='account.ytdl.updatedAt'
-              defaultMessage='· updated {date}'
+              {...accountMessages.updatedAt}
               values={{ date: formatUpdatedAt(new Date(updatedAt)) }}
             />
           </span>
@@ -81,28 +82,19 @@ const YtdlUpdater = () => {
 
       {status === 'empty' && !(folder || dir) && (
         <div className={styles.emptyHint}>
-          <FormattedMessage
-            id='account.ytdl.emptyNoFolder'
-            defaultMessage='Select a yt-dlp folder to start using YouTube downloads.'
-          />
+          <FormattedMessage {...accountMessages.emptyNoFolder} />
         </div>
       )}
 
       {status === 'empty' && (folder || dir) && (
         <div className={styles.emptyHint}>
-          <FormattedMessage
-            id='account.ytdl.emptyFolder'
-            defaultMessage='The yt-dlp folder is empty. Download yt-dlp to start using it.'
-          />
+          <FormattedMessage {...accountMessages.emptyFolder} />
         </div>
       )}
 
       {status === 'system' && (
         <div className={styles.systemHint}>
-          <FormattedMessage
-            id='account.ytdl.systemBinary'
-            defaultMessage='A custom yt-dlp binary is used and cannot be updated here.'
-          />
+          <FormattedMessage {...accountMessages.systemBinary} />
         </div>
       )}
 
@@ -110,7 +102,7 @@ const YtdlUpdater = () => {
 
       {showEmptyDialog && (
         <Modal
-          title={intl.formatMessage({ id: 'account.ytdl.downloadTitle', defaultMessage: 'Download yt-dlp' })}
+          title={intl.formatMessage(accountMessages.downloadTitle)}
           className={styles.modal}
           onClose={() => {
             setDismissedEmptyKey(emptyKey)
@@ -123,7 +115,7 @@ const YtdlUpdater = () => {
                   setDismissedEmptyKey(emptyKey)
                 }}
               >
-                <FormattedMessage id='account.ytdl.cancel' defaultMessage='Cancel' />
+                <FormattedMessage {...commonMessages.cancel} />
               </Button>
               <Button
                 variant='primary'
@@ -132,15 +124,14 @@ const YtdlUpdater = () => {
                   handleUpdate()
                 }}
               >
-                <FormattedMessage id='account.ytdl.download' defaultMessage='Download' />
+                <FormattedMessage {...commonMessages.download} />
               </Button>
             </div>
           )}
         >
           <div className={styles.emptyText}>
             <FormattedMessage
-              id='account.ytdl.emptyPrompt'
-              defaultMessage='The yt-dlp folder <strong>{folder}</strong> is empty. Download the latest yt-dlp into it now?'
+              {...accountMessages.emptyPrompt}
               values={{ strong: chunks => <strong>{chunks}</strong>, folder: folder || dir || '…' }}
             />
           </div>

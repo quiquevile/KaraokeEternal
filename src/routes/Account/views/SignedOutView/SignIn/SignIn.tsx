@@ -2,6 +2,8 @@ import React from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import styles from './SignIn.css'
+import { accountMessages } from '../../../messages'
+import { commonMessages } from '../../../../../lib/messages'
 
 interface SignInProps {
   username: string
@@ -27,7 +29,7 @@ const SignIn = ({
       <input
         type='email'
         autoComplete='username'
-        placeholder={intl.formatMessage({ id: 'account.signin.usernameOrEmail', defaultMessage: 'username or email' })}
+        placeholder={intl.formatMessage(commonMessages.usernameOrEmail)}
         value={username}
         onChange={e => onUsernameChange(e.target.value)}
         ref={onFirstFieldRef}
@@ -35,12 +37,12 @@ const SignIn = ({
       <input
         type='password'
         autoComplete='current-password'
-        placeholder={intl.formatMessage({ id: 'account.signin.password', defaultMessage: 'password' })}
+        placeholder={intl.formatMessage(commonMessages.password)}
         value={password}
         onChange={e => onPasswordChange(e.target.value)}
       />
       <Button type='submit' variant='primary'>
-        <FormattedMessage id='account.signin.submit' defaultMessage='Sign In' />
+        <FormattedMessage {...accountMessages.submit} />
       </Button>
     </form>
   )

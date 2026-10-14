@@ -6,6 +6,8 @@ import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Icon from 'components/Icon/Icon'
 import type { IRoomPrefs } from 'shared/types'
 import styles from './UserPrefs.css'
+import { accountMessages } from '../../../../messages'
+import { commonMessages } from '../../../../../../lib/messages'
 
 interface UserPrefsProps {
   prefs: Partial<IRoomPrefs>
@@ -46,7 +48,7 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
         <div className={styles.heading}>
           <Icon icon='PERSON' />
           <div className={styles.title}>
-            <FormattedMessage id='account.userPrefs.title' defaultMessage='Users' />
+            <FormattedMessage {...commonMessages.users} />
           </div>
         </div>
       )}
@@ -54,7 +56,7 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
       <div className={styles.content}>
         <div className={styles.field}>
           <InputCheckbox
-            label={intl.formatMessage({ id: 'account.userPrefs.allowStandard', defaultMessage: 'Allow new standard users' })}
+            label={intl.formatMessage(accountMessages.allowStandard)}
             name='standard'
             checked={allowNewStandard}
             onChange={handleChange}
@@ -62,7 +64,7 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
         </div>
         <div className={styles.field}>
           <InputCheckbox
-            label={intl.formatMessage({ id: 'account.userPrefs.allowGuests', defaultMessage: 'Allow new guests' })}
+            label={intl.formatMessage(accountMessages.allowGuests)}
             name='guest'
             checked={allowNewGuest}
             onChange={handleChange}

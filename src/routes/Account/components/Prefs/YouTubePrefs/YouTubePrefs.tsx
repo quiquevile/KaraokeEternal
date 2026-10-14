@@ -8,6 +8,7 @@ import { setPref } from 'store/modules/prefs'
 import YtDlpChooser from './YtDlpChooser/YtDlpChooser'
 import YtdlUpdater from './YtdlUpdater/YtdlUpdater'
 import styles from './YouTubePrefs.css'
+import { accountMessages } from '../../../messages'
 
 const DirField = ({ value }: { value: string }) => {
   const [dir, setDir] = useState(value)
@@ -44,7 +45,7 @@ const DirField = ({ value }: { value: string }) => {
           size={20}
           className={styles.browse}
           onClick={() => setChoosing(true)}
-          aria-label={intl.formatMessage({ id: 'account.youtubePrefs.browse', defaultMessage: 'Browse for yt-dlp folder' })}
+          aria-label={intl.formatMessage(accountMessages.browse)}
         />
       </div>
 
@@ -84,7 +85,7 @@ const YouTubePrefs = () => {
         <div className={styles.heading}>
           <Icon icon='NAV_YOUTUBE' size={32} className={styles.icon} />
           <div className={styles.title}>
-            <FormattedMessage id='account.youtubePrefs.title' defaultMessage='YouTube' />
+            <FormattedMessage {...accountMessages.youtubePrefsTitle} />
           </div>
         </div>
       )}
@@ -93,7 +94,7 @@ const YouTubePrefs = () => {
         <div className={styles.config}>
           <label className={styles.field}>
             <span className={styles.fieldLabel}>
-              <FormattedMessage id='account.youtubePrefs.ytdlFolder' defaultMessage='yt-dlp folder' />
+              <FormattedMessage {...accountMessages.ytdlFolder} />
             </span>
             <DirField key={youtubeYtdlDir ?? ''} value={youtubeYtdlDir ?? ''} />
           </label>
@@ -102,7 +103,7 @@ const YouTubePrefs = () => {
 
           <label className={styles.field}>
             <span className={styles.fieldLabel}>
-              <FormattedMessage id='account.youtubePrefs.downloadFolder' defaultMessage='Download folder' />
+              <FormattedMessage {...accountMessages.downloadFolder} />
             </span>
             <select
               value={selectedPathId != null ? String(selectedPathId) : ''}
@@ -110,7 +111,7 @@ const YouTubePrefs = () => {
               disabled={!paths.result.length}
             >
               {!paths.result.length
-                && <option value=''>{intl.formatMessage({ id: 'account.youtubePrefs.noFolders', defaultMessage: 'No media folders' })}</option>}
+                && <option value=''>{intl.formatMessage(accountMessages.noFolders)}</option>}
               {paths.result.map(pathId => (
                 <option key={pathId} value={String(pathId)}>{paths.entities[pathId].path}</option>
               ))}

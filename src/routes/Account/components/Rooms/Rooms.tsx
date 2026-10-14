@@ -8,6 +8,8 @@ import EditRoom from './EditRoom/EditRoom'
 import { closeRoomEditor, fetchRooms, filterByStatus, openRoomEditor } from 'store/modules/rooms'
 import { filterByRoom } from '../../modules/users'
 import getRoomList from '../../selectors/getRoomList'
+import { accountMessages } from '../../messages'
+import { commonMessages } from '../../../../lib/messages'
 import styles from './Rooms.css'
 
 const Rooms = () => {
@@ -40,8 +42,8 @@ const Rooms = () => {
       <tr key={String(roomId)}>
         <td translate='no'><a data-room-id={roomId} onClick={handleOpen}>{room.name}</a></td>
         <td>
-          {room.status === 'open' && intl.formatMessage({ id: 'account.rooms.statusOpen', defaultMessage: 'Open' })}
-          {room.status === 'closed' && intl.formatMessage({ id: 'account.rooms.statusClosed', defaultMessage: 'Closed' })}
+          {room.status === 'open' && intl.formatMessage(accountMessages.statusOpen)}
+          {room.status === 'closed' && intl.formatMessage(accountMessages.statusClosed)}
           {room.status !== 'open' && room.status !== 'closed' && room.status}
           {room.numUsers > 0 && (
             <>
@@ -63,24 +65,24 @@ const Rooms = () => {
 
   const roomsFilter = (
     <select className={styles.roomsFilter} onChange={handleFilterChange} value={filterStatus === false ? 'all' : filterStatus as string}>
-      <option key='all' value='all'>{intl.formatMessage({ id: 'account.rooms.filterAll', defaultMessage: 'All' })}</option>
-      <option key='open' value='open'>{intl.formatMessage({ id: 'account.rooms.filterOpen', defaultMessage: 'Open' })}</option>
-      <option key='closed' value='closed'>{intl.formatMessage({ id: 'account.rooms.filterClosed', defaultMessage: 'Closed' })}</option>
+      <option key='all' value='all'>{intl.formatMessage(accountMessages.filterAll)}</option>
+      <option key='open' value='open'>{intl.formatMessage(accountMessages.filterOpen)}</option>
+      <option key='closed' value='closed'>{intl.formatMessage(accountMessages.filterClosed)}</option>
     </select>
   )
 
   return (
     <Panel
-      title={intl.formatMessage({ id: 'account.rooms.title', defaultMessage: 'Rooms' })}
+      title={intl.formatMessage(accountMessages.roomsTitle)}
       titleComponent={roomsFilter}
     >
       <>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th><FormattedMessage id='account.rooms.name' defaultMessage='Name' /></th>
-              <th><FormattedMessage id='account.rooms.status' defaultMessage='Status' /></th>
-              <th><FormattedMessage id='account.rooms.created' defaultMessage='Created' /></th>
+              <th><FormattedMessage {...accountMessages.roomsName} /></th>
+              <th><FormattedMessage {...accountMessages.status} /></th>
+              <th><FormattedMessage {...accountMessages.created} /></th>
             </tr>
           </thead>
           <tbody>
@@ -90,7 +92,7 @@ const Rooms = () => {
 
         <br />
         <Button onClick={handleOpen} variant='primary'>
-          <FormattedMessage id='account.rooms.createRoom' defaultMessage='Create Room' />
+          <FormattedMessage {...commonMessages.createRoom} />
         </Button>
 
         {isEditorOpen && <EditRoom onClose={handleClose} room={editorRoom} />}

@@ -8,6 +8,7 @@ import Panel from 'components/Panel/Panel'
 import Button from 'components/Button/Button'
 import AccountForm from '../AccountForm/AccountForm'
 import styles from './Account.css'
+import { accountMessages } from '../../messages'
 
 const Account = () => {
   const dispatch = useAppDispatch()
@@ -24,20 +25,11 @@ const Account = () => {
       let message: string | null = null
 
       if (user.isGuest && hasUpcomingSongs) {
-        message = intl.formatMessage({
-          id: 'account.account.signOutGuestSongs',
-          defaultMessage: 'Are you sure you want to sign out?\n\nYour upcoming songs will be removed from the queue, and as a guest, you won\'t be able to sign back into this account.',
-        })
+        message = intl.formatMessage(accountMessages.signOutGuestSongs)
       } else if (user.isGuest) {
-        message = intl.formatMessage({
-          id: 'account.account.signOutGuest',
-          defaultMessage: 'Are you sure you want to sign out?\n\nAs a guest, you won\'t be able to sign back into this account.',
-        })
+        message = intl.formatMessage(accountMessages.signOutGuest)
       } else if (hasUpcomingSongs) {
-        message = intl.formatMessage({
-          id: 'account.account.signOutSongs',
-          defaultMessage: 'Are you sure you want to sign out?\n\nYour upcoming songs will be removed from the queue.',
-        })
+        message = intl.formatMessage(accountMessages.signOutSongs)
       }
 
       if (message && !confirm(message)) return
@@ -53,10 +45,7 @@ const Account = () => {
   const handleSubmit = (data: FormData) => {
     if (!user.isGuest) {
       if (!curPassword.current.value.trim()) {
-        alert(intl.formatMessage({
-          id: 'account.account.needCurrentPassword',
-          defaultMessage: 'Please enter your current password to make changes.',
-        }))
+        alert(intl.formatMessage(accountMessages.needCurrentPassword))
         curPassword.current.focus()
         return
       }
@@ -67,18 +56,17 @@ const Account = () => {
     dispatch(updateAccount(data))
   }
 
-  const guestLabel = intl.formatMessage({ id: 'account.account.guest', defaultMessage: 'guest' })
+  const guestLabel = intl.formatMessage(accountMessages.guest)
 
   return (
     <Panel
-      title={intl.formatMessage({ id: 'account.account.title', defaultMessage: 'My Account' })}
+      title={intl.formatMessage(accountMessages.accountTitle)}
       contentClassName={styles.content}
     >
       <>
         <p>
           <FormattedMessage
-            id='account.account.signedInAs'
-            defaultMessage='Signed in as <strong>{name}</strong>'
+            {...accountMessages.signedInAs}
             values={{
               strong: chunks => <strong>{chunks}</strong>,
               name: user.isGuest ? guestLabel : user.username,
@@ -97,7 +85,7 @@ const Account = () => {
             <input
               type='password'
               autoComplete='current-password'
-              placeholder={intl.formatMessage({ id: 'account.account.currentPassword', defaultMessage: 'current password' })}
+              placeholder={intl.formatMessage(accountMessages.currentPassword)}
               ref={curPassword}
             />
 
@@ -106,11 +94,11 @@ const Account = () => {
           <div className={styles.btnContainer}>
             {isDirty && (
               <Button type='submit' variant='primary'>
-                <FormattedMessage id='account.account.update' defaultMessage='Update Account' />
+                <FormattedMessage {...accountMessages.update} />
               </Button>
             )}
             <Button onClick={handleSignOut} variant='default'>
-              <FormattedMessage id='account.account.signOut' defaultMessage='Sign Out' />
+              <FormattedMessage {...accountMessages.signOut} />
             </Button>
           </div>
         </AccountForm>

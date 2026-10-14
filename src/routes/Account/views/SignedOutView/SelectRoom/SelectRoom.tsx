@@ -4,6 +4,7 @@ import { useIntl } from 'react-intl'
 import InputRadio from 'components/InputRadio/InputRadio'
 import styles from './SelectRoom.css'
 import type { Room } from 'shared/types'
+import { accountMessages } from '../../../messages'
 
 interface SelectRoomProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   className?: string
@@ -29,10 +30,7 @@ const SelectRoom = ({
 }: SelectRoomProps) => {
   const roomPasswordRefs = useRef<Record<number, HTMLInputElement | null>>({})
   const intl = useIntl()
-  const roomPasswordText = intl.formatMessage({
-    id: 'account.selectRoom.roomPassword',
-    defaultMessage: 'room password (required)',
-  })
+  const roomPasswordText = intl.formatMessage(accountMessages.roomPassword)
 
   const setPasswordRef = (roomId: number) => (el: HTMLInputElement | null) => {
     roomPasswordRefs.current[roomId] = el

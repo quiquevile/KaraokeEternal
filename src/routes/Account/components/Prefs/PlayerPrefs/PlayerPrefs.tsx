@@ -7,18 +7,18 @@ import Icon from 'components/Icon/Icon'
 import { requestGainScan, setPref, type PlayerDisplayPrefs } from 'store/modules/prefs'
 import { getPlayerDisplayPrefs } from 'routes/Player/lib/playerDisplay'
 import styles from './PlayerPrefs.css'
+import { accountMessages } from '../../../messages'
 
-const DISPLAY_FIELDS: { key: keyof PlayerDisplayPrefs, labelId: string, defaultLabel: string }[] = [
-  { key: 'upNowDurationMs', labelId: 'account.playerPrefs.upNowDuration', defaultLabel: 'Current singer display time (ms)' },
-  { key: 'nextUpLeadMs', labelId: 'account.playerPrefs.nextUpLead', defaultLabel: 'Next singer lead time (ms)' },
-  { key: 'nextUpBlinkMs', labelId: 'account.playerPrefs.nextUpBlink', defaultLabel: 'Next singer blink time (ms)' },
-  { key: 'pitchToastMs', labelId: 'account.playerPrefs.pitchToast', defaultLabel: 'Pitch display time (ms)' },
+const DISPLAY_FIELDS: { key: keyof PlayerDisplayPrefs, message: (typeof accountMessages)[keyof typeof accountMessages] }[] = [
+  { key: 'upNowDurationMs', message: accountMessages.playerPrefsUpNow },
+  { key: 'nextUpLeadMs', message: accountMessages.playerPrefsLead },
+  { key: 'nextUpBlinkMs', message: accountMessages.playerPrefsBlink },
+  { key: 'pitchToastMs', message: accountMessages.playerPrefsToast },
 ]
 
-const MsField = ({ fieldKey, labelId, defaultLabel, value }: {
+const MsField = ({ fieldKey, message, value }: {
   fieldKey: keyof PlayerDisplayPrefs
-  labelId: string
-  defaultLabel: string
+  message: (typeof accountMessages)[keyof typeof accountMessages]
   value: number
 }) => {
   const [text, setText] = useState(String(value))
@@ -48,7 +48,7 @@ const MsField = ({ fieldKey, labelId, defaultLabel, value }: {
   return (
     <label className={styles.field}>
       <span className={styles.fieldLabel}>
-        {intl.formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+        {intl.formatMessage(message)}
       </span>
       <input
         type='number'
@@ -80,7 +80,7 @@ const PlayerPrefs = () => {
         <div className={styles.heading}>
           <Icon icon='TELEVISION_PLAY' size={32} className={styles.icon} />
           <div className={styles.title}>
-            <FormattedMessage id='account.playerPrefs.title' defaultMessage='Player' />
+            <FormattedMessage {...accountMessages.playerPrefsTitle} />
           </div>
         </div>
       )}
@@ -89,13 +89,13 @@ const PlayerPrefs = () => {
         {isAdmin && (
           <>
             <div className={styles.config}>
-              {DISPLAY_FIELDS.map(({ key, labelId, defaultLabel }) => (
-                <MsField key={key} fieldKey={key} labelId={labelId} defaultLabel={defaultLabel} value={displayPrefs[key]} />
+              {DISPLAY_FIELDS.map(({ key, message }) => (
+                <MsField key={key} fieldKey={key} message={message} value={displayPrefs[key]} />
               ))}
             </div>
             <div>
               <Button onClick={handleGainScan} variant='default' disabled={isScanning}>
-                <FormattedMessage id='account.playerPrefs.measureGain' defaultMessage='Measure ReplayGain' />
+                <FormattedMessage {...accountMessages.measureGain} />
               </Button>
             </div>
           </>

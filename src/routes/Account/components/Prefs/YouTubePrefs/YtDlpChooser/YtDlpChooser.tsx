@@ -5,6 +5,8 @@ import Icon from 'components/Icon/Icon'
 import Modal from 'components/Modal/Modal'
 import HttpApi from 'lib/HttpApi'
 import styles from './YtDlpChooser.css'
+import { accountMessages } from '../../../../messages'
+import { commonMessages } from '../../../../../../lib/messages'
 
 const api = new HttpApi('prefs')
 
@@ -60,17 +62,17 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
 
   return (
     <Modal
-      title={intl.formatMessage({ id: 'account.ytdlChooser.title', defaultMessage: 'Select yt-dlp folder' })}
+      title={intl.formatMessage(accountMessages.ytdlChooserTitle)}
       className={styles.modal}
       onClose={onCancel}
       scrollable
       buttons={(
         <div className={styles.btnContainer}>
           <Button onClick={onCancel} variant='default'>
-            <FormattedMessage id='account.ytdlChooser.cancel' defaultMessage='Cancel' />
+            <FormattedMessage {...commonMessages.cancel} />
           </Button>
           <Button onClick={handleChoose} variant='primary' disabled={!pathInfo.current}>
-            <FormattedMessage id='account.ytdlChooser.select' defaultMessage='Select' />
+            <FormattedMessage {...accountMessages.select} />
           </Button>
         </div>
       )}

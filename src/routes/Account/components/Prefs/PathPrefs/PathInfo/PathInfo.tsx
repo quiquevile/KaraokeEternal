@@ -5,6 +5,8 @@ import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Button from 'components/Button/Button'
 import styles from './PathInfo.css'
 import type { Path } from 'shared/types'
+import { accountMessages } from '../../../../messages'
+import { commonMessages } from '../../../../../../lib/messages'
 
 interface PathInfoProps {
   onClose: () => void
@@ -25,14 +27,14 @@ const PathInfo = ({ onClose, onRemove, onUpdate, path }: PathInfoProps) => {
   return (
     <Modal
       onClose={onClose}
-      title={intl.formatMessage({ id: 'account.pathInfo.title', defaultMessage: 'Media Folder' })}
+      title={intl.formatMessage(accountMessages.pathInfoTitle)}
       buttons={(
         <>
           <Button onClick={handleRemove} variant='danger'>
-            <FormattedMessage id='account.pathInfo.remove' defaultMessage='Remove Folder' />
+            <FormattedMessage {...accountMessages.pathInfoRemove} />
           </Button>
           <Button onClick={onClose} variant='primary'>
-            <FormattedMessage id='account.pathInfo.done' defaultMessage='Done' />
+            <FormattedMessage {...commonMessages.done} />
           </Button>
         </>
       )}
@@ -48,12 +50,12 @@ const PathInfo = ({ onClose, onRemove, onUpdate, path }: PathInfoProps) => {
 
         <form className={styles.form}>
           <InputCheckbox
-            label={intl.formatMessage({ id: 'account.pathInfo.watch', defaultMessage: 'Watch folder' })}
+            label={intl.formatMessage(accountMessages.watch)}
             defaultChecked={path?.prefs?.isWatchingEnabled}
             onChange={event => handleChange({ isWatchingEnabled: event.currentTarget.checked })}
           />
           <InputCheckbox
-            label={intl.formatMessage({ id: 'account.pathInfo.keying', defaultMessage: 'Allow video background keying' })}
+            label={intl.formatMessage(accountMessages.keying)}
             defaultChecked={path?.prefs?.isVideoKeyingEnabled}
             onChange={event => handleChange({ isVideoKeyingEnabled: event.currentTarget.checked })}
           />

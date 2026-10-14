@@ -3,6 +3,8 @@ import { FormattedMessage, useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import InputImage from 'components/InputImage/InputImage'
 import styles from './Create.css'
+import { accountMessages } from '../../../messages'
+import { commonMessages } from '../../../../../lib/messages'
 
 interface CreateProps {
   guest: boolean
@@ -46,7 +48,7 @@ const Create = ({
             autoComplete='off'
             value={username}
             onChange={e => onUsernameChange(e.target.value)}
-            placeholder={intl.formatMessage({ id: 'account.create.usernameOrEmail', defaultMessage: 'username or email' })}
+            placeholder={intl.formatMessage(commonMessages.usernameOrEmail)}
             ref={onFirstFieldRef}
           />
           <input
@@ -54,12 +56,12 @@ const Create = ({
             autoComplete='new-password'
             value={password}
             onChange={e => onPasswordChange(e.target.value)}
-            placeholder={intl.formatMessage({ id: 'account.create.password', defaultMessage: 'password' })}
+            placeholder={intl.formatMessage(commonMessages.password)}
           />
           <input
             type='password'
             autoComplete='new-password'
-            placeholder={intl.formatMessage({ id: 'account.create.confirmPassword', defaultMessage: 'confirm password' })}
+            placeholder={intl.formatMessage(commonMessages.confirmPassword)}
             value={passwordConfirm}
             onChange={e => setPasswordConfirm(e.target.value)}
           />
@@ -70,7 +72,7 @@ const Create = ({
         <InputImage onSelect={setImage} />
         <input
           type='text'
-          placeholder={intl.formatMessage({ id: 'account.create.displayName', defaultMessage: 'display name' })}
+          placeholder={intl.formatMessage(commonMessages.displayName)}
           value={name}
           onChange={e => setName(e.target.value)}
           ref={guest ? onFirstFieldRef : undefined}
@@ -78,7 +80,7 @@ const Create = ({
       </div>
 
       <Button type='submit' variant='primary'>
-        <FormattedMessage id='account.create.join' defaultMessage='Join' />
+        <FormattedMessage {...accountMessages.join} />
       </Button>
     </form>
   )

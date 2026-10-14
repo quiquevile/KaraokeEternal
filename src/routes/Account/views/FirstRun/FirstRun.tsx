@@ -6,6 +6,7 @@ import Button from 'components/Button/Button'
 import Logo from 'components/Logo/Logo'
 import AccountForm from '../../components/AccountForm/AccountForm'
 import styles from './FirstRun.css'
+import { accountMessages } from '../../messages'
 
 const FirstRun = () => {
   const ui = useAppSelector(state => state.ui)
@@ -18,17 +19,16 @@ const FirstRun = () => {
   return (
     <div className={styles.container} style={{ maxWidth: Math.max(340, ui.contentWidth * 0.66) }}>
       <Logo className={styles.logo} />
-      <h1><FormattedMessage id='account.firstRun.welcome' defaultMessage='Welcome' /></h1>
+      <h1><FormattedMessage {...accountMessages.welcome} /></h1>
       <p>
         <FormattedMessage
-          id='account.firstRun.intro'
-          defaultMessage='Create your <b>admin</b> account to get started. All data is locally stored and never shared.'
+          {...accountMessages.intro}
           values={{ b: chunks => <b>{chunks}</b> }}
         />
       </p>
       <AccountForm onSubmit={handleCreate} autoFocus>
         <Button variant='primary' type='submit'>
-          <FormattedMessage id='account.firstRun.createAccount' defaultMessage='Create Account' />
+          <FormattedMessage {...accountMessages.createAccount} />
         </Button>
       </AccountForm>
     </div>

@@ -6,6 +6,8 @@ import Modal, { ModalProps } from 'components/Modal/Modal'
 import HttpApi from 'lib/HttpApi'
 import { moveMedia } from 'store/modules/songInfo'
 import styles from './MoveVersionDialog.css'
+import { commonMessages } from '../../lib/messages'
+import { sharedMessages } from '../messages'
 
 const api = new HttpApi('media')
 
@@ -53,14 +55,14 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
   return (
     <Modal
       onClose={onClose}
-      title={intl.formatMessage({ id: 'moveFile.title', defaultMessage: 'Move file' })}
+      title={intl.formatMessage(sharedMessages.moveFileTitle)}
       buttons={(
         <div className={styles.btnContainer}>
           <Button onClick={onClose} variant='default'>
-            <FormattedMessage id='moveFile.cancel' defaultMessage='Cancel' />
+            <FormattedMessage {...commonMessages.cancel} />
           </Button>
           <Button onClick={handleMove} variant='primary' disabled={!selected || isMoving}>
-            <FormattedMessage id='moveFile.move' defaultMessage='Move' />
+            <FormattedMessage {...sharedMessages.move} />
           </Button>
         </div>
       )}
@@ -72,7 +74,7 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
 
         {targets === null && !error && (
           <p>
-            <FormattedMessage id='moveFile.loading' defaultMessage='Loading folders…' />
+            <FormattedMessage {...sharedMessages.loading} />
           </p>
         )}
 
@@ -92,7 +94,7 @@ const MoveVersionDialog = ({ songId, mediaId, fileName, onClose }: MoveVersionDi
                   />
                   <span>
                     {folder === ''
-                      ? intl.formatMessage({ id: 'moveFile.thisFolder', defaultMessage: '(this folder)' })
+                      ? intl.formatMessage(sharedMessages.thisFolder)
                       : folder}
                   </span>
                 </label>

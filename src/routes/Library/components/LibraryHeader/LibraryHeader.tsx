@@ -10,6 +10,8 @@ import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import styles from './LibraryHeader.css'
+import { commonMessages } from '../../../../lib/messages'
+import { libraryMessages } from '../../messages'
 
 const LibraryHeader = () => {
   const dispatch = useAppDispatch()
@@ -74,15 +76,15 @@ const LibraryHeader = () => {
         icon='MAGNIFIER'
         onClick={handleMagnifierClick}
         aria-label={filterStr
-          ? intl.formatMessage({ id: 'library.header.searchYoutube', defaultMessage: 'Search YouTube' })
-          : intl.formatMessage({ id: 'library.header.searchLibrary', defaultMessage: 'Search library' })}
+          ? intl.formatMessage(libraryMessages.searchYoutube)
+          : intl.formatMessage(libraryMessages.searchLibrary)}
       >
         {filterStr && <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />}
       </Button>
       <input
         type='search'
         className={styles.searchInput}
-        placeholder={intl.formatMessage({ id: 'library.header.search', defaultMessage: 'search' })}
+        placeholder={intl.formatMessage(libraryMessages.search)}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -93,7 +95,7 @@ const LibraryHeader = () => {
           icon='CLEAR'
           onClick={clearSearch}
           className={clsx(styles.btnClear, styles.active)}
-          aria-label={intl.formatMessage({ id: 'library.header.clearSearch', defaultMessage: 'Clear search' })}
+          aria-label={intl.formatMessage(commonMessages.clearSearch)}
         />
       )}
       {showDownloadFilter && (
@@ -101,7 +103,7 @@ const LibraryHeader = () => {
           className={clsx(styles.btnDownload, filterDownloaded && styles.active)}
           icon='DOWNLOAD'
           onClick={() => dispatch(toggleFilterDownloaded())}
-          aria-label={intl.formatMessage({ id: 'library.header.downloadedOnly', defaultMessage: 'Show only downloaded songs' })}
+          aria-label={intl.formatMessage(libraryMessages.downloadedOnly)}
           aria-pressed={filterDownloaded}
         />
       )}
@@ -109,7 +111,7 @@ const LibraryHeader = () => {
         className={clsx(styles.btnStar, filterStarred && styles.active)}
         icon='STAR_FULL'
         onClick={() => dispatch(toggleFilterStarred())}
-        aria-label={intl.formatMessage({ id: 'library.header.starredOnly', defaultMessage: 'Show only starred songs' })}
+        aria-label={intl.formatMessage(libraryMessages.starredOnly)}
         aria-pressed={filterStarred}
       />
     </div>

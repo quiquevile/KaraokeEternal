@@ -7,6 +7,8 @@ import MetadataFields from 'components/MetadataFields/MetadataFields'
 import { useCaseField } from 'components/MetadataFields/useCaseField'
 import { closeSongEditor, updateSong } from 'store/modules/songInfo'
 import styles from './EditSongDialog.css'
+import { commonMessages } from '../../lib/messages'
+import { sharedMessages } from '../messages'
 
 const EditSongForm = ({
   songId,
@@ -37,7 +39,7 @@ const EditSongForm = ({
   return (
     <>
       <p className={styles.hint}>
-        <FormattedMessage id='editSong.hint' defaultMessage='Check artist and title' />
+        <FormattedMessage {...commonMessages.checkArtistTitle} />
       </p>
 
       <MetadataFields artist={artist} title={title} />
@@ -50,14 +52,14 @@ const EditSongForm = ({
           variant='default'
           onClick={handleClose}
         >
-          <FormattedMessage id='editSong.cancel' defaultMessage='Cancel' />
+          <FormattedMessage {...commonMessages.cancel} />
         </Button>
         <Button
           variant='primary'
           onClick={handleSave}
           disabled={!artist.value.trim() || !title.value.trim()}
         >
-          <FormattedMessage id='editSong.save' defaultMessage='Save' />
+          <FormattedMessage {...sharedMessages.save} />
         </Button>
       </div>
     </>
@@ -82,7 +84,7 @@ const EditSongDialog = () => {
     <Modal
       visible={editorSongId !== null}
       onClose={handleClose}
-      title={intl.formatMessage({ id: 'editSong.title', defaultMessage: 'Edit song' })}
+      title={intl.formatMessage(commonMessages.editSong)}
     >
       {editorSongId !== null && song
         && (

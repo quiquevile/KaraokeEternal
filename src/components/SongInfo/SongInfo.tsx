@@ -7,6 +7,8 @@ import { formatDuration } from 'lib/dateTime'
 import { closeSongInfo, setMediaGain, setPreferredSong } from 'store/modules/songInfo'
 import MoveVersionDialog from 'components/MoveVersionDialog/MoveVersionDialog'
 import styles from './SongInfo.css'
+import { commonMessages } from '../../lib/messages'
+import { sharedMessages } from '../messages'
 
 const SongInfo = () => {
   const { isLoading, isVisible, songId, media } = useAppSelector(state => state.songInfo)
@@ -20,10 +22,7 @@ const SongInfo = () => {
   const handleRemovePrefer = (mediaId: number) => dispatch(setPreferredSong({ songId, mediaId, isPreferred: false }))
   const handleGain = (mediaId: number, rgTrackGain: number | null) => {
     if (rgTrackGain === null) {
-      if (!confirm(intl.formatMessage({
-        id: 'songInfo.clearLevelConfirm',
-        defaultMessage: 'Clear the level? It will be picked up again on the next scan.',
-      }))) return
+      if (!confirm(intl.formatMessage(sharedMessages.clearLevelConfirm))) return
     } else {
       rgTrackGain = Math.min(24, Math.max(-24, Math.round(rgTrackGain * 2) / 2))
     }
@@ -46,23 +45,23 @@ const SongInfo = () => {
           <span>
             &nbsp;
             <a onClick={() => setMoveMediaId(mediaId)}>
-              <FormattedMessage id='songInfo.move' defaultMessage='(Move)' />
+              <FormattedMessage {...sharedMessages.songInfoMove} />
             </a>
           </span>
         )}
         <br />
         <span className={styles.label}>
-          <FormattedMessage id='songInfo.duration' defaultMessage='Duration: ' />
+          <FormattedMessage {...sharedMessages.duration} />
         </span>
         {formatDuration(item.duration)}
         <br />
         <span className={styles.label}>
-          <FormattedMessage id='songInfo.mediaId' defaultMessage='Media ID: ' />
+          <FormattedMessage {...sharedMessages.mediaId} />
         </span>
         {mediaId}
         <br />
         <span className={styles.label}>
-          <FormattedMessage id='songInfo.level' defaultMessage='Level: ' />
+          <FormattedMessage {...sharedMessages.level} />
         </span>
         {gainText}
         {isAdmin && (
@@ -72,14 +71,14 @@ const SongInfo = () => {
               {' '}
               <a
                 onClick={() => handleGain(mediaId, (gain ?? 0) - 0.5)}
-                aria-label={intl.formatMessage({ id: 'songInfo.lowerLevel', defaultMessage: 'Lower level' })}
+                aria-label={intl.formatMessage(sharedMessages.lowerLevel)}
               >
                 (−)
               </a>
               {' '}
               <a
                 onClick={() => handleGain(mediaId, (gain ?? 0) + 0.5)}
-                aria-label={intl.formatMessage({ id: 'songInfo.raiseLevel', defaultMessage: 'Raise level' })}
+                aria-label={intl.formatMessage(sharedMessages.raiseLevel)}
               >
                 (+)
               </a>
@@ -88,7 +87,7 @@ const SongInfo = () => {
                 <>
                   {' '}
                   <a onClick={() => handleGain(mediaId, null)}>
-                    <FormattedMessage id='songInfo.resetLevel' defaultMessage='(reset)' />
+                    <FormattedMessage {...sharedMessages.resetLevel} />
                   </a>
                 </>
               )}
@@ -97,25 +96,25 @@ const SongInfo = () => {
         )}
         <br />
         <span className={styles.label}>
-          <FormattedMessage id='songInfo.preferred' defaultMessage='Preferred: ' />
+          <FormattedMessage {...sharedMessages.preferred} />
         </span>
         {isPreferred
           && (
             <span>
-              <strong><FormattedMessage id='songInfo.yes' defaultMessage='Yes' /></strong>
+              <strong><FormattedMessage {...sharedMessages.yes} /></strong>
 &nbsp;
               <a onClick={() => handleRemovePrefer(mediaId)}>
-                <FormattedMessage id='songInfo.unset' defaultMessage='(Unset)' />
+                <FormattedMessage {...sharedMessages.unset} />
               </a>
             </span>
           )}
         {!isPreferred
           && (
             <span>
-              <FormattedMessage id='songInfo.no' defaultMessage='No' />
+              <FormattedMessage {...sharedMessages.no} />
 &nbsp;
               <a onClick={() => handlePrefer(mediaId)}>
-                <FormattedMessage id='songInfo.set' defaultMessage='(Set)' />
+                <FormattedMessage {...sharedMessages.set} />
               </a>
             </span>
           )}
@@ -127,7 +126,7 @@ const SongInfo = () => {
     <Modal
       visible={isVisible}
       onClose={handleCloseSongInfo}
-      title={intl.formatMessage({ id: 'songInfo.title', defaultMessage: 'Song Info' })}
+      title={intl.formatMessage(sharedMessages.songInfoTitle)}
       // style={{
       //   width: '90%',
       //   height: '90%',
@@ -136,12 +135,12 @@ const SongInfo = () => {
       <div className={styles.container}>
         <p>
           <span className={styles.label}>
-            <FormattedMessage id='songInfo.songId' defaultMessage='Song ID: ' />
+            <FormattedMessage {...sharedMessages.songId} />
           </span>
           {songId}
           <br />
           <span className={styles.label}>
-            <FormattedMessage id='songInfo.mediaFiles' defaultMessage='Media Files: ' />
+            <FormattedMessage {...sharedMessages.mediaFiles} />
           </span>
           {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx -- loading placeholder glyph, not prose */}
           {isLoading ? '?' : media.result.length}
@@ -151,7 +150,7 @@ const SongInfo = () => {
           {isLoading
             ? (
                 <p>
-                  <FormattedMessage id='songInfo.loading' defaultMessage='Loading...' />
+                  <FormattedMessage {...sharedMessages.songInfoLoading} />
                 </p>
               )
             : mediaDetails}
@@ -159,7 +158,7 @@ const SongInfo = () => {
 
         <div>
           <Button variant='primary' onClick={handleCloseSongInfo}>
-            <FormattedMessage id='songInfo.done' defaultMessage='Done' />
+            <FormattedMessage {...commonMessages.done} />
           </Button>
         </div>
       </div>

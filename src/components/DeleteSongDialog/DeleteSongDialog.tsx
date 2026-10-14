@@ -12,6 +12,8 @@ import {
 } from 'store/modules/songInfo'
 import { Media } from 'shared/types'
 import styles from './DeleteSongDialog.css'
+import { commonMessages } from '../../lib/messages'
+import { sharedMessages } from '../messages'
 
 const VIDEO_EXTS = ['.mp4', '.webm', '.mov', '.avi', '.flv', '.mkv', '.zip']
 const AUDIO_EXTS = ['.mp3', '.m4a', '.opus', '.ogg', '.wav', '.flac', '.mpc']
@@ -78,12 +80,12 @@ const VersionRow = ({
             className={styles.previewBtn}
             onClick={onPreviewToggle}
             aria-label={previewOpen
-              ? intl.formatMessage({ id: 'deleteSong.hidePreview', defaultMessage: 'Hide preview' })
-              : intl.formatMessage({ id: 'deleteSong.preview', defaultMessage: 'Preview version' })}
+              ? intl.formatMessage(sharedMessages.hidePreview)
+              : intl.formatMessage(sharedMessages.preview)}
           >
             {previewOpen
-              ? <FormattedMessage id='deleteSong.hide' defaultMessage='Hide' />
-              : <FormattedMessage id='deleteSong.previewBtn' defaultMessage='Preview' />}
+              ? <FormattedMessage {...sharedMessages.hide} />
+              : <FormattedMessage {...commonMessages.preview} />}
           </Button>
         )}
       </label>
@@ -131,8 +133,7 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
     <>
       <p className={styles.text}>
         <FormattedMessage
-          id='deleteSong.intro'
-          defaultMessage='Delete versions of “{artist} – {title}”? Deleted files are also removed from every queue.'
+          {...sharedMessages.intro}
           values={{ artist: artistName, title: song.title }}
         />
       </p>
@@ -160,13 +161,12 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
           disabled={!selected.length}
         >
           <FormattedMessage
-            id='deleteSong.deleteSelected'
-            defaultMessage='Delete selected ({count})'
+            {...sharedMessages.deleteSelected}
             values={{ count: selected.length }}
           />
         </Button>
         <Button variant='danger' onClick={handleDeleteAll}>
-          <FormattedMessage id='deleteSong.deleteAll' defaultMessage='Delete all' />
+          <FormattedMessage {...sharedMessages.deleteAll} />
         </Button>
       </div>
     </>
@@ -184,7 +184,7 @@ const DeleteSongDialog = () => {
     <Modal
       visible={deleteSongId !== null}
       onClose={handleClose}
-      title={intl.formatMessage({ id: 'deleteSong.title', defaultMessage: 'Delete song' })}
+      title={intl.formatMessage(commonMessages.deleteSong)}
     >
       {deleteSongId !== null && <DeleteSongForm key={deleteSongId} songId={deleteSongId} />}
     </Modal>

@@ -10,6 +10,7 @@ import PaddedList from 'components/PaddedList/PaddedList'
 import ArtistItem from '../ArtistItem/ArtistItem'
 import type { ListImperativeAPI, RowComponentProps } from 'react-window'
 import styles from './SearchResults.css'
+import { libraryMessages } from '../../messages'
 
 const ROW_HEIGHT_RESULT_HEADING = 24
 const ROW_HEIGHT_ARTIST = 48
@@ -61,8 +62,7 @@ const RowComponent = ({
     return (
       <div key='treeHeading' style={style} className={styles.artistsHeading}>
         <FormattedMessage
-          id='library.search.counts'
-          defaultMessage='{artists, plural, one {# artist} other {# artists}}, {songs, plural, one {# song} other {# songs}}'
+          {...libraryMessages.counts}
           values={{ artists: tree.length, songs: songCount }}
         />
       </div>

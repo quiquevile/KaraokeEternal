@@ -7,6 +7,7 @@ import SearchResults from '../components/SearchResults/SearchResults'
 import TextOverlay from 'components/TextOverlay/TextOverlay'
 import Spinner from 'components/Spinner/Spinner'
 import styles from './LibraryView.css'
+import { libraryMessages } from '../messages'
 
 const LibraryView = () => {
   const { isAdmin } = useAppSelector(state => state.user)
@@ -43,12 +44,11 @@ const LibraryView = () => {
 
       {!isLoading && songsResult.length === 0 && (
         <TextOverlay className={styles.empty}>
-          <h1><FormattedMessage id='library.empty.title' defaultMessage='Library Empty' /></h1>
+          <h1><FormattedMessage {...libraryMessages.title} /></h1>
           {isAdmin && (
             <p>
               <FormattedMessage
-                id='library.empty.admin'
-                defaultMessage='<link>Add media folders</link> to get started.'
+                {...libraryMessages.admin}
                 values={{ link: chunks => <Link to='/account'>{chunks}</Link> }}
               />
             </p>

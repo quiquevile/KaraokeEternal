@@ -10,6 +10,7 @@ import Icon from 'components/Icon/Icon'
 import ToggleAnimation from 'components/ToggleAnimation/ToggleAnimation'
 import { formatDuration } from 'lib/dateTime'
 import styles from './SongItem.css'
+import { commonMessages } from '../../../../lib/messages'
 
 let ignoreMouseup = false
 
@@ -116,16 +117,16 @@ const SongItem = ({
           isStarred={isStarred}
           count={numStars}
         />
-        <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage({ id: 'library.song.info', defaultMessage: 'Song info' })}>
+        <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(commonMessages.songInfo)}>
           <Icon icon='INFO_OUTLINE' />
         </Button>
         {isAdmin && (
-          <Button onClick={handleEditClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage({ id: 'library.song.edit', defaultMessage: 'Edit song' })}>
+          <Button onClick={handleEditClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(commonMessages.editSong)}>
             <Icon icon='EDIT' />
           </Button>
         )}
         {isAdmin && (
-          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.danger)} data-hide aria-label={intl.formatMessage({ id: 'library.song.delete', defaultMessage: 'Delete song' })}>
+          <Button onClick={handleDeleteClick} className={clsx(styles.btn, styles.danger)} data-hide aria-label={intl.formatMessage(commonMessages.deleteSong)}>
             <Icon icon='DELETE' />
           </Button>
         )}

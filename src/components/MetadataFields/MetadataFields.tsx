@@ -3,6 +3,7 @@ import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import styles from './MetadataFields.css'
 import type { CaseField } from './useCaseField'
+import { sharedMessages } from '../messages'
 
 interface MetadataFieldsProps {
   artist: CaseField
@@ -55,8 +56,8 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
     title.set(prevArtist)
   }
 
-  const artistLabel = intl.formatMessage({ id: 'metaFields.artist', defaultMessage: 'Artist' })
-  const titleLabel = intl.formatMessage({ id: 'metaFields.title', defaultMessage: 'Title' })
+  const artistLabel = intl.formatMessage(sharedMessages.artist)
+  const titleLabel = intl.formatMessage(sharedMessages.title)
 
   return (
     <div className={styles.fields}>
@@ -66,7 +67,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
           <Button
             className={styles.caseBtn}
             onClick={artist.cycleCase}
-            aria-label={intl.formatMessage({ id: 'metaFields.artistCase', defaultMessage: 'Change artist case' })}
+            aria-label={intl.formatMessage(sharedMessages.artistCase)}
           >
             {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
             Aa
@@ -76,10 +77,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
         <ClearableInput
           field={artist}
           label={artistLabel}
-          clearLabel={intl.formatMessage({
-            id: 'metaFields.clearArtist',
-            defaultMessage: 'Clear artist',
-          })}
+          clearLabel={intl.formatMessage(sharedMessages.clearArtist)}
         />
       </label>
 
@@ -89,7 +87,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
         variant='default'
         className={styles.swap}
         onClick={handleSwap}
-        aria-label={intl.formatMessage({ id: 'metaFields.swap', defaultMessage: 'Swap artist and title' })}
+        aria-label={intl.formatMessage(sharedMessages.swap)}
       />
 
       <label className={styles.field}>
@@ -98,7 +96,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
           <Button
             className={styles.caseBtn}
             onClick={title.cycleCase}
-            aria-label={intl.formatMessage({ id: 'metaFields.titleCase', defaultMessage: 'Change title case' })}
+            aria-label={intl.formatMessage(sharedMessages.titleCase)}
           >
             {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
             Aa
@@ -108,10 +106,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
         <ClearableInput
           field={title}
           label={titleLabel}
-          clearLabel={intl.formatMessage({
-            id: 'metaFields.clearTitle',
-            defaultMessage: 'Clear title',
-          })}
+          clearLabel={intl.formatMessage(sharedMessages.clearTitle)}
         />
       </label>
     </div>

@@ -28,9 +28,9 @@ const PitchToast = ({ pitchSemitones, displayMs, replayKey, queueId, mediaId }: 
 
   useEffect(() => {
     const pitchChanged = prev.current.pitchSemitones !== pitchSemitones
-    const startChanged = prev.current.replayKey !== replayKey ||
-      prev.current.queueId !== queueId ||
-      prev.current.mediaId !== mediaId
+    const startChanged = prev.current.replayKey !== replayKey
+      || prev.current.queueId !== queueId
+      || prev.current.mediaId !== mediaId
 
     prev.current = { pitchSemitones, replayKey, queueId, mediaId }
 

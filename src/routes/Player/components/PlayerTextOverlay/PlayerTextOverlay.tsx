@@ -8,6 +8,8 @@ import NextUp from './NextUp/NextUp'
 import Icon from 'components/Icon/Icon'
 import type { QueueItem } from 'shared/types'
 import styles from './PlayerTextOverlay.css'
+import { commonMessages } from '../../../../lib/messages'
+import { playerRouteMessages } from '../../messages'
 
 interface PlayerTextOverlayProps {
   queueItem?: QueueItem
@@ -44,7 +46,7 @@ const PlayerTextOverlay = ({
   if (isQueueEmpty || (isAtQueueEnd && !nextQueueItem)) {
     Component = (
       <ColorCycle
-        text={intl.formatMessage({ id: 'player.overlay.moreSongs', defaultMessage: 'CAN HAZ MOAR SONGZ?' })}
+        text={intl.formatMessage(playerRouteMessages.moreSongs)}
         className={styles.backdrop}
       />
     )
@@ -62,7 +64,7 @@ const PlayerTextOverlay = ({
         <button
           className={styles.playButton}
           onClick={handlePlay}
-          aria-label={intl.formatMessage({ id: 'player.overlay.play', defaultMessage: 'Play' })}
+          aria-label={intl.formatMessage(commonMessages.play)}
         >
           <Icon icon='PLAY' />
         </button>
@@ -72,12 +74,12 @@ const PlayerTextOverlay = ({
     Component = (
       <>
         <ColorCycle
-          text={intl.formatMessage({ id: 'player.overlay.oops', defaultMessage: 'OOPS...' })}
+          text={intl.formatMessage(playerRouteMessages.oops)}
           offset={errorOffset}
           className={styles.backdrop}
         />
         <ColorCycle
-          text={intl.formatMessage({ id: 'player.overlay.seeQueue', defaultMessage: 'SEE QUEUE FOR DETAILS' })}
+          text={intl.formatMessage(playerRouteMessages.seeQueue)}
           offset={errorOffset}
           className={styles.backdrop}
         />

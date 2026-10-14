@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { FormattedMessage } from 'react-intl'
 import { NEXTUP_FADE_MS } from '../../../lib/playerDisplay'
 import styles from './NextUp.css'
+import { playerRouteMessages } from '../../../messages'
 
 interface NextUpProps {
   displayName: string
@@ -34,8 +35,7 @@ const NextUp = ({ displayName, blinkMs }: NextUpProps) => {
       >
         <div className={styles.next}>
           <FormattedMessage
-            id='player.nextUp.next'
-            defaultMessage='Next: {name}'
+            {...playerRouteMessages.next}
             values={{ name: displayName }}
           />
         </div>

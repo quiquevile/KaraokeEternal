@@ -14,6 +14,8 @@ import { toggleSongStarred } from 'store/modules/userStars'
 import { showErrorMessage } from 'store/modules/ui'
 import { queueSong, removeItem } from '../../modules/queue'
 import styles from './QueueItem.css'
+import { commonMessages } from '../../../../lib/messages'
+import { queueMessages } from '../../messages'
 
 const LONG_PRESS_THRESHOLD_MS = 700
 
@@ -187,7 +189,7 @@ const QueueItem = ({
               data-hide
               icon='INFO_OUTLINE'
               onClick={handleInfoClick}
-              aria-label={intl.formatMessage({ id: 'queue.item.info', defaultMessage: 'Song info' })}
+              aria-label={intl.formatMessage(commonMessages.songInfo)}
             />
           )}
           {isEditable && (
@@ -196,7 +198,7 @@ const QueueItem = ({
               data-hide
               icon='EDIT'
               onClick={handleEditClick}
-              aria-label={intl.formatMessage({ id: 'queue.item.edit', defaultMessage: 'Edit song' })}
+              aria-label={intl.formatMessage(commonMessages.editSong)}
             />
           )}
           {isMovable && (
@@ -205,7 +207,7 @@ const QueueItem = ({
               data-hide
               icon='MOVE_TOP'
               onClick={handleMoveClick}
-              aria-label={intl.formatMessage({ id: 'queue.item.moveTop', defaultMessage: 'Move to top' })}
+              aria-label={intl.formatMessage(queueMessages.moveTop)}
             />
           )}
           {isPlayed && (
@@ -214,7 +216,7 @@ const QueueItem = ({
               data-hide
               icon='PLUS'
               onClick={handleRequeueClick}
-              aria-label={intl.formatMessage({ id: 'queue.item.requeue', defaultMessage: 'Queue again' })}
+              aria-label={intl.formatMessage(queueMessages.requeue)}
             />
           )}
           {isReplayable && (
@@ -223,7 +225,7 @@ const QueueItem = ({
               data-hide
               icon='REPLAY'
               onClick={handleReplayClick}
-              aria-label={intl.formatMessage({ id: 'queue.item.replay', defaultMessage: 'Replay song' })}
+              aria-label={intl.formatMessage(queueMessages.replay)}
             />
           )}
           {isRemovable && (
@@ -231,7 +233,7 @@ const QueueItem = ({
               className={clsx(styles.btnRemove, styles.danger)}
               data-hide
               icon='DELETE'
-              aria-label={intl.formatMessage({ id: 'queue.item.remove', defaultMessage: 'Remove song' })}
+              aria-label={intl.formatMessage(queueMessages.remove)}
               onTouchEnd={(e: React.TouchEvent<HTMLButtonElement>) => {
                 if (longPressActiveRef.current) {
                   e.preventDefault()
@@ -255,7 +257,7 @@ const QueueItem = ({
               className={clsx(styles.btnPlayNext, styles.danger)}
               data-hide
               icon='PLAY_NEXT'
-              aria-label={intl.formatMessage({ id: 'queue.item.skip', defaultMessage: 'Skip song' })}
+              aria-label={intl.formatMessage(queueMessages.skip)}
               onTouchEnd={(e: React.TouchEvent<HTMLButtonElement>) => {
                 if (longPressActiveRef.current) {
                   e.preventDefault()

@@ -8,6 +8,7 @@ import QueueList from '../components/QueueList/QueueList'
 import Spinner from 'components/Spinner/Spinner'
 import TextOverlay from 'components/TextOverlay/TextOverlay'
 import styles from './QueueView.css'
+import { queueMessages } from '../messages'
 
 const QUEUE_ITEM_HEIGHT = 92
 
@@ -40,11 +41,10 @@ const QueueView = () => {
     >
       {!isInRoom && (
         <TextOverlay>
-          <h1><FormattedMessage id='queue.view.getRoom' defaultMessage='Get a Room!' /></h1>
+          <h1><FormattedMessage {...queueMessages.getRoom} /></h1>
           <p>
             <FormattedMessage
-              id='queue.view.signIn'
-              defaultMessage='<link>Sign in to a room</link> to start queueing songs.'
+              {...queueMessages.signIn}
               values={{ link: chunks => <Link to='/account'>{chunks}</Link> }}
             />
           </p>
@@ -55,11 +55,10 @@ const QueueView = () => {
 
       {!isLoading && queue.result.length === 0 && (
         <TextOverlay>
-          <h1><FormattedMessage id='queue.view.empty' defaultMessage='Queue Empty' /></h1>
+          <h1><FormattedMessage {...queueMessages.empty} /></h1>
           <p>
             <FormattedMessage
-              id='queue.view.tapLibrary'
-              defaultMessage='Tap a song in the <link>library</link> to queue it.'
+              {...queueMessages.tapLibrary}
               values={{ link: chunks => <Link to='/library'>{chunks}</Link> }}
             />
           </p>

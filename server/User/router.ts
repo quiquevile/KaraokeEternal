@@ -10,6 +10,7 @@ import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
+import { STATUSES } from '../Rooms/Rooms.js'
 import User from '../User/User.js'
 import { QUEUE_PUSH } from '../../shared/actionTypes.js'
 import {
@@ -168,6 +169,44 @@ router.get('/logout', (ctx) => {
   ctx.status = 200
   ctx.body = {}
 })
+
+// switch rooms without logging out (admin only): closed rooms and room
+// passwords are bypassed, exactly like an admin login
+export async function handleSwitchRoom (ctx: RouterContext): Promise<void> {
+  if (ctx.user?.userId == null) ctx.throw(401)
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401, t(ctxLocale(ctx), 'server.common.unauthorized', 'Unauthorized'))
+  }
+
+  const req = ctx.request as unknown as RequestWithBody
+  const roomId = parseInt(String(req.body?.roomId ?? ''), 10) || null
+
+  if (roomId === null) {
+    ctx.throw(422, t(ctxLocale(ctx), 'server.users.invalidRoomId', 'Invalid roomId'))
+  }
+
+  const rooms = Rooms.get(roomId, { status: STATUSES })
+
+  if (!rooms.entities[roomId]) {
+    ctx.throw(404, t(ctxLocale(ctx), 'server.rooms.notFound', 'Room not found'))
+  }
+
+  const user = User.getById(ctx.user.userId)
+
+  if (!user) ctx.throw(401)
+
+  const userCtx = createUserCtx(user, roomId)
+
+  ctx.cookies.set('keToken', signToken(userCtx, ctx.jwtKey), {
+    httpOnly: true,
+    sameSite: 'lax',
+  })
+  ctx.body = userCtx
+}
+
+router.post('/room', ctx => handleSwitchRoom(ctx as unknown as RouterContext))
+
+router.post('/room', ctx => handleSwitchRoom(ctx as unknown as RouterContext))
 
 // get own account (helps sync account changes across devices)
 router.get('/user', (ctx) => {

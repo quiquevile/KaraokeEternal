@@ -7,6 +7,7 @@ export const headerMessages: Record<string, MessageDescriptor> = {
   gainEditor: { id: 'equalizer.gainEditor', defaultMessage: '{freq} Hz gain in dB' },
   gainValue: { id: 'equalizer.gainValue', defaultMessage: '{freq} Hz gain {gain}, activate to edit' },
   in: { id: 'header.upNext.in', defaultMessage: 'You\'re up in {wait}' },
+  roomBadge: { id: 'header.roomBadge', defaultMessage: 'ROOM {name}' },
   lowerBand: { id: 'equalizer.lowerBand', defaultMessage: 'Lower {freq} Hz by {step} dB' },
   lyrics: { id: 'playerOptions.lyrics', defaultMessage: 'Lyrics' },
   lyricsBackground: { id: 'playerOptions.lyricsBackground', defaultMessage: 'Background' },

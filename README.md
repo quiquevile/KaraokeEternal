@@ -24,6 +24,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Player access alone lets a user start playback (projection use case), without playback controls.
 - Admins sign in to password-protected rooms without knowing the room password.
 - Room admins and a managed account editor with roles and a permissions dialog.
+- Admins switch rooms without logging out (click a room's status or date, closed rooms included) and always see the current room badge in the header.
 
 ### Player
 - Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported; Firefox for Android may produce noise when shifting up — Chrome is recommended there).

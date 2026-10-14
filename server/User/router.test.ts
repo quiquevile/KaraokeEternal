@@ -24,14 +24,21 @@ vi.mock('./User.js', () => ({
 }))
 
 vi.mock('../Rooms/Rooms.js', () => ({
-  default: { validate: roomsValidateMock },
+  default: {
+    validate: roomsValidateMock,
+    get: vi.fn((roomId: number | null | undefined) => ({
+      result: roomId === 9 ? [] : [roomId ?? 1],
+      entities: roomId === 9 ? {} : { [roomId ?? 1]: { roomId: roomId ?? 1, status: 'closed' } },
+    })),
+  },
+  STATUSES: ['open', 'closed'],
 }))
 
 vi.mock('../lib/crypto.js', () => ({
   default: { isLegacy: () => false, hash: vi.fn() },
 }))
 
-import { handleLogin, handleUsersNames } from './router.js'
+import { handleLogin, handleSwitchRoom, handleUsersNames } from './router.js'
 import router from './router.js'
 import { resetLoginRateLimits } from '../lib/loginRateLimit.js'
 import User from './User.js'
@@ -320,5 +327,53 @@ describe('handleLogin', () => {
       delete process.env.KES_LOGIN_MAX_FAILS
       resetLoginRateLimits()
     }
+  })
+})
+
+describe('handleSwitchRoom', () => {
+  const switchCtx = (body: Record<string, unknown> = {}, user: object = { ...rootAdmin, isAdmin: true }) => ({
+    params: {},
+    query: {},
+    request: { body, headers: {} },
+    body: undefined,
+    status: 200,
+    user,
+    jwtKey: 'test-key',
+    cookies: { set: vi.fn() },
+    throw: (status: number, message?: string): never => {
+      const err = new Error(message || String(status)) as Error & { status: number }
+      err.status = status
+      throw err
+    },
+  })
+
+  it('switches an admin to another room, closed ones included', async () => {
+    getByIdMock.mockReturnValue(rootAdmin)
+    const ctx = switchCtx({ roomId: 2 })
+
+    await handleSwitchRoom(ctx as never)
+
+    expect(ctx.cookies.set).toHaveBeenCalledWith(
+      'keToken', expect.any(String), { httpOnly: true, sameSite: 'lax' },
+    )
+    expect(ctx.body).toMatchObject({ userId: 1, roomId: 2 })
+  })
+
+  it('rejects non-admins without touching the cookie', async () => {
+    const ctx = switchCtx({ roomId: 2 }, { userId: 2, isAdmin: false })
+
+    await expect(handleSwitchRoom(ctx as never)).rejects.toMatchObject({ status: 401 })
+    expect(ctx.cookies.set).not.toHaveBeenCalled()
+  })
+
+  it('rejects signed-out users, bad ids and unknown rooms', async () => {
+    await expect(handleSwitchRoom(switchCtx({ roomId: 2 }, {}) as never))
+      .rejects.toMatchObject({ status: 401 })
+    await expect(handleSwitchRoom(switchCtx({ roomId: 'abc' }) as never))
+      .rejects.toMatchObject({ status: 422 })
+
+    getByIdMock.mockReturnValue(rootAdmin)
+    await expect(handleSwitchRoom(switchCtx({ roomId: 9 }) as never))
+      .rejects.toMatchObject({ status: 404 })
   })
 })

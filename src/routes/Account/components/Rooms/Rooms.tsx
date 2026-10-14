@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
+import { useNavigate } from 'react-router'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
+import { switchRoom } from 'store/modules/user'
 import { formatDateTime } from 'lib/dateTime'
 import Panel from 'components/Panel/Panel'
 import Button from 'components/Button/Button'
@@ -20,6 +22,7 @@ const Rooms = () => {
   const rooms = useAppSelector(getRoomList)
 
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const handleClose = () => dispatch(closeRoomEditor())
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (e.currentTarget.value === 'all') dispatch(filterByStatus(false))
@@ -29,6 +32,10 @@ const Rooms = () => {
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
     setEditorRoom(rooms.entities[parseInt(e.currentTarget.dataset.roomId || '0')])
     dispatch(openRoomEditor())
+  }
+  const handleSwitchRoom = (roomId: number) => {
+    dispatch(switchRoom(roomId))
+    navigate('/queue')
   }
 
   // once per mount
@@ -42,9 +49,14 @@ const Rooms = () => {
       <tr key={String(roomId)}>
         <td translate='no'><a data-room-id={roomId} onClick={handleOpen}>{room.name}</a></td>
         <td>
-          {room.status === 'open' && intl.formatMessage(accountMessages.statusOpen)}
-          {room.status === 'closed' && intl.formatMessage(accountMessages.statusClosed)}
-          {room.status !== 'open' && room.status !== 'closed' && room.status}
+          <a
+            onClick={() => handleSwitchRoom(roomId)}
+            aria-label={intl.formatMessage(accountMessages.switchTo, { name: room.name })}
+          >
+            {room.status === 'open' && intl.formatMessage(accountMessages.statusOpen)}
+            {room.status === 'closed' && intl.formatMessage(accountMessages.statusClosed)}
+            {room.status !== 'open' && room.status !== 'closed' && room.status}
+          </a>
           {room.numUsers > 0 && (
             <>
 &nbsp;
@@ -58,7 +70,14 @@ const Rooms = () => {
             </>
           )}
         </td>
-        <td>{formatDateTime(new Date(room.dateCreated * 1000))}</td>
+        <td>
+          <a
+            onClick={() => handleSwitchRoom(roomId)}
+            aria-label={intl.formatMessage(accountMessages.switchTo, { name: room.name })}
+          >
+            {formatDateTime(new Date(room.dateCreated * 1000))}
+          </a>
+        </td>
       </tr>
     )
   })

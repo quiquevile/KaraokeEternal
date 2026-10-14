@@ -9,6 +9,7 @@ import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import VolumeSlider from './VolumeSlider/VolumeSlider'
 import NoPlayer from './NoPlayer/NoPlayer'
+import RoomBadge from './RoomBadge/RoomBadge'
 import DisplayCtrl from './DisplayCtrl/DisplayCtrl'
 import usePlaybackShortcuts from './usePlaybackShortcuts'
 import styles from './PlaybackCtrl.css'
@@ -54,85 +55,95 @@ const PlaybackCtrl = () => {
   }
 
   if (!status.isPlayerPresent) {
-    return hasPermission(user, 'playerAccess') && isInRoom && screenfull.isEnabled ? <NoPlayer /> : null
+    return hasPermission(user, 'playerAccess') && isInRoom && screenfull.isEnabled
+      ? (
+          <>
+            <RoomBadge />
+            <NoPlayer />
+          </>
+        )
+      : null
   }
 
   return hasPermission(user, 'playerControls') && isInRoom && screenfull.isEnabled
     ? (
-        <div className={styles.container}>
-          <Button
-            animateClassName={styles.btnAnimate}
-            className={clsx(styles.btn, status.isPlaying ? styles.pause : styles.play)}
-            icon={status.isPlaying ? 'PAUSE' : 'PLAY'}
-            onClick={status.isPlaying ? handlePause : handlePlay}
-            aria-label={status.isPlaying
-              ? intl.formatMessage(headerMessages.pause)
-              : intl.formatMessage(commonMessages.play)}
-          />
+        <>
+          <RoomBadge />
+          <div className={styles.container}>
+            <Button
+              animateClassName={styles.btnAnimate}
+              className={clsx(styles.btn, status.isPlaying ? styles.pause : styles.play)}
+              icon={status.isPlaying ? 'PAUSE' : 'PLAY'}
+              onClick={status.isPlaying ? handlePause : handlePlay}
+              aria-label={status.isPlaying
+                ? intl.formatMessage(headerMessages.pause)
+                : intl.formatMessage(commonMessages.play)}
+            />
 
-          <Button
-            animateClassName={styles.btnAnimate}
-            className={clsx(styles.btn, styles.next)}
-            icon='PLAY_NEXT'
-            onClick={handlePlayNext}
-            aria-label={intl.formatMessage(headerMessages.playNext)}
-          />
-
-          {(hasPermission(user, 'queueReplay')) && (
             <Button
               animateClassName={styles.btnAnimate}
               className={clsx(styles.btn, styles.next)}
-              icon='REPLAY_SMALL'
-              onClick={handleReplay}
-              aria-label={intl.formatMessage(headerMessages.replay)}
+              icon='PLAY_NEXT'
+              onClick={handlePlayNext}
+              aria-label={intl.formatMessage(headerMessages.playNext)}
             />
-          )}
 
-          <VolumeSlider
-            volume={status.volume}
-            onVolumeChange={handleVolume}
-          />
+            {(hasPermission(user, 'queueReplay')) && (
+              <Button
+                animateClassName={styles.btnAnimate}
+                className={clsx(styles.btn, styles.next)}
+                icon='REPLAY_SMALL'
+                onClick={handleReplay}
+                aria-label={intl.formatMessage(headerMessages.replay)}
+              />
+            )}
 
-          <Button
-            className={clsx(styles.btn, styles.displayCtrl)}
-            icon='TUNE'
-            onClick={toggleDisplayCtrl}
-            size={48}
-            aria-label={intl.formatMessage(commonMessages.playerOptions)}
-          />
+            <VolumeSlider
+              volume={status.volume}
+              onVolumeChange={handleVolume}
+            />
 
-          {isPlayer && screenfull.isEnabled && (
             <Button
-              className={clsx(styles.btn, styles.fullscreen)}
-              icon='FULLSCREEN'
-              onClick={handleFullscreen}
-              aria-label={intl.formatMessage(headerMessages.fullscreen)}
+              className={clsx(styles.btn, styles.displayCtrl)}
+              icon='TUNE'
+              onClick={toggleDisplayCtrl}
+              size={48}
+              aria-label={intl.formatMessage(commonMessages.playerOptions)}
             />
-          )}
 
-          {isDisplayCtrlVisible && (
-            <DisplayCtrl
-              cdgAlpha={status.cdgAlpha}
-              cdgSize={status.cdgSize}
-              isPitchAdjustable={hasPermission(user, 'playerControls')}
-              isPitchSupported={status.pitchSupported}
-              isVideoKeyingEnabled={status.isVideoKeyingEnabled}
-              isVisualizerEnabled={status.visualizer.isEnabled}
-              isWebGLSupported={status.isWebGLSupported}
-              mediaType={status.mediaType}
-              mp4Alpha={status.mp4Alpha}
-              onClose={toggleDisplayCtrl}
-              onRequestOptions={handleOptions}
-              pitchSemitones={status.pitchSemitones}
-              isReplayGainEnabled={status.isReplayGainEnabled}
-              eqEnabled={status.eqEnabled}
-              eqGains={status.eqGains}
-              eqPreset={status.eqPreset}
-              sensitivity={status.visualizer.sensitivity}
-              visualizerPresetName={status.visualizer.presetName}
-            />
-          )}
-        </div>
+            {isPlayer && screenfull.isEnabled && (
+              <Button
+                className={clsx(styles.btn, styles.fullscreen)}
+                icon='FULLSCREEN'
+                onClick={handleFullscreen}
+                aria-label={intl.formatMessage(headerMessages.fullscreen)}
+              />
+            )}
+
+            {isDisplayCtrlVisible && (
+              <DisplayCtrl
+                cdgAlpha={status.cdgAlpha}
+                cdgSize={status.cdgSize}
+                isPitchAdjustable={hasPermission(user, 'playerControls')}
+                isPitchSupported={status.pitchSupported}
+                isVideoKeyingEnabled={status.isVideoKeyingEnabled}
+                isVisualizerEnabled={status.visualizer.isEnabled}
+                isWebGLSupported={status.isWebGLSupported}
+                mediaType={status.mediaType}
+                mp4Alpha={status.mp4Alpha}
+                onClose={toggleDisplayCtrl}
+                onRequestOptions={handleOptions}
+                pitchSemitones={status.pitchSemitones}
+                isReplayGainEnabled={status.isReplayGainEnabled}
+                eqEnabled={status.eqEnabled}
+                eqGains={status.eqGains}
+                eqPreset={status.eqPreset}
+                sensitivity={status.visualizer.sensitivity}
+                visualizerPresetName={status.visualizer.presetName}
+              />
+            )}
+          </div>
+        </>
       )
     : null
 }

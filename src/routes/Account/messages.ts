@@ -74,6 +74,7 @@ export const accountMessages: Record<string, MessageDescriptor> = {
   status: { id: 'account.rooms.status', defaultMessage: 'Status' },
   statusClosed: { id: 'account.rooms.statusClosed', defaultMessage: 'Closed' },
   statusOpen: { id: 'account.rooms.statusOpen', defaultMessage: 'Open' },
+  switchTo: { id: 'account.rooms.switchTo', defaultMessage: 'Switch to room {name}' },
   submit: { id: 'account.signin.submit', defaultMessage: 'Sign In' },
   systemBinary: { id: 'account.ytdl.systemBinary', defaultMessage: 'A custom yt-dlp binary is used and cannot be updated here.' },
   title: { id: 'account.about.title', defaultMessage: 'About' },

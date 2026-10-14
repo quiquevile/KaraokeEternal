@@ -60,8 +60,26 @@ export const login = createAsyncThunk(
 )
 
 // ------------------------------------
-// Logout
+// Switch rooms (admin only, no logout needed)
 // ------------------------------------
+export const switchRoom = createAsyncThunk(
+  'user/SWITCH_ROOM',
+  async (roomId: number, thunkAPI) => {
+    if (roomId === (thunkAPI.getState() as RootState).user.roomId) return
+
+    // fresh JWT cookie for the new room, then rejoin over the socket:
+    // the server pushes the room's queue and player status on connect
+    const user = await api.post('room', {
+      body: { roomId },
+    })
+
+    thunkAPI.dispatch(receiveAccount(user))
+    socket.close()
+    thunkAPI.dispatch(connectSocket())
+    socket.open()
+  },
+)
+
 const logout = createAction(LOGOUT)
 
 export const requestLogout = createAsyncThunk(

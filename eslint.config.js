@@ -8,6 +8,7 @@ import pluginReact from 'eslint-plugin-react'
 import pluginReactHooks from 'eslint-plugin-react-hooks'
 import pluginRefresh from 'eslint-plugin-react-refresh'
 import pluginPromise from 'eslint-plugin-promise'
+import pluginFormatjs from 'eslint-plugin-formatjs'
 import pluginNode from 'eslint-plugin-n'
 import globals from 'globals'
 
@@ -40,6 +41,7 @@ export default defineConfig(
       // @ts-expect-error - eslint-plugin-react-hooks types are incomplete
       'react-hooks': pluginReactHooks,
       'react-refresh': pluginRefresh,
+      'formatjs': pluginFormatjs,
     },
     rules: {
       ...pluginReact.configs.flat.recommended.rules,
@@ -47,6 +49,8 @@ export default defineConfig(
       ...pluginReactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': 'error',
       '@stylistic/jsx-quotes': ['error', 'prefer-single'],
+      // UI literals must go through react-intl (see shared/locales)
+      'formatjs/no-literal-string-in-jsx': 'error',
     },
     languageOptions: {
       parser: tseslint.parser,

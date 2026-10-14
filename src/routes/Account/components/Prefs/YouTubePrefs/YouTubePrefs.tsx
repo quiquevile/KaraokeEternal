@@ -34,6 +34,7 @@ const DirField = ({ value }: { value: string }) => {
         <input
           type='text'
           value={dir}
+          // eslint-disable-next-line formatjs/no-literal-string-in-jsx -- example path, not prose
           placeholder='/data/bin'
           onChange={e => setDir(e.currentTarget.value)}
           onBlur={handleSave}

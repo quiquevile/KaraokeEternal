@@ -40,6 +40,9 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.
 
+### Interface language
+- Bilingual interface (English/Español), per device, switchable from account Preferences; server messages follow the browser language.
+
 ### Docker
 - Ready-to-build image and compose file (`Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh`).
 - Resource-friendly defaults for small hosts (capped node heap and ffmpeg threads), tunable per deployment with `NODE_OPTIONS` and `KES_FFMPEG_THREADS`.

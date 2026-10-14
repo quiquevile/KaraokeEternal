@@ -47,9 +47,11 @@ const Rooms = () => {
             <>
 &nbsp;
               <a data-room-id={roomId} onClick={handleFilterUsers}>
+                {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around a count, not prose */}
                 (
                 {room.numUsers}
                 )
+                {/* eslint-enable formatjs/no-literal-string-in-jsx */}
               </a>
             </>
           )}

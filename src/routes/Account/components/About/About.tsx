@@ -29,6 +29,7 @@ const About = () => {
           <Logo className={styles.logo} />
         </a>
         <p className={styles.sm}>
+          {/* eslint-disable formatjs/no-literal-string-in-jsx -- copyright line: symbols, dates and brand name, not prose */}
           &copy;
           {`2019-${curYear}`}
           {' '}
@@ -37,12 +38,15 @@ const About = () => {
           v
           {/* @ts-expect-error: global via Webpack */}
           {__KE_VERSION__}
+          {/* eslint-enable formatjs/no-literal-string-in-jsx */}
         </p>
         <p>
           <a className={styles.pseudolink} onClick={toggleChangelog}>{changelogTitle}</a>
+          {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation, not prose */}
           {' '}
           |
           {' '}
+          {/* eslint-enable formatjs/no-literal-string-in-jsx */}
           <a href='/licenses.txt' target='_blank'>
             <FormattedMessage id='account.about.licenses' defaultMessage='Licenses' />
           </a>
@@ -53,14 +57,18 @@ const About = () => {
             {/* @ts-expect-error: global via Webpack */}
             <a href={__KE_URL_REPO__} target='_blank' rel='noreferrer'>
               <Icon icon='GITHUB_REPO' size={16} />
+              {/* eslint-disable formatjs/no-literal-string-in-jsx -- brand term, never translated */}
               GitHub
+              {/* eslint-enable formatjs/no-literal-string-in-jsx */}
             </a>
           </div>
           <div className={clsx(styles.ghButton, styles.star)}>
             {/* @ts-expect-error: global via Webpack */}
             <a href={__KE_URL_REPO__} target='_blank' rel='noreferrer'>
               <Icon icon='GITHUB_STAR' size={16} />
+              {/* eslint-disable formatjs/no-literal-string-in-jsx -- brand term, never translated */}
               Star
+              {/* eslint-enable formatjs/no-literal-string-in-jsx */}
             </a>
           </div>
 
@@ -68,7 +76,9 @@ const About = () => {
             {/* @ts-expect-error: global via Webpack */}
             <a href={__KE_URL_SPONSOR__} target='_blank' rel='noreferrer'>
               <Icon icon='GITHUB_SPONSOR' size={16} />
+              {/* eslint-disable formatjs/no-literal-string-in-jsx -- brand term, never translated */}
               Sponsor
+              {/* eslint-enable formatjs/no-literal-string-in-jsx */}
             </a>
           </div>
         </div>

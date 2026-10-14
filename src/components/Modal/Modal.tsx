@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import clsx from 'clsx'
+import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import styles from './Modal.css'
 
@@ -16,6 +17,7 @@ export type ModalProps = {
 const Modal = ({ buttons, className, children, visible = true, onClose, scrollable, title }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const isOutsideClick = useRef(false)
+  const intl = useIntl()
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -58,7 +60,12 @@ const Modal = ({ buttons, className, children, visible = true, onClose, scrollab
     >
       <div className={styles.titleContainer}>
         <h1>{title}</h1>
-        <Button icon='CLEAR' className={styles.btnClose} onClick={onClose} aria-label='Close' />
+        <Button
+          icon='CLEAR'
+          className={styles.btnClose}
+          onClick={onClose}
+          aria-label={intl.formatMessage({ id: 'modal.close', defaultMessage: 'Close' })}
+        />
       </div>
       <div className={clsx(styles.content, scrollable && styles.scrollable)}>{children}</div>
       {buttons && <div className={styles.buttons}>{buttons}</div>}

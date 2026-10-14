@@ -357,5 +357,10 @@
   "server.library.mediaNotFound": "mediaId {mediaId} no encontrado",
   "server.queue.invalidId": "queueId no válido",
   "server.queue.moveOthers": "No puedes mover la canción de otro usuario",
-  "server.queue.removeOthers": "No puedes quitar la canción de otro usuario"
+  "server.queue.removeOthers": "No puedes quitar la canción de otro usuario",
+  "app.errorTitle": "Vaya...",
+  "app.ok": "Vale",
+  "modal.close": "Cerrar",
+  "inputImage.alt": "Foto de perfil",
+  "progressBar.stopping": "Deteniendo..."
 }

@@ -35,9 +35,12 @@ const SongInfo = () => {
     const item = media.entities[mediaId]
     const isPreferred = !!item.isPreferred
     const gain = typeof item.rgTrackGain === 'number' ? item.rgTrackGain : null
+    // null glyph + numeric level: symbols and data, never prose
+    const gainText = gain === null ? '—' : `${gain > 0 ? '+' : ''}${gain.toFixed(1)} dB`
 
     return (
       <div key={item.mediaId} className={styles.media}>
+        {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx -- file path expression, not prose */}
         {item.path + (item.path.indexOf('/') === 0 ? '/' : '\\') + item.relPath}
         {isAdmin && (
           <span>
@@ -61,32 +64,36 @@ const SongInfo = () => {
         <span className={styles.label}>
           <FormattedMessage id='songInfo.level' defaultMessage='Level: ' />
         </span>
-        {gain === null ? '—' : `${gain > 0 ? '+' : ''}${gain.toFixed(1)} dB`}
+        {gainText}
         {isAdmin && (
-          <span className={styles.stepper}>
-            {' '}
-            <a
-              onClick={() => handleGain(mediaId, (gain ?? 0) - 0.5)}
-              aria-label={intl.formatMessage({ id: 'songInfo.lowerLevel', defaultMessage: 'Lower level' })}
-            >
-              (−)
-            </a>
-            {' '}
-            <a
-              onClick={() => handleGain(mediaId, (gain ?? 0) + 0.5)}
-              aria-label={intl.formatMessage({ id: 'songInfo.raiseLevel', defaultMessage: 'Raise level' })}
-            >
-              (+)
-            </a>
-            {gain !== null && (
-              <>
-                {' '}
-                <a onClick={() => handleGain(mediaId, null)}>
-                  <FormattedMessage id='songInfo.resetLevel' defaultMessage='(reset)' />
-                </a>
-              </>
-            )}
-          </span>
+          <>
+            {/* eslint-disable formatjs/no-literal-string-in-jsx -- math symbols and spacing, not prose */}
+            <span className={styles.stepper}>
+              {' '}
+              <a
+                onClick={() => handleGain(mediaId, (gain ?? 0) - 0.5)}
+                aria-label={intl.formatMessage({ id: 'songInfo.lowerLevel', defaultMessage: 'Lower level' })}
+              >
+                (−)
+              </a>
+              {' '}
+              <a
+                onClick={() => handleGain(mediaId, (gain ?? 0) + 0.5)}
+                aria-label={intl.formatMessage({ id: 'songInfo.raiseLevel', defaultMessage: 'Raise level' })}
+              >
+                (+)
+              </a>
+              {/* eslint-enable formatjs/no-literal-string-in-jsx */}
+              {gain !== null && (
+                <>
+                  {' '}
+                  <a onClick={() => handleGain(mediaId, null)}>
+                    <FormattedMessage id='songInfo.resetLevel' defaultMessage='(reset)' />
+                  </a>
+                </>
+              )}
+            </span>
+          </>
         )}
         <br />
         <span className={styles.label}>
@@ -136,6 +143,7 @@ const SongInfo = () => {
           <span className={styles.label}>
             <FormattedMessage id='songInfo.mediaFiles' defaultMessage='Media Files: ' />
           </span>
+          {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx -- loading placeholder glyph, not prose */}
           {isLoading ? '?' : media.result.length}
         </p>
 

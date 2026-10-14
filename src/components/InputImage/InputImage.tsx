@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import loadImage from 'blueimp-load-image'
@@ -16,6 +17,7 @@ const stopCancelPropagation = (e: Event) => {
 }
 
 const InputImage = ({ user, onSelect }: UserImageProps) => {
+  const intl = useIntl()
   const [isLoading, setIsLoading] = useState(true)
   const [imageURL, setImageURL] = useState<string | null>(
     user && user.userId !== null
@@ -93,7 +95,7 @@ const InputImage = ({ user, onSelect }: UserImageProps) => {
           height={72}
           onLoad={handleImgLoad}
           onError={handleImgError}
-          alt='User Profile'
+          alt={intl.formatMessage({ id: 'inputImage.alt', defaultMessage: 'User Profile' })}
         />
       )}
 

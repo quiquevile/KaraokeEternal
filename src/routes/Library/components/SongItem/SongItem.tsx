@@ -96,10 +96,12 @@ const SongItem = ({
             {filterKeywords?.length ? <Highlighter autoEscape textToHighlight={title} searchWords={filterKeywords} /> : title}
             {isAdmin && numMedia > 1 && (
               <i>
+                {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around a count, not prose */}
                 {' '}
                 (
                 {numMedia}
                 )
+                {/* eslint-enable formatjs/no-literal-string-in-jsx */}
               </i>
             )}
             {artist && <div className={styles.artist}>{artist}</div>}

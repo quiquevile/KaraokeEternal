@@ -118,7 +118,9 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
           defaultMessage: 'Raise {freq} Hz by {step} dB',
         }, { freq: formatFreq(freq), step: STEP })}
       >
+        {/* eslint-disable formatjs/no-literal-string-in-jsx -- stepper glyph, not prose */}
         +
+        {/* eslint-enable formatjs/no-literal-string-in-jsx */}
       </Button>
       <div
         className={styles.fader}
@@ -153,7 +155,9 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
           defaultMessage: 'Lower {freq} Hz by {step} dB',
         }, { freq: formatFreq(freq), step: STEP })}
       >
+        {/* eslint-disable formatjs/no-literal-string-in-jsx -- stepper glyph, not prose */}
         −
+        {/* eslint-enable formatjs/no-literal-string-in-jsx */}
       </Button>
       <span className={styles.freq}>{formatFreq(freq)}</span>
       {editing

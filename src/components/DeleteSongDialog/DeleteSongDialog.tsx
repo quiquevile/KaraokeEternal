@@ -67,8 +67,10 @@ const VersionRow = ({
         <input type='checkbox' checked={checked} onChange={onToggle} />
         <span className={styles.path}>
           {media.path}
+          {/* eslint-disable formatjs/no-literal-string-in-jsx -- file path separators, not prose */}
           /
           {media.relPath}
+          {/* eslint-enable formatjs/no-literal-string-in-jsx */}
         </span>
         <span className={styles.duration}>{formatDuration(media.duration)}</span>
         {previewable && (

@@ -59,6 +59,10 @@ const MIGRATED_FILES = [
   'src/components/Header/PlaybackCtrl/DisplayCtrl/EqualizerBand.tsx',
   'src/components/Header/PlaybackCtrl/DisplayCtrl/RoomOptions/QRPrefs/QRPrefs.tsx',
   'src/components/Header/UpNext/UpNext.tsx',
+  'src/components/App/CoreLayout/CoreLayout.tsx',
+  'src/components/Modal/Modal.tsx',
+  'src/components/InputImage/InputImage.tsx',
+  'src/components/Header/ProgressBar/ProgressBar.tsx',
 ]
 
 const collectIds = (source: string): string[] => {
@@ -112,7 +116,7 @@ describe('locale parity', () => {
 })
 
 function walkFiles (dir: string, ext: string): string[] {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name)
 
     if (entry.isDirectory()) return walkFiles(full, ext)

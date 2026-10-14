@@ -44,19 +44,23 @@ const Users = () => {
         {userId === curUserId && (
           <td translate='no'>
             <strong>{user.username}</strong>
+            {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
             {' '}
             (
             {user.name}
             )
+            {/* eslint-enable formatjs/no-literal-string-in-jsx */}
           </td>
         )}
         {userId !== curUserId && (
           <td>
             <a data-user-id={userId} onClick={handleOpen}>{user.username}</a>
+            {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
             {' '}
             (
             {user.name}
             )
+            {/* eslint-enable formatjs/no-literal-string-in-jsx */}
           </td>
         )}
         <td>

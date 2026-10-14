@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import styles from './Logo.css'
 
+/* eslint-disable formatjs/no-literal-string-in-jsx -- brand artwork, never translated */
+
 interface LogoProps {
   className?: string
 }

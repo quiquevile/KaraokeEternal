@@ -76,6 +76,7 @@ const PathChooser = ({ onCancel, onChoose }: PathChooserProps) => {
     >
       <div className={styles.container} translate='no'>
         <div className={styles.folderCurrent}>
+          {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx -- layout placeholder glyph, not prose */}
           {pathInfo.current || '\u00a0'}
         </div>
 

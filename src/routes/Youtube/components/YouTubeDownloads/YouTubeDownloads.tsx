@@ -25,21 +25,26 @@ const DownloadJobItem = ({ job, onRemove }: { job: DownloadJob, onRemove (id: st
     <li className={styles.job}>
       <div className={styles.jobTitle}>
         {job.artist}
+        {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
         {' '}
         -
         {' '}
+        {/* eslint-enable formatjs/no-literal-string-in-jsx */}
         {job.title}
       </div>
       <div className={styles.jobStatus}>
         {statusLabel}
         {job.progress > 0 && job.status !== 'complete'
+          // eslint-disable-next-line formatjs/no-literal-string-in-jsx -- punctuation around a count, not prose
           && ` (${Math.round(job.progress)}%)`}
         {job.error
           && (
             <span className={styles.error}>
+              {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
               {' '}
               -
               {' '}
+              {/* eslint-enable formatjs/no-literal-string-in-jsx */}
               {job.error}
             </span>
           )}

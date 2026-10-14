@@ -68,7 +68,9 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
             onClick={artist.cycleCase}
             aria-label={intl.formatMessage({ id: 'metaFields.artistCase', defaultMessage: 'Change artist case' })}
           >
+            {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
             Aa
+            {/* eslint-enable formatjs/no-literal-string-in-jsx */}
           </Button>
         </span>
         <ClearableInput
@@ -98,7 +100,9 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
             onClick={title.cycleCase}
             aria-label={intl.formatMessage({ id: 'metaFields.titleCase', defaultMessage: 'Change title case' })}
           >
+            {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
             Aa
+            {/* eslint-enable formatjs/no-literal-string-in-jsx */}
           </Button>
         </span>
         <ClearableInput

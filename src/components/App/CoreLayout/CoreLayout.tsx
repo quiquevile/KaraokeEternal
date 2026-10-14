@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { FormattedMessage, useIntl } from 'react-intl'
 import { useMatch } from 'react-router'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import useResizeObserver from 'use-resize-observer'
@@ -16,6 +17,7 @@ import Routes from '../Routes/Routes'
 import { clearErrorMessage, setFooterHeight, setHeaderHeight } from 'store/modules/ui'
 
 const CoreLayout = () => {
+  const intl = useIntl()
   const isPlayerRoute = useMatch('/player')
   const dispatch = useAppDispatch()
   const headerRef = useRef<HTMLDivElement>(null)
@@ -50,9 +52,13 @@ const CoreLayout = () => {
 
       {ui.isErrored && (
         <Modal
-          title='Oops...'
+          title={intl.formatMessage({ id: 'app.errorTitle', defaultMessage: 'Oops...' })}
           onClose={closeError}
-          buttons={<Button variant='primary' onClick={closeError}>OK</Button>}
+          buttons={(
+            <Button variant='primary' onClick={closeError}>
+              <FormattedMessage id='app.ok' defaultMessage='OK' />
+            </Button>
+          )}
         >
           <p style={{ WebkitUserSelect: 'text', userSelect: 'text' }}>
             {ui.errorMessage}

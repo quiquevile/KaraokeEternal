@@ -41,6 +41,7 @@ const PathInfo = ({ onClose, onRemove, onUpdate, path }: PathInfoProps) => {
         <p className={styles.path}>
           {path?.path}
           <br />
+          {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx -- technical field name, not prose */}
           <span className={styles.label}>pathId: </span>
           {path?.pathId}
         </p>

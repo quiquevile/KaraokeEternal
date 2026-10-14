@@ -102,6 +102,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
             {user.userId !== null && (
               <option value={user.userId}>
                 {user.name}
+                {/* eslint-disable formatjs/no-literal-string-in-jsx -- whitespace, not prose */}
                 {' '}
                 <FormattedMessage id='youtube.download.you' defaultMessage='(you)' />
               </option>
@@ -111,10 +112,12 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
               .map(u => (
                 <option key={u.userId} value={u.userId}>
                   {u.name}
+                  {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
                   {' '}
                   (
                   {u.username}
                   )
+                  {/* eslint-enable formatjs/no-literal-string-in-jsx */}
                 </option>
               ))}
           </select>

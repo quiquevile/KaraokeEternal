@@ -5,6 +5,7 @@ import Slider from 'components/Slider/Slider'
 import sliderStyles from 'components/Slider/Slider.css'
 import { EQ_GAIN_MAX, EQ_GAIN_MIN, TAP_MOVE_PX, clampEqGain, formatFreq, isDoubleTap, parseGainInput, type TapPoint } from 'routes/Player/lib/equalizer'
 import styles from './EqualizerBand.css'
+import { headerMessages } from '../../messages'
 
 // nudge per stepper tap (sliders cover coarse moves with the same step)
 const STEP = 0.1
@@ -113,10 +114,7 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
         className={styles.stepper}
         onClick={() => step(STEP)}
         disabled={disabled}
-        aria-label={intl.formatMessage({
-          id: 'equalizer.raiseBand',
-          defaultMessage: 'Raise {freq} Hz by {step} dB',
-        }, { freq: formatFreq(freq), step: STEP })}
+        aria-label={intl.formatMessage(headerMessages.raiseBand, { freq: formatFreq(freq), step: STEP })}
       >
         {/* eslint-disable formatjs/no-literal-string-in-jsx -- stepper glyph, not prose */}
         +
@@ -127,7 +125,7 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
-        title={intl.formatMessage({ id: 'equalizer.resetHint', defaultMessage: 'Double-tap to reset to 0 dB' })}
+        title={intl.formatMessage(headerMessages.resetHint)}
       >
         <Slider
           vertical
@@ -138,10 +136,7 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
           onChange={onChange}
           disabled={disabled}
           handleIcon='HANDLE_VERT'
-          aria-label={intl.formatMessage({
-            id: 'equalizer.band',
-            defaultMessage: '{freq} Hz',
-          }, { freq: formatFreq(freq) })}
+          aria-label={intl.formatMessage(headerMessages.band, { freq: formatFreq(freq) })}
           className={`${styles.slider} ${sliderStyles.small}`}
         />
       </div>
@@ -150,10 +145,7 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
         className={styles.stepper}
         onClick={() => step(-STEP)}
         disabled={disabled}
-        aria-label={intl.formatMessage({
-          id: 'equalizer.lowerBand',
-          defaultMessage: 'Lower {freq} Hz by {step} dB',
-        }, { freq: formatFreq(freq), step: STEP })}
+        aria-label={intl.formatMessage(headerMessages.lowerBand, { freq: formatFreq(freq), step: STEP })}
       >
         {/* eslint-disable formatjs/no-literal-string-in-jsx -- stepper glyph, not prose */}
         −
@@ -174,10 +166,7 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
                 if (e.key === 'Enter') commitEditing()
                 if (e.key === 'Escape') setEditing(false)
               }}
-              aria-label={intl.formatMessage({
-                id: 'equalizer.gainEditor',
-                defaultMessage: '{freq} Hz gain in dB',
-              }, { freq: formatFreq(freq) })}
+              aria-label={intl.formatMessage(headerMessages.gainEditor, { freq: formatFreq(freq) })}
             />
           )
         : (
@@ -186,10 +175,7 @@ const EqualizerBand = ({ freq, gain, disabled, onChange }: EqualizerBandProps) =
               className={styles.value}
               onClick={startEditing}
               disabled={disabled}
-              aria-label={intl.formatMessage({
-                id: 'equalizer.gainValue',
-                defaultMessage: '{freq} Hz gain {gain}, activate to edit',
-              }, { freq: formatFreq(freq), gain: formatGain(gain) })}
+              aria-label={intl.formatMessage(headerMessages.gainValue, { freq: formatFreq(freq), gain: formatGain(gain) })}
             >
               {formatGain(gain)}
             </button>

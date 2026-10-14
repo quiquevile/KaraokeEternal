@@ -12,6 +12,8 @@ import RoomOptions from './RoomOptions/RoomOptions'
 import { PITCH_SEMITONE_MAX, PITCH_SEMITONE_MIN, clampPitchSemitones } from 'routes/Player/lib/pitchShift'
 import styles from './DisplayCtrl.css'
 import { MediaType, PlaybackOptions } from 'shared/types'
+import { commonMessages } from '../../../../lib/messages'
+import { headerMessages } from '../../messages'
 
 interface DisplayCtrlProps {
   cdgAlpha: number
@@ -110,10 +112,10 @@ const DisplayCtrl = ({
     <Modal
       className={styles.modal}
       onClose={onClose}
-      title={intl.formatMessage({ id: 'playerOptions.title', defaultMessage: 'Player Options' })}
+      title={intl.formatMessage(commonMessages.playerOptions)}
       buttons={(
         <Button variant='primary' onClick={onClose}>
-          <FormattedMessage id='playerOptions.done' defaultMessage='Done' />
+          <FormattedMessage {...commonMessages.done} />
         </Button>
       )}
     >
@@ -122,7 +124,7 @@ const DisplayCtrl = ({
           <fieldset>
             <legend>
               <InputCheckbox
-                label={intl.formatMessage({ id: 'playerOptions.visualizer', defaultMessage: 'Visualizer' })}
+                label={intl.formatMessage(headerMessages.visualizer)}
                 checked={isVisualizerEnabled}
                 disabled={!isWebGLSupported}
                 onChange={handleToggleVisualizer}
@@ -135,21 +137,21 @@ const DisplayCtrl = ({
                   <div className={styles.presetButtons}>
                     <Button
                       onClick={handlePresetPrev}
-                      aria-label={intl.formatMessage({ id: 'playerOptions.prevPreset', defaultMessage: 'Previous preset' })}
+                      aria-label={intl.formatMessage(headerMessages.prevPreset)}
                       aria-controls='visualizer-preset-name'
                     >
                       <Icon icon='CHEVRON_LEFT' />
                     </Button>
                     <Button
                       onClick={handlePresetRandom}
-                      aria-label={intl.formatMessage({ id: 'playerOptions.randomPreset', defaultMessage: 'Random preset' })}
+                      aria-label={intl.formatMessage(headerMessages.randomPreset)}
                       aria-controls='visualizer-preset-name'
                     >
                       <Icon icon='DICE' />
                     </Button>
                     <Button
                       onClick={handlePresetNext}
-                      aria-label={intl.formatMessage({ id: 'playerOptions.nextPreset', defaultMessage: 'Next preset' })}
+                      aria-label={intl.formatMessage(headerMessages.nextPreset)}
                       aria-controls='visualizer-preset-name'
                     >
                       <Icon icon='CHEVRON_RIGHT' />
@@ -167,7 +169,7 @@ const DisplayCtrl = ({
 
                 <div className={styles.field}>
                   <label id='label-visualizer-sensitivity'>
-                    <FormattedMessage id='playerOptions.sensitivity' defaultMessage='Sensitivity' />
+                    <FormattedMessage {...headerMessages.sensitivity} />
                   </label>
                   <Slider
                     min={0}
@@ -185,14 +187,14 @@ const DisplayCtrl = ({
             {isWebGLSupported && mediaType !== 'cdg' && !isVideoKeyingEnabled
               && (
                 <p className={styles.unsupported}>
-                  <FormattedMessage id='playerOptions.vizUnavailable' defaultMessage='Not available for this media type' />
+                  <FormattedMessage {...headerMessages.vizUnavailable} />
                 </p>
               )}
 
             {!isWebGLSupported
               && (
                 <p className={styles.unsupported}>
-                  <FormattedMessage id='playerOptions.noWebGL' defaultMessage='WebGL not supported' />
+                  <FormattedMessage {...headerMessages.noWebGL} />
                 </p>
               )}
           </fieldset>
@@ -206,7 +208,7 @@ const DisplayCtrl = ({
             <div className={styles.heading}>
               <Icon icon='VOLUME_UP' />
               <div className={styles.title}>
-                <FormattedMessage id='playerOptions.sound' defaultMessage='Sound' />
+                <FormattedMessage {...headerMessages.sound} />
               </div>
             </div>
           )}
@@ -216,14 +218,14 @@ const DisplayCtrl = ({
               <div className={clsx(styles.section, styles.pitch)}>
                 <fieldset>
                   <legend>
-                    <label><FormattedMessage id='playerOptions.pitch' defaultMessage='Pitch' /></label>
+                    <label><FormattedMessage {...headerMessages.pitch} /></label>
                   </legend>
 
                   <div className={styles.pitchButtons}>
                     <Button
                       onClick={handlePitchDown}
                       disabled={isPitchSupported === false || pitchSemitones <= PITCH_SEMITONE_MIN}
-                      aria-label={intl.formatMessage({ id: 'playerOptions.pitchDown', defaultMessage: 'Lower pitch by one semitone' })}
+                      aria-label={intl.formatMessage(headerMessages.pitchDown)}
                       className={styles.step}
                     >
                       <Icon icon='CHEVRON_LEFT' />
@@ -237,7 +239,7 @@ const DisplayCtrl = ({
                     <Button
                       onClick={handlePitchUp}
                       disabled={isPitchSupported === false || pitchSemitones >= PITCH_SEMITONE_MAX}
-                      aria-label={intl.formatMessage({ id: 'playerOptions.pitchUp', defaultMessage: 'Raise pitch by one semitone' })}
+                      aria-label={intl.formatMessage(headerMessages.pitchUp)}
                       className={styles.step}
                     >
                       <Icon icon='CHEVRON_RIGHT' />
@@ -245,27 +247,21 @@ const DisplayCtrl = ({
                     <Button
                       onClick={handlePitchReset}
                       disabled={isPitchSupported === false || pitchSemitones === 0}
-                      aria-label={intl.formatMessage({ id: 'playerOptions.pitchReset', defaultMessage: 'Reset pitch' })}
+                      aria-label={intl.formatMessage(headerMessages.pitchReset)}
                       variant='primary'
                       className={styles.reset}
                     >
-                      <FormattedMessage id='playerOptions.reset' defaultMessage='Reset' />
+                      <FormattedMessage {...headerMessages.reset} />
                     </Button>
                   </div>
                   {isPitchSupported === false && (
                     <p className={styles.unsupported}>
                       {insecureContext
                         ? (
-                            <FormattedMessage
-                              id='playerOptions.pitchInsecure'
-                              defaultMessage='Pitch needs a secure context: use HTTPS or localhost.'
-                            />
+                            <FormattedMessage {...headerMessages.pitchInsecure} />
                           )
                         : (
-                            <FormattedMessage
-                              id='playerOptions.pitchUnavailable'
-                              defaultMessage='Pitch engine unavailable in this browser'
-                            />
+                            <FormattedMessage {...headerMessages.pitchUnavailable} />
                           )}
                     </p>
                   )}
@@ -278,13 +274,13 @@ const DisplayCtrl = ({
                 variant='default'
                 onClick={() => setEqualizerOpen(true)}
               >
-                <FormattedMessage id='playerOptions.equalizer' defaultMessage='Equalizer' />
+                <FormattedMessage {...commonMessages.equalizer} />
               </Button>
             </div>
 
             <div className={styles.container}>
               <InputCheckbox
-                label={intl.formatMessage({ id: 'playerOptions.replayGain', defaultMessage: 'ReplayGain' })}
+                label={intl.formatMessage(headerMessages.replayGain)}
                 checked={isReplayGainEnabled}
                 onChange={handleToggleReplayGain}
               />
@@ -305,13 +301,13 @@ const DisplayCtrl = ({
         <div className={clsx(styles.section, styles.lyrics)}>
           <fieldset>
             <legend>
-              <label><FormattedMessage id='playerOptions.lyrics' defaultMessage='Lyrics' /></label>
+              <label><FormattedMessage {...headerMessages.lyrics} /></label>
             </legend>
 
             {mediaType === 'cdg' && (
               <div className={styles.field}>
                 <label id='label-lyrics-size'>
-                  <FormattedMessage id='playerOptions.lyricsSize' defaultMessage='Size' />
+                  <FormattedMessage {...headerMessages.lyricsSize} />
                 </label>
                 <Slider
                   min={0.4}
@@ -328,7 +324,7 @@ const DisplayCtrl = ({
             {(mediaType === 'cdg' || isVideoKeyingEnabled) && (
               <div className={styles.field}>
                 <label id='label-lyrics-background'>
-                  <FormattedMessage id='playerOptions.lyricsBackground' defaultMessage='Background' />
+                  <FormattedMessage {...headerMessages.lyricsBackground} />
                 </label>
                 <Slider
                   min={0}
@@ -344,7 +340,7 @@ const DisplayCtrl = ({
 
             {mediaType !== 'cdg' && !isVideoKeyingEnabled && (
               <p className={styles.unsupported}>
-                <FormattedMessage id='playerOptions.noOptions' defaultMessage='No options available' />
+                <FormattedMessage {...headerMessages.noOptions} />
               </p>
             )}
           </fieldset>

@@ -3,7 +3,7 @@ import { IntlProvider } from 'react-intl'
 import { useAppSelector } from 'store/hooks'
 import { DEFAULT_LOCALE, loadLocaleMessages } from 'lib/intl'
 
-// loads the active locale file (English lives inline as defaultMessage)
+// loads the active locale file (English lives inline in the catalogues)
 // and provides react-intl below; other locales render English until
 // their file arrives, and permanently on load failure
 const IntlLoader = ({ children }: { children: React.ReactNode }) => {

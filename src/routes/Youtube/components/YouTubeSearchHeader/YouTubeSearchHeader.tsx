@@ -11,6 +11,8 @@ import {
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import styles from './YouTubeSearchHeader.css'
+import { commonMessages } from '../../../../lib/messages'
+import { youtubeMessages } from '../../messages'
 
 const parseVideoId = (value: string): string | null => {
   const match = value.match(
@@ -82,14 +84,14 @@ const YouTubeSearchHeader = () => {
         icon='MAGNIFIER'
         onClick={handleSearch}
         disabled={isSearching || !value.trim()}
-        aria-label={intl.formatMessage({ id: 'youtube.search.submit', defaultMessage: 'Search' })}
+        aria-label={intl.formatMessage(youtubeMessages.submit)}
       >
         <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />
       </Button>
       <input
         type='search'
         className={styles.searchInput}
-        placeholder={intl.formatMessage({ id: 'youtube.search.placeholder', defaultMessage: 'search / YouTube URL' })}
+        placeholder={intl.formatMessage(youtubeMessages.placeholder)}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -101,7 +103,7 @@ const YouTubeSearchHeader = () => {
             icon='CLEAR'
             onClick={clearSearch}
             className={clsx(styles.btnClear, styles.active)}
-            aria-label={intl.formatMessage({ id: 'youtube.search.clear', defaultMessage: 'Clear search' })}
+            aria-label={intl.formatMessage(commonMessages.clearSearch)}
           />
         )}
     </div>

@@ -3,6 +3,7 @@ import { FormattedMessage } from 'react-intl'
 import { useAppSelector } from 'store/hooks'
 import YouTubeSearchResult from '../YouTubeSearchResult/YouTubeSearchResult'
 import styles from './YouTubeSearch.css'
+import { youtubeMessages } from '../../messages'
 
 const YouTubeSearch = () => {
   const results = useAppSelector(state => state.youtube.results)
@@ -18,7 +19,7 @@ const YouTubeSearch = () => {
       {!isSearching && !error && hasSearched && results.length === 0
         && (
           <p className={styles.noResults}>
-            <FormattedMessage id='youtube.search.noResults' defaultMessage='No results found' />
+            <FormattedMessage {...youtubeMessages.noResults} />
           </p>
         )}
 

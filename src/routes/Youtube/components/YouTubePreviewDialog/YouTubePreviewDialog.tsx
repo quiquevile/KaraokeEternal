@@ -6,6 +6,8 @@ import Modal from 'components/Modal/Modal'
 import clsx from 'clsx'
 import { closeYoutubePreview, selectYoutubeResult } from 'store/modules/youtube'
 import styles from './YouTubePreviewDialog.css'
+import { commonMessages } from '../../../../lib/messages'
+import { youtubeMessages } from '../../messages'
 
 const PreviewBody = ({ preview }: { preview: { streamUrl: string | null } }) => {
   const [aspectRatio, setAspectRatio] = useState('16 / 9')
@@ -25,7 +27,7 @@ const PreviewBody = ({ preview }: { preview: { streamUrl: string | null } }) => 
       {!isReady && (
         <div
           className={styles.loading}
-          aria-label={intl.formatMessage({ id: 'youtube.preview.loading', defaultMessage: 'Loading preview' })}
+          aria-label={intl.formatMessage(youtubeMessages.loading)}
         />
       )}
       {preview.streamUrl
@@ -61,20 +63,20 @@ const YouTubePreviewDialog = () => {
     <Modal
       visible={!!preview}
       onClose={handleClose}
-      title={intl.formatMessage({ id: 'youtube.preview.title', defaultMessage: 'Preview' })}
+      title={intl.formatMessage(commonMessages.preview)}
       buttons={(
         <div className={styles.btnContainer}>
           <Button
             variant='default'
             onClick={handleClose}
           >
-            <FormattedMessage id='youtube.preview.cancel' defaultMessage='Cancel' />
+            <FormattedMessage {...commonMessages.cancel} />
           </Button>
           <Button
             variant='primary'
             onClick={handleDownload}
           >
-            <FormattedMessage id='youtube.preview.download' defaultMessage='Download' />
+            <FormattedMessage {...commonMessages.download} />
           </Button>
         </div>
       )}

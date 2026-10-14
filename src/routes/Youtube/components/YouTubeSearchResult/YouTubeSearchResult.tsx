@@ -5,6 +5,7 @@ import { openPreview, selectYoutubeResult } from 'store/modules/youtube'
 import type { YouTubeResult } from 'store/modules/youtube'
 import Icon from 'components/Icon/Icon'
 import styles from './YouTubeSearchResult.css'
+import { commonMessages } from '../../../../lib/messages'
 
 const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
   const dispatch = useAppDispatch()
@@ -25,7 +26,7 @@ const YouTubeSearchResult = ({ item }: { item: YouTubeResult }) => {
         type='button'
         className={styles.thumbnailButton}
         onClick={handlePreview}
-        aria-label={intl.formatMessage({ id: 'youtube.result.preview', defaultMessage: 'Preview' })}
+        aria-label={intl.formatMessage(commonMessages.preview)}
       >
         <img className={styles.thumbnail} src={item.thumbnail} alt='' />
         <Icon icon='PLAY' size={40} className={styles.thumbnailPlay} />

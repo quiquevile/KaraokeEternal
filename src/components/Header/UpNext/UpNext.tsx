@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { FormattedMessage } from 'react-intl'
 import { formatSeconds } from 'lib/dateTime'
 import styles from './UpNext.css'
+import { headerMessages } from '../messages'
 
 interface UpNextProps {
   isUpNow: boolean
@@ -18,8 +19,7 @@ const UpNext = (props: UpNextProps) => {
       <div className={clsx(styles.container, styles.upNow)}>
         <p className={styles.msg}>
           <FormattedMessage
-            id='header.upNext.now'
-            defaultMessage="You're up <strong>now</strong>"
+            {...headerMessages.now}
             values={{ strong }}
           />
         </p>
@@ -34,15 +34,13 @@ const UpNext = (props: UpNextProps) => {
           {props.wait
             ? (
                 <FormattedMessage
-                  id='header.upNext.nextIn'
-                  defaultMessage="You're up <strong>next</strong> in {wait}"
+                  {...headerMessages.nextIn}
                   values={{ strong, wait: formatSeconds(props.wait, true) }}
                 />
               )
             : (
                 <FormattedMessage
-                  id='header.upNext.next'
-                  defaultMessage="You're up <strong>next</strong>"
+                  {...headerMessages.next}
                   values={{ strong }}
                 />
               )}
@@ -56,8 +54,7 @@ const UpNext = (props: UpNextProps) => {
       <div className={clsx(styles.container, styles.inQueue)}>
         <p className={styles.msg}>
           <FormattedMessage
-            id='header.upNext.in'
-            defaultMessage="You're up in {wait}"
+            {...headerMessages.in}
             values={{ wait: formatSeconds(props.wait, true) }}
           />
         </p>

@@ -10,6 +10,8 @@ import { fetchCurrentRoomStatus, fetchOwnRoom, fetchRooms } from 'store/modules/
 import { hasPermission } from 'store/modules/user'
 import type { ConvertedMetadata, YouTubeResult } from 'store/modules/youtube'
 import styles from './YouTubeMetadataDialog.css'
+import { commonMessages } from '../../../../lib/messages'
+import { youtubeMessages } from '../../messages'
 
 const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadata: ConvertedMetadata | null }) => {
   const artist = useCaseField(metadata?.artist ?? selected.artist)
@@ -73,7 +75,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   return (
     <>
       <p className={styles.hint}>
-        <FormattedMessage id='youtube.download.hint' defaultMessage='Check artist and title' />
+        <FormattedMessage {...commonMessages.checkArtistTitle} />
       </p>
 
       <MetadataFields artist={artist} title={title} />
@@ -85,14 +87,14 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
             checked={queueChecked}
             onChange={() => setQueueChecked(!queueChecked)}
           />
-          <FormattedMessage id='youtube.download.queue' defaultMessage='Add to queue' />
+          <FormattedMessage {...youtubeMessages.queue} />
         </label>
       )}
 
       {canQueueForOthers && !roomClosed && (
         <label className={styles.queueRow}>
           <span className={styles.label}>
-            <FormattedMessage id='youtube.download.user' defaultMessage='User' />
+            <FormattedMessage {...youtubeMessages.user} />
           </span>
           <select
             value={queueUserId ?? user.userId ?? ''}
@@ -104,7 +106,7 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
                 {user.name}
                 {/* eslint-disable formatjs/no-literal-string-in-jsx -- whitespace, not prose */}
                 {' '}
-                <FormattedMessage id='youtube.download.you' defaultMessage='(you)' />
+                <FormattedMessage {...youtubeMessages.you} />
               </option>
             )}
             {downloadUsers
@@ -129,14 +131,14 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
           variant='default'
           onClick={handleClose}
         >
-          <FormattedMessage id='youtube.download.cancel' defaultMessage='Cancel' />
+          <FormattedMessage {...commonMessages.cancel} />
         </Button>
         <Button
           variant='primary'
           onClick={handleDownload}
           disabled={!artist.value.trim() || !title.value.trim()}
         >
-          <FormattedMessage id='youtube.download.download' defaultMessage='Download' />
+          <FormattedMessage {...commonMessages.download} />
         </Button>
       </div>
     </>
@@ -161,7 +163,7 @@ const YouTubeMetadataDialog = () => {
     <Modal
       visible={!!selected}
       onClose={handleClose}
-      title={intl.formatMessage({ id: 'youtube.download.title', defaultMessage: 'Download song' })}
+      title={intl.formatMessage(youtubeMessages.title)}
     >
       {selected
         && <MetadataForm key={selected.id} selected={selected} metadata={metadata} />}

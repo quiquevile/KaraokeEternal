@@ -2,6 +2,7 @@ import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import Button from 'components/Button/Button'
 import styles from './ProgressBar.css'
+import { headerMessages } from '../messages'
 
 interface ProgressBarProps {
   isActive: boolean
@@ -42,7 +43,7 @@ export default class ProgressBar extends React.Component<ProgressBarProps> {
       <div className={styles.container} style={{ backgroundSize: props.pct + '% 100%' }}>
         <p className={styles.text}>
           {state.isCanceling
-            ? <FormattedMessage id='progressBar.stopping' defaultMessage='Stopping...' />
+            ? <FormattedMessage {...headerMessages.stopping} />
             : props.text}
         </p>
         <Button

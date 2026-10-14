@@ -3,6 +3,7 @@ import { useIntl } from 'react-intl'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
 import styles from './VolumeSlider.css'
+import { headerMessages } from '../../messages'
 
 interface VolumeSliderProps {
   volume: number
@@ -38,7 +39,7 @@ const VolumeSlider = ({ volume, onVolumeChange }: VolumeSliderProps) => {
   return (
     <Slider
       className={styles.slider}
-      handle={makeHandle(intl.formatMessage({ id: 'player.volume', defaultMessage: 'Volume' }))}
+      handle={makeHandle(intl.formatMessage(headerMessages.volume))}
       min={0}
       max={1}
       onChange={onVolumeChange}

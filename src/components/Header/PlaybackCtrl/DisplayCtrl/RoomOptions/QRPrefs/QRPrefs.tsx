@@ -7,6 +7,7 @@ import Icon from 'components/Icon/Icon'
 import Slider from 'components/Slider/Slider'
 import type { IRoomPrefs } from 'shared/types'
 import styles from './QRPrefs.css'
+import { headerMessages } from '../../../../messages'
 
 interface QRPrefsProps {
   prefs: Partial<IRoomPrefs>
@@ -29,7 +30,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
         <div className={styles.heading}>
           <Icon icon='QR_CODE' />
           <div className={styles.title}>
-            <FormattedMessage id='playerOptions.display' defaultMessage='Display' />
+            <FormattedMessage {...headerMessages.display} />
           </div>
         </div>
       )}
@@ -37,11 +38,11 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
       <div className={styles.content}>
         <fieldset className={styles.qrBox}>
           <legend>
-            <label><FormattedMessage id='playerOptions.qrCode' defaultMessage='QR code' /></label>
+            <label><FormattedMessage {...headerMessages.qrCode} /></label>
           </legend>
           <div className={styles.field}>
             <InputCheckbox
-              label={intl.formatMessage({ id: 'playerOptions.showQr', defaultMessage: 'Show QR code' })}
+              label={intl.formatMessage(headerMessages.showQr)}
               checked={prefs?.qr?.isEnabled ?? false}
               onChange={event => handleSetPref({ qr: { ...prefs.qr, isEnabled: event.currentTarget.checked } })}
             />
@@ -49,7 +50,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
           {passwordPresent && (
             <div className={styles.field}>
               <InputCheckbox
-                label={intl.formatMessage({ id: 'playerOptions.qrPassword', defaultMessage: 'Include room password' })}
+                label={intl.formatMessage(headerMessages.qrPassword)}
                 checked={prefs?.qr?.includePassword ?? false}
                 onChange={event => handleSetPref({ qr: { ...prefs.qr, includePassword: event.currentTarget.checked } })}
               />
@@ -57,7 +58,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
           )}
           <div className={clsx(styles.field)}>
             <label id='label-qr-size'>
-              <FormattedMessage id='playerOptions.qrSize' defaultMessage='Size' />
+              <FormattedMessage {...headerMessages.qrSize} />
             </label>
             <Slider
               className={styles.slider}
@@ -71,7 +72,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
           </div>
           <div className={clsx(styles.field)}>
             <label id='label-qr-opacity'>
-              <FormattedMessage id='playerOptions.qrOpacity' defaultMessage='Opacity' />
+              <FormattedMessage {...headerMessages.qrOpacity} />
             </label>
             <Slider
               className={styles.slider}
@@ -86,7 +87,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
         </fieldset>
         <div className={styles.field}>
           <InputCheckbox
-            label={intl.formatMessage({ id: 'playerOptions.showProgress', defaultMessage: 'Show progress bar' })}
+            label={intl.formatMessage(headerMessages.showProgress)}
             checked={prefs?.progress?.isEnabled ?? true}
             onChange={event => handleSetPref({ progress: { ...prefs.progress, isEnabled: event.currentTarget.checked } })}
           />

@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import styles from './Modal.css'
+import { sharedMessages } from '../messages'
 
 export type ModalProps = {
   buttons?: React.ReactNode
@@ -64,7 +65,7 @@ const Modal = ({ buttons, className, children, visible = true, onClose, scrollab
           icon='CLEAR'
           className={styles.btnClose}
           onClick={onClose}
-          aria-label={intl.formatMessage({ id: 'modal.close', defaultMessage: 'Close' })}
+          aria-label={intl.formatMessage(sharedMessages.close)}
         />
       </div>
       <div className={clsx(styles.content, scrollable && styles.scrollable)}>{children}</div>

@@ -11,6 +11,8 @@ import EqualizerBand from './EqualizerBand'
 import { EQ_FREQUENCIES, EQ_PRESETS, isSlotActive } from 'routes/Player/lib/equalizer'
 import styles from './EqualizerDialog.css'
 import { PlaybackOptions } from 'shared/types'
+import { commonMessages } from '../../../../lib/messages'
+import { headerMessages } from '../../messages'
 
 interface EqualizerDialogProps {
   eqEnabled: boolean
@@ -96,7 +98,7 @@ const EqualizerDialog = ({
   return (
     <Modal
       onClose={onClose}
-      title={intl.formatMessage({ id: 'equalizer.title', defaultMessage: 'Equalizer' })}
+      title={intl.formatMessage(commonMessages.equalizer)}
       buttons={(
         <div className={styles.saveRow}>
           {maySavePresets && (
@@ -113,10 +115,7 @@ const EqualizerDialog = ({
                     className={styles.preset}
                     onClick={() => handleSaveCustom(name)}
                     disabled={!eqEnabled}
-                    aria-label={intl.formatMessage({
-                      id: 'equalizer.saveSlot',
-                      defaultMessage: 'Save current equalizer as {name}',
-                    }, { name })}
+                    aria-label={intl.formatMessage(headerMessages.saveSlot, { name })}
                     aria-pressed={isActive}
                   >
                     {name}
@@ -126,14 +125,14 @@ const EqualizerDialog = ({
             </div>
           )}
           <Button variant='primary' onClick={handleSave}>
-            <FormattedMessage id='equalizer.done' defaultMessage='Done' />
+            <FormattedMessage {...commonMessages.done} />
           </Button>
         </div>
       )}
     >
       <div className={styles.container}>
         <InputCheckbox
-          label={intl.formatMessage({ id: 'equalizer.enabled', defaultMessage: 'Equalizer' })}
+          label={intl.formatMessage(commonMessages.equalizer)}
           checked={eqEnabled}
           onChange={handleToggle}
         />

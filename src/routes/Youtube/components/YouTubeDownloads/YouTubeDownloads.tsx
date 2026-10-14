@@ -5,14 +5,15 @@ import Button from 'components/Button/Button'
 import { fetchDownloads, removeDownload } from 'store/modules/youtube'
 import type { DownloadJob } from 'store/modules/youtube'
 import styles from './YouTubeDownloads.css'
+import { youtubeMessages } from '../../messages'
 
 const STATUS_MESSAGES = {
-  queued: { id: 'youtube.downloads.queued', defaultMessage: 'queued' },
-  downloading: { id: 'youtube.downloads.downloading', defaultMessage: 'downloading' },
-  merging: { id: 'youtube.downloads.merging', defaultMessage: 'merging' },
-  registering: { id: 'youtube.downloads.registering', defaultMessage: 'registering' },
-  complete: { id: 'youtube.downloads.complete', defaultMessage: 'complete' },
-  failed: { id: 'youtube.downloads.failed', defaultMessage: 'failed' },
+  queued: youtubeMessages.queued,
+  downloading: youtubeMessages.downloading,
+  merging: youtubeMessages.merging,
+  registering: youtubeMessages.registering,
+  complete: youtubeMessages.complete,
+  failed: youtubeMessages.failed,
 } as const
 
 const DownloadJobItem = ({ job, onRemove }: { job: DownloadJob, onRemove (id: string): void }) => {
@@ -55,7 +56,7 @@ const DownloadJobItem = ({ job, onRemove }: { job: DownloadJob, onRemove (id: st
             icon='CLEAR'
             className={styles.remove}
             onClick={() => onRemove(job.id)}
-            aria-label={intl.formatMessage({ id: 'youtube.downloads.remove', defaultMessage: 'Remove notification' })}
+            aria-label={intl.formatMessage(youtubeMessages.remove)}
           />
         )}
     </li>

@@ -5,6 +5,7 @@ import Icon from 'components/Icon/Icon'
 import loadImage from 'blueimp-load-image'
 import { User } from 'shared/types'
 import styles from './InputImage.css'
+import { sharedMessages } from '../messages'
 
 interface UserImageProps {
   user?: User
@@ -95,7 +96,7 @@ const InputImage = ({ user, onSelect }: UserImageProps) => {
           height={72}
           onLoad={handleImgLoad}
           onError={handleImgError}
-          alt={intl.formatMessage({ id: 'inputImage.alt', defaultMessage: 'User Profile' })}
+          alt={intl.formatMessage(sharedMessages.alt)}
         />
       )}
 

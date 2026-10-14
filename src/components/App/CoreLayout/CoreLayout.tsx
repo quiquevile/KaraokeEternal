@@ -8,6 +8,7 @@ import useResizeObserver from 'use-resize-observer'
 import '../../../styles/global.css'
 import Button from 'components/Button/Button'
 import Header from 'components/Header/Header'
+import { sharedMessages } from 'components/messages'
 import Navigation from 'components/Navigation/Navigation'
 import Modal from 'components/Modal/Modal'
 import SongInfo from 'components/SongInfo/SongInfo'
@@ -52,11 +53,11 @@ const CoreLayout = () => {
 
       {ui.isErrored && (
         <Modal
-          title={intl.formatMessage({ id: 'app.errorTitle', defaultMessage: 'Oops...' })}
+          title={intl.formatMessage(sharedMessages.appErrorTitle)}
           onClose={closeError}
           buttons={(
             <Button variant='primary' onClick={closeError}>
-              <FormattedMessage id='app.ok' defaultMessage='OK' />
+              <FormattedMessage {...sharedMessages.appOk} />
             </Button>
           )}
         >

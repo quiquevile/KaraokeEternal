@@ -54,4 +54,19 @@ describe('locale parity', () => {
     expect([...defined].filter(id => !keys.has(id))).toEqual([])
     expect([...keys].filter(key => !defined.has(key))).toEqual([])
   })
+
+  it('has no inline defaultMessage literals outside catalogue files', () => {
+    const root = path.resolve(__dirname, '../..')
+    const offenders: string[] = []
+
+    for (const file of walkFiles(path.join(root, 'src'), ['.ts', '.tsx'])) {
+      if (file.endsWith('/messages.ts')) continue
+
+      const source = fs.readFileSync(file, 'utf8')
+
+      if (/defaultMessage\s*:\s*['"]/.test(source)) offenders.push(path.relative(root, file))
+    }
+
+    expect(offenders).toEqual([])
+  })
 })

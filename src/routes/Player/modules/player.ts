@@ -3,6 +3,7 @@ import { AppThunk } from 'store/store'
 import { CANCEL } from 'redux-throttle'
 import getWebGLSupport from 'lib/getWebGLSupport'
 import { EQ_FREQUENCIES, EQ_PRESETS, clampEqGain } from '../lib/equalizer'
+import { roomSwitched } from 'store/modules/status'
 import {
   PLAYER_CMD_NEXT,
   PLAYER_CMD_OPTIONS,
@@ -213,6 +214,10 @@ const playerReducer = createReducer(initialState, (builder) => {
     .addCase(playerUpdate, (state, { payload }) => ({
       ...state,
       ...payload,
+    }))
+    // room switch drops all room-scoped player state (same as status)
+    .addCase(roomSwitched, () => ({
+      ...initialState,
     }))
 })
 

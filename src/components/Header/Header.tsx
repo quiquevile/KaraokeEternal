@@ -13,6 +13,7 @@ import LibraryHeader from 'routes/Library/components/LibraryHeader/LibraryHeader
 import YouTubeSearchHeader from 'routes/Youtube/components/YouTubeSearchHeader/YouTubeSearchHeader'
 import PlaybackCtrl from './PlaybackCtrl/PlaybackCtrl'
 import ProgressBar from './ProgressBar/ProgressBar'
+import RoomBadge from './PlaybackCtrl/RoomBadge/RoomBadge'
 import UpNext from './UpNext/UpNext'
 import styles from './Header.css'
 
@@ -73,6 +74,8 @@ const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
 
   return (
     <div className={clsx(styles.container, 'bg-blur')} ref={ref}>
+      <RoomBadge />
+
       {!isPlayer && isPlayerPresent
         && <UpNext isUpNext={isUpNext} isUpNow={isUpNow} wait={wait} />}
 

@@ -11,6 +11,7 @@ import {
   PLAYER_LEAVE,
 } from 'shared/actionTypes'
 import { MediaType, PlaybackOptions } from 'shared/types'
+import { ROOM_SWITCHED } from 'shared/actionTypes'
 
 // ------------------------------------
 // Actions
@@ -20,6 +21,10 @@ export const requestPause = createAction(PLAYER_REQ_PAUSE)
 export const requestPlayNext = createAction(PLAYER_REQ_NEXT)
 const playerStatus = createAction<object>(PLAYER_STATUS)
 const playerLeave = createAction(PLAYER_LEAVE)
+
+// room switch drops all room-scoped player state: the server only pushes
+// fresh status if the new room has a player
+export const roomSwitched = createAction(ROOM_SWITCHED)
 
 export const requestReplay = createAction(PLAYER_REQ_REPLAY, (queueId: number) => ({
   payload: { queueId },
@@ -109,6 +114,9 @@ const statusReducer = createReducer(initialState, (builder) => {
       ...state,
       ...payload,
       isPlayerPresent: true,
+    }))
+    .addCase(roomSwitched, () => ({
+      ...initialState,
     }))
 })
 

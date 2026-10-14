@@ -8,6 +8,8 @@ import HttpApi from 'lib/HttpApi'
 import Persistor from 'store/Persistor'
 import type { Permission } from 'shared/types'
 import { fetchGainStatus, fetchPrefs } from './prefs'
+import { fetchRooms } from './rooms'
+import { roomSwitched } from './status'
 import {
   ACCOUNT_RECEIVE,
   ACCOUNT_REQUEST,
@@ -74,6 +76,8 @@ export const switchRoom = createAsyncThunk(
     })
 
     thunkAPI.dispatch(receiveAccount(user))
+    thunkAPI.dispatch(roomSwitched())
+    thunkAPI.dispatch(fetchRooms())
     socket.close()
     thunkAPI.dispatch(connectSocket())
     socket.open()

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PLAYER_CMD_OPTIONS } from 'shared/actionTypes.js'
+import { roomSwitched } from 'store/modules/status'
 import playerReducer from './player'
 
 describe('playerCmdOptions', () => {
@@ -31,5 +32,18 @@ describe('playerCmdOptions', () => {
       payload: { isReplayGainEnabled: true },
     })
     expect(on.isReplayGainEnabled).toBe(true)
+  })
+})
+
+describe('switchRoom', () => {
+  it('resets room-scoped player state', () => {
+    const dirty = playerReducer(undefined, {
+      type: PLAYER_CMD_OPTIONS,
+      payload: { pitchSemitones: 2 },
+    })
+    expect(dirty.pitchSemitones).toBe(2)
+
+    const reset = playerReducer(dirty, roomSwitched())
+    expect(reset).toEqual(playerReducer(undefined, { type: '@@INIT' } as never))
   })
 })

@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { FormattedMessage } from 'react-intl'
-import { useAppSelector } from 'store/hooks'
+import { useAppDispatch, useAppSelector } from 'store/hooks'
+import { fetchRooms } from 'store/modules/rooms'
 import { Link } from 'react-router'
 import styles from './RoomBadge.css'
 import { headerMessages } from '../../messages'
@@ -13,6 +14,14 @@ const RoomBadge = () => {
   const roomName = useAppSelector(state =>
     (typeof roomId === 'number' ? state.rooms.entities[roomId]?.name : undefined),
   )
+  const dispatch = useAppDispatch()
+
+  // rooms load lazily per page: fetch when our own entry is missing
+  useEffect(() => {
+    if (isAdmin && typeof roomId === 'number' && !roomName) {
+      dispatch(fetchRooms())
+    }
+  }, [dispatch, isAdmin, roomId, roomName])
 
   if (!isAdmin || typeof roomId !== 'number' || !roomName) return null
 

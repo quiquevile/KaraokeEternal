@@ -1,5 +1,6 @@
 export const SOCKET_REQUEST_CONNECT = 'user/SOCKET_REQUEST_CONNECT'
 export const SOCKET_AUTH_ERROR = 'user/SOCKET_AUTH_ERROR'
+export const ROOM_SWITCHED = 'user/ROOM_SWITCHED'
 
 // Library
 export const LIBRARY_FILTER_STRING = 'library/FILTER_KEYWORD'

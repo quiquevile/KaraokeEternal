@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
+import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useLongPress } from 'use-long-press'
-import { useAppDispatch } from 'store/hooks'
+import { useAppDispatch, useAppSelector } from 'store/hooks'
+import Icon from 'components/Icon/Icon'
 import Button from 'components/Button/Button'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
@@ -13,11 +15,14 @@ import { showSongInfo } from 'store/modules/songInfo'
 import { toggleSongStarred } from 'store/modules/userStars'
 import { showErrorMessage } from 'store/modules/ui'
 import { queueSong, removeItem } from '../../modules/queue'
+import { resetFilterStr, scrollArtists, setFilterStr, setLocateSongId, toggleArtistExpanded } from 'routes/Library/modules/library'
 import styles from './QueueItem.css'
 import { commonMessages } from '../../../../lib/messages'
 import { queueMessages } from '../../messages'
 
 const LONG_PRESS_THRESHOLD_MS = 700
+// right-drag distance that triggers locate-in-library
+const LOCATE_THRESHOLD_PX = 120
 
 interface QueueItemProps {
   artist: string
@@ -109,11 +114,63 @@ const QueueItem = ({
   const handleRemoveClick = () => dispatch(removeItem({ queueId }))
   const handleStarClick = () => dispatch(toggleSongStarred(songId))
 
+  const songs = useAppSelector(state => state.songs.entities)
+  const artistIds = useAppSelector(state => state.artists.result)
+  const expandedArtists = useAppSelector(state => state.library.expandedArtists)
+  const navigate = useNavigate()
+  const locateXRef = useRef(0)
+  const [locateX, setLocateX] = useState(0)
+
+  const handleLocate = () => {
+    const song = songs[songId]
+    const artistId = song?.artistId
+    const artistRow = typeof artistId === 'number' ? artistIds.indexOf(artistId) : -1
+
+    if (typeof artistId !== 'number' || artistRow === -1) {
+      // song gone from the library: fall back to a title search
+      dispatch(setFilterStr(title))
+      navigate('/library')
+      return
+    }
+
+    dispatch(resetFilterStr())
+
+    if (!expandedArtists.includes(artistId)) {
+      dispatch(toggleArtistExpanded(artistId))
+    }
+
+    dispatch(scrollArtists(artistRow))
+    dispatch(setLocateSongId(songId))
+    navigate('/library')
+  }
+
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
       setExpanded(isErrored || isEditable || isInfoable || isMovable || isRemovable || isSkippable || isReplayable)
     },
-    onSwipedRight: () => setExpanded(false),
+    onSwipedRight: () => {
+      if (!isExpanded && locateXRef.current >= LOCATE_THRESHOLD_PX) {
+        handleLocate()
+      } else {
+        setExpanded(false)
+      }
+
+      locateXRef.current = 0
+      setLocateX(0)
+    },
+    onSwiping: (e) => {
+      if (isExpanded || e.dir !== 'Right' || e.deltaX <= 0) {
+        if (locateXRef.current !== 0) {
+          locateXRef.current = 0
+          setLocateX(0)
+        }
+
+        return
+      }
+
+      locateXRef.current = e.deltaX
+      setLocateX(Math.min(e.deltaX, LOCATE_THRESHOLD_PX))
+    },
     preventScrollOnSwipe: true,
     trackMouse: true,
   })
@@ -137,6 +194,8 @@ const QueueItem = ({
     }
   }, { threshold: LONG_PRESS_THRESHOLD_MS, cancelOnMovement: true })
 
+  const locateRatio = locateX / LOCATE_THRESHOLD_PX
+
   return (
     <div
       {...swipeHandlers}
@@ -147,6 +206,19 @@ const QueueItem = ({
       )}
       style={{ '--progress': (isCurrent && pctPlayed < 2 ? 2 : pctPlayed) + '%' } as React.CSSProperties}
     >
+      {locateX > 0 && (
+        <div
+          className={styles.locateGhost}
+          style={{
+            transform: `translateX(${locateX}px) scale(${1 + locateRatio * 0.3})`,
+            opacity: 0.4 + locateRatio * 0.6,
+            filter: `drop-shadow(0 0 ${Math.round(locateRatio * 10)}px var(--btn-active-bg-color))`,
+          }}
+          aria-hidden
+        >
+          <Icon icon='MAGNIFIER' size={32} />
+        </div>
+      )}
       <div className={styles.content}>
         <div className={clsx(styles.imageContainer, isPlayed && styles.greyed)}>
           <UserImage userId={userId} dateUpdated={userDateUpdated} />

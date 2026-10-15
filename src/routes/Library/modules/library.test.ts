@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import reducer, { toggleArtistResultExpanded } from './library'
+import reducer, {
+  resetFilterStr,
+  setFilterStr,
+  setLocateSongId,
+  toggleArtistResultExpanded,
+} from './library'
 
 describe('toggleArtistResultExpanded', () => {
   it('expands a collapsed artist', () => {
@@ -29,5 +34,24 @@ describe('toggleArtistResultExpanded', () => {
     const twice = reducer(once, toggleArtistResultExpanded({ artistId: 7, isExpanded: true }))
 
     expect(twice.collapsedArtistResults).toEqual([7])
+  })
+})
+
+describe('setLocateSongId', () => {
+  it('sets and clears the located song', () => {
+    const located = reducer(undefined, setLocateSongId(42))
+
+    expect(located.locateSongId).toBe(42)
+
+    const cleared = reducer(located, setLocateSongId(null))
+
+    expect(cleared.locateSongId).toBe(null)
+  })
+
+  it('drops the highlight when the filter changes', () => {
+    const located = reducer(undefined, setLocateSongId(42))
+
+    expect(reducer(located, setFilterStr('queen')).locateSongId).toBe(null)
+    expect(reducer(located, resetFilterStr()).locateSongId).toBe(null)
   })
 })

@@ -38,6 +38,25 @@
   animation: var(--animation-text-shadow-glow);
 }
 
+.located {
+  border-left-color: var(--btn-active-bg-color);
+  animation: located-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes located-pulse {
+  0% {
+    background-color: hsl(var(--hue-blue), 40%, 6%);
+  }
+
+  50% {
+    background-color: hsl(var(--hue-blue), 60%, 18%);
+  }
+
+  100% {
+    background-color: hsl(var(--hue-blue), 40%, 6%);
+  }
+}
+
 .duration {
   color: var(--color-gray-5);
   font-size: 14px;

@@ -27,6 +27,7 @@ interface SongItemProps {
   isPlayed: boolean
   isStarred: boolean
   isUpcoming: boolean
+  isHighlighted?: boolean
   isAdmin: boolean
   numStars: number
   numMedia: number
@@ -46,6 +47,7 @@ const SongItem = ({
   isPlayed,
   isStarred,
   isUpcoming,
+  isHighlighted,
   isAdmin,
   numStars,
   numMedia,
@@ -85,6 +87,7 @@ const SongItem = ({
         isUpcoming && styles.upcoming,
         isStarred && styles.starred,
         isExpanded && styles.expanded,
+        isHighlighted && styles.located,
         artist && styles.withArtist,
       )}
     >

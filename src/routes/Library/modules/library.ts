@@ -5,6 +5,7 @@ import {
   LIBRARY_FILTER_TOGGLE_STARRED,
   LIBRARY_FILTER_TOGGLE_DOWNLOADED,
   LIBRARY_PUSH,
+  LOCATE_SONG,
   TOGGLE_ARTIST_EXPANDED,
   TOGGLE_ARTIST_RESULT_EXPANDED,
   SCROLL_ARTISTS,
@@ -14,6 +15,7 @@ import {
 // Actions
 // ------------------------------------
 export const scrollArtists = createAction<number>(SCROLL_ARTISTS)
+export const setLocateSongId = createAction<number | null>(LOCATE_SONG)
 export const toggleArtistExpanded = createAction<number>(TOGGLE_ARTIST_EXPANDED)
 export const toggleArtistResultExpanded = createAction<{ artistId: number, isExpanded: boolean }>(TOGGLE_ARTIST_RESULT_EXPANDED)
 const libraryPush = createAction<LibraryState>(LIBRARY_PUSH)
@@ -41,6 +43,7 @@ export interface LibraryState {
   filterStarred: boolean
   filterDownloaded: boolean
   scrollRow: number
+  locateSongId: number | null
   expandedArtists: number[]
   expandedArtistResults: number[]
   collapsedArtistResults: number[]
@@ -53,6 +56,7 @@ const initialState: LibraryState = {
   filterStarred: false,
   filterDownloaded: false,
   scrollRow: 0,
+  locateSongId: null,
   expandedArtists: [],
   expandedArtistResults: [],
   collapsedArtistResults: [],
@@ -62,15 +66,22 @@ const libraryReducer = createReducer(initialState, (builder) => {
   builder
     .addCase(setFilterStr, (state, { payload }) => {
       state.filterStr = payload
+      state.locateSongId = null
     })
     .addCase(resetFilterStr, (state) => {
       state.filterStr = ''
+      state.locateSongId = null
     })
     .addCase(toggleFilterStarred, (state) => {
       state.filterStarred = !state.filterStarred
+      state.locateSongId = null
     })
     .addCase(toggleFilterDownloaded, (state) => {
       state.filterDownloaded = !state.filterDownloaded
+      state.locateSongId = null
+    })
+    .addCase(setLocateSongId, (state, { payload }) => {
+      state.locateSongId = payload
     })
     .addCase(scrollArtists, (state, { payload }) => {
       state.scrollRow = payload

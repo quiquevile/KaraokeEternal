@@ -23,13 +23,13 @@ const RoomBadge = () => {
     }
   }, [dispatch, isAdmin, roomId, roomName])
 
-  if (!isAdmin || typeof roomId !== 'number' || !roomName) return null
+  if (!isAdmin) return null
 
   return (
     <div className={styles.container}>
       <p className={styles.msg}>
         <Link to='/account'>
-          <FormattedMessage {...headerMessages.roomBadge} values={{ name: roomName }} />
+          <FormattedMessage {...headerMessages.roomBadge} values={{ name: roomName ?? '---' }} />
         </Link>
       </p>
     </div>

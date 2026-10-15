@@ -6,7 +6,6 @@ import QueueListAnimator from '../QueueListAnimator/QueueListAnimator'
 import { formatSeconds } from 'lib/dateTime'
 import { moveItem, removeUpcomingItems } from '../../modules/queue'
 import { hasPermission } from 'store/modules/user'
-import { showSongEditor } from 'store/modules/songInfo'
 import getPlayerHistory from '../../selectors/getPlayerHistory'
 import getMoveAnchor from '../../selectors/getMoveAnchor'
 import getRoundRobinQueue from '../../selectors/getRoundRobinQueue'
@@ -39,10 +38,6 @@ const QueueList = () => {
     dispatch(removeUpcomingItems(userId))
   }
 
-  const handleEditClick = (songId: number) => {
-    dispatch(showSongEditor(songId))
-  }
-
   // build children array
   const items = queue.result.map((qId) => {
     const item = queue.entities[qId]
@@ -63,8 +58,6 @@ const QueueList = () => {
     const isPlayed = !isUpcoming && !isCurrent
     const isOwner = item.userId === user.userId
 
-    const isInfoable = user.isAdmin
-
     return (
       <QueueItem
         {...item}
@@ -73,8 +66,6 @@ const QueueList = () => {
         isCurrent={isCurrent}
         key={qId}
         isErrored={isCurrent && isErrored}
-        isInfoable={isInfoable}
-        isEditable={user.isAdmin}
         isMovable={isUpcoming && (isOwner || hasPermission(user, 'queueMove'))}
         isOwner={isOwner}
         isPlayed={isPlayed}
@@ -90,7 +81,6 @@ const QueueList = () => {
         wait={formatSeconds(waits[qId], true)} // fuzzy
         // actions
         onMoveClick={handleMoveClick}
-        onEditClick={handleEditClick}
         onRemoveUpcoming={handleRemoveUpcoming}
       />
     )

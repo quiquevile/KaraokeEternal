@@ -11,7 +11,6 @@ import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
 import UserImage from 'components/UserImage/UserImage'
 import { requestPlayNext, requestReplay } from 'store/modules/status'
-import { showSongInfo } from 'store/modules/songInfo'
 import { toggleSongStarred } from 'store/modules/userStars'
 import { showErrorMessage } from 'store/modules/ui'
 import { queueSong, removeItem } from '../../modules/queue'
@@ -24,7 +23,6 @@ import {
   toggleFilterStarred,
 } from 'routes/Library/modules/library'
 import styles from './QueueItem.css'
-import { commonMessages } from '../../../../lib/messages'
 import { queueMessages } from '../../messages'
 
 const LONG_PRESS_THRESHOLD_MS = 700
@@ -36,8 +34,6 @@ interface QueueItemProps {
   errorMessage: string
   isCurrent: boolean
   isErrored: boolean
-  isEditable: boolean
-  isInfoable: boolean
   isMovable: boolean
   isOwner: boolean
   isPlayed: boolean
@@ -58,7 +54,6 @@ interface QueueItemProps {
   wait?: string
   // actions
   onMoveClick(queueId: number): void
-  onEditClick(songId: number): void
   onRemoveUpcoming: (userId: number) => void
 }
 
@@ -67,8 +62,6 @@ const QueueItem = ({
   errorMessage,
   isCurrent,
   isErrored,
-  isEditable,
-  isInfoable,
   isMovable,
   isOwner,
   isPlayed,
@@ -78,7 +71,6 @@ const QueueItem = ({
   isSkippable,
   isStarred,
   isUpcoming,
-  onEditClick,
   onMoveClick,
   onRemoveUpcoming,
   pctPlayed,
@@ -97,11 +89,6 @@ const QueueItem = ({
   const intl = useIntl()
 
   const handleErrorInfoClick = () => dispatch(showErrorMessage(errorMessage))
-  const handleInfoClick = () => dispatch(showSongInfo(songId))
-  const handleEditClick = () => {
-    onEditClick(songId)
-    setExpanded(false)
-  }
   const handleMoveClick = () => {
     onMoveClick(queueId)
     setExpanded(false)
@@ -163,7 +150,7 @@ const QueueItem = ({
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
-      setExpanded(isErrored || isEditable || isInfoable || isMovable || isRemovable || isSkippable || isReplayable)
+      setExpanded(isErrored || isMovable || isRemovable || isSkippable || isReplayable)
     },
     onSwipedRight: () => {
       if (!isExpanded && locateXRef.current >= LOCATE_THRESHOLD_PX) {
@@ -272,24 +259,6 @@ const QueueItem = ({
             onClick={handleStarClick}
             count={starCount}
           />
-          {isInfoable && (
-            <Button
-              className={styles.active}
-              data-hide
-              icon='INFO_OUTLINE'
-              onClick={handleInfoClick}
-              aria-label={intl.formatMessage(commonMessages.songInfo)}
-            />
-          )}
-          {isEditable && (
-            <Button
-              className={styles.active}
-              data-hide
-              icon='EDIT'
-              onClick={handleEditClick}
-              aria-label={intl.formatMessage(commonMessages.editSong)}
-            />
-          )}
           {isMovable && (
             <Button
               className={clsx(styles.btnMove, styles.active)}

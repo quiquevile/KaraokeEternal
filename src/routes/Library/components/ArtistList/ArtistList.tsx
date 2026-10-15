@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ensureState } from 'redux-optimistic-ui'
 import { RootState } from 'store/store'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
@@ -68,6 +68,16 @@ const ArtistList = ({
   const lastScrollRow = useRef(scrollRow) // current visible row
   const list = useRef<ListImperativeAPI | null>(null)
   const hasRestoredScroll = useRef(false)
+  // bumped when the virtualized list attaches: refs are not reactive,
+  // so without this the locate effect below would never retry a late
+  // attach (its other deps may never change again)
+  const [listTick, setListTick] = useState(0)
+  // bumped when new rows render while a locate is active: react-window
+  // estimates the total size from rendered rows only, so scrollHeight
+  // grows as the bottom rows materialize and the locate scroll must be
+  // redone with the real geometry (converges: scrollHeight stops growing)
+  const [renderTick, setRenderTick] = useState(0)
+  const locateRef = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
@@ -86,19 +96,20 @@ const ArtistList = ({
     return height
   }
 
-  const handledLocate = useRef<{ songId: number, headerHeight: number } | null>(null)
+  const handledLocate = useRef<{ songId: number, headerHeight: number, footerHeight: number, scrollHeight: number } | null>(null)
 
   // locate-in-library: scroll the located song fully into view, redoing
-  // the math if the async-measured header height shifts afterwards
+  // the math whenever the geometry it was computed with goes stale:
+  // async-measured header/footer heights, late list attach, or
+  // react-window's estimated total size growing as rows materialize
   // (row restores stay untouched)
   useEffect(() => {
+    locateRef.current = locateSongId
+
     if (!locateSongId) {
       handledLocate.current = null
       return
     }
-
-    if (handledLocate.current?.songId === locateSongId
-      && handledLocate.current.headerHeight === ui.headerHeight) return
 
     const artistId = songs[locateSongId]?.artistId
 
@@ -118,6 +129,12 @@ const ArtistList = ({
     const songPos = songIds.indexOf(locateSongId)
 
     if (songPos === -1) return
+
+    // geometry unchanged since the last scroll: nothing to redo
+    if (handledLocate.current?.songId === locateSongId
+      && handledLocate.current.headerHeight === ui.headerHeight
+      && handledLocate.current.footerHeight === ui.footerHeight
+      && handledLocate.current.scrollHeight === el.scrollHeight) return
 
     const artistHeights = artists.result.map((id) => {
       const songsCount = expandedArtists.includes(id)
@@ -142,10 +159,22 @@ const ArtistList = ({
       list.current?.scrollToRow({ index: artistIdx + 1, align: 'center' })
     }
 
-    handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight }
-  }, [locateSongId, songs, artists, expandedArtists, dispatch, ui.headerHeight])
+    handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight, footerHeight: ui.footerHeight, scrollHeight: el.scrollHeight }
+  }, [locateSongId, songs, artists, expandedArtists, dispatch, ui.headerHeight, ui.footerHeight, listTick, renderTick])
 
   const handleRowsRendered = ({ startIndex }: { startIndex: number }) => {
+    // while locating, newly rendered rows can grow react-window's
+    // estimated total size: retry the locate scroll with real geometry
+    if (locateRef.current) {
+      const scrollHeight = list.current?.element?.scrollHeight
+      const handled = handledLocate.current
+
+      if (!handled || handled.songId !== locateRef.current
+        || (typeof scrollHeight === 'number' && scrollHeight !== handled.scrollHeight)) {
+        setRenderTick(t => t + 1)
+      }
+    }
+
     // before restoration runs, ignore the initial startIndex=0 that fires
     // because the list defaults to scrollTop=0; otherwise it would falsely
     // overwrite our saved row when the user navigates away before scrolling.
@@ -165,6 +194,12 @@ const ArtistList = ({
 
   const handleRef = useCallback((ref: ListImperativeAPI | null) => {
     list.current = ref
+
+    if (ref) setListTick(t => t + 1)
+
+    // a pending locate owns the scroll: restoring a stale saved row here
+    // would clobber it (the ref can attach after the locate effect ran)
+    if (locateRef.current) return
 
     if (ref?.element && !hasRestoredScroll.current && initialScrollRow.current) {
       ref.scrollToRow({ index: initialScrollRow.current, align: 'start', behavior: 'instant' })

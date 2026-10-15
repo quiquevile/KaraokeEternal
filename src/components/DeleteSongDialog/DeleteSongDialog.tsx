@@ -106,6 +106,7 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
   const [selected, setSelected] = useState<number[]>([])
   const [previewId, setPreviewId] = useState<number | null>(null)
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
   useEffect(() => {
     dispatch(fetchSongMedia(songId))
@@ -122,12 +123,25 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
   const handleDeleteSelected = () => {
     if (!selected.length) return
 
+    if (!confirm(intl.formatMessage(sharedMessages.deleteSelectedConfirm, {
+      count: selected.length,
+      artist: artistName,
+      title: song.title,
+    }))) return
+
     dispatch(deleteMedia(selected))
     setSelected([])
     setPreviewId(null)
   }
 
-  const handleDeleteAll = () => dispatch(deleteSong(songId))
+  const handleDeleteAll = () => {
+    if (!confirm(intl.formatMessage(sharedMessages.deleteAllConfirm, {
+      artist: artistName,
+      title: song.title,
+    }))) return
+
+    dispatch(deleteSong(songId))
+  }
 
   return (
     <>

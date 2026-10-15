@@ -61,6 +61,8 @@ const ArtistList = ({
   const dispatch = useAppDispatch()
   const { expandedArtists } = useAppSelector(state => state.library)
   const scrollRow = useAppSelector(state => state.library.scrollRow)
+  const locateSongId = useAppSelector(state => state.library.locateSongId)
+  const songs = useAppSelector(state => state.songs.entities)
   const alphaPickerMap = useAppSelector(getAlphaPickerMap)
   const artists = useAppSelector(state => state.artists)
 
@@ -85,6 +87,52 @@ const ArtistList = ({
 
     return height
   }
+
+  const handledLocate = useRef<number | null>(null)
+
+  // locate-in-library: scroll the located song fully into view, once per
+  // locate (retries as data/expansion settles; row restores stay untouched)
+  useEffect(() => {
+    if (!locateSongId) {
+      handledLocate.current = null
+      return
+    }
+
+    if (handledLocate.current === locateSongId) return
+
+    const artistId = songs[locateSongId]?.artistId
+
+    if (typeof artistId !== 'number') return
+
+    const artistIdx = artists.result.indexOf(artistId)
+    const el = list.current?.element
+
+    if (artistIdx === -1 || !el) return
+
+    if (!expandedArtists.includes(artistId)) {
+      dispatch(toggleArtistExpanded(artistId))
+      return
+    }
+
+    const songPos = artists.entities[artistId].songIds.indexOf(locateSongId)
+
+    if (songPos === -1) return
+
+    let offset = ui.headerHeight
+
+    for (let i = 0; i < artistIdx; i++) {
+      const rowArtistId = artists.result[i]
+      offset += ROW_HEIGHT_ARTIST
+
+      if (expandedArtists.includes(rowArtistId)) {
+        offset += artists.entities[rowArtistId].songIds.length * ROW_HEIGHT_SONG
+      }
+    }
+
+    offset += ROW_HEIGHT_ARTIST + songPos * ROW_HEIGHT_SONG
+    el.scrollTo({ top: Math.max(0, offset - el.clientHeight * 0.25), behavior: 'instant' })
+    handledLocate.current = locateSongId
+  }, [locateSongId, songs, artists, expandedArtists, dispatch, ui.headerHeight])
 
   const handleRowsRendered = ({ startIndex }: { startIndex: number }) => {
     // before restoration runs, ignore the initial startIndex=0 that fires

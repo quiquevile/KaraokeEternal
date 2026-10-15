@@ -15,7 +15,14 @@ import { showSongInfo } from 'store/modules/songInfo'
 import { toggleSongStarred } from 'store/modules/userStars'
 import { showErrorMessage } from 'store/modules/ui'
 import { queueSong, removeItem } from '../../modules/queue'
-import { resetFilterStr, scrollArtists, setFilterStr, setLocateSongId, toggleArtistExpanded } from 'routes/Library/modules/library'
+import {
+  resetFilterStr,
+  setFilterStr,
+  setLocateSongId,
+  toggleArtistExpanded,
+  toggleFilterDownloaded,
+  toggleFilterStarred,
+} from 'routes/Library/modules/library'
 import styles from './QueueItem.css'
 import { commonMessages } from '../../../../lib/messages'
 import { queueMessages } from '../../messages'
@@ -117,6 +124,8 @@ const QueueItem = ({
   const songs = useAppSelector(state => state.songs.entities)
   const artistIds = useAppSelector(state => state.artists.result)
   const expandedArtists = useAppSelector(state => state.library.expandedArtists)
+  const filterStarred = useAppSelector(state => state.library.filterStarred)
+  const filterDownloaded = useAppSelector(state => state.library.filterDownloaded)
   const navigate = useNavigate()
   const locateXRef = useRef(0)
   const [locateX, setLocateX] = useState(0)
@@ -135,11 +144,19 @@ const QueueItem = ({
 
     dispatch(resetFilterStr())
 
+    if (filterStarred) {
+      dispatch(toggleFilterStarred())
+    }
+
+    if (filterDownloaded) {
+      dispatch(toggleFilterDownloaded())
+    }
+
     if (!expandedArtists.includes(artistId)) {
       dispatch(toggleArtistExpanded(artistId))
     }
 
-    dispatch(scrollArtists(artistRow))
+    // the row scroll happens in ArtistList once mounted with data
     dispatch(setLocateSongId(songId))
     navigate('/library')
   }

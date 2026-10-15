@@ -8,10 +8,8 @@ import getSongsStatus from '../../selectors/getSongsStatus'
 import PaddedList from 'components/PaddedList/PaddedList'
 import AlphaPicker from '../AlphaPicker/AlphaPicker'
 import ArtistItem from '../ArtistItem/ArtistItem'
+import { ROW_HEIGHT_ARTIST, ROW_HEIGHT_SONG, locateSongOffset } from '../../lib/locate'
 import type { ListImperativeAPI, RowComponentProps } from 'react-window'
-
-const ROW_HEIGHT_ARTIST = 48
-const ROW_HEIGHT_SONG = 56
 
 interface ArtistListProps {
   ui: RootState['ui']
@@ -88,17 +86,19 @@ const ArtistList = ({
     return height
   }
 
-  const handledLocate = useRef<number | null>(null)
+  const handledLocate = useRef<{ songId: number, headerHeight: number } | null>(null)
 
-  // locate-in-library: scroll the located song fully into view, once per
-  // locate (retries as data/expansion settles; row restores stay untouched)
+  // locate-in-library: scroll the located song fully into view, redoing
+  // the math if the async-measured header height shifts afterwards
+  // (row restores stay untouched)
   useEffect(() => {
     if (!locateSongId) {
       handledLocate.current = null
       return
     }
 
-    if (handledLocate.current === locateSongId) return
+    if (handledLocate.current?.songId === locateSongId
+      && handledLocate.current.headerHeight === ui.headerHeight) return
 
     const artistId = songs[locateSongId]?.artistId
 
@@ -114,24 +114,35 @@ const ArtistList = ({
       return
     }
 
-    const songPos = artists.entities[artistId].songIds.indexOf(locateSongId)
+    const songIds = artists.entities[artistId]?.songIds ?? []
+    const songPos = songIds.indexOf(locateSongId)
 
     if (songPos === -1) return
 
-    let offset = ui.headerHeight
+    const artistHeights = artists.result.map((id) => {
+      const songsCount = expandedArtists.includes(id)
+        ? (artists.entities[id]?.songIds.length ?? 0)
+        : 0
 
-    for (let i = 0; i < artistIdx; i++) {
-      const rowArtistId = artists.result[i]
-      offset += ROW_HEIGHT_ARTIST
+      return ROW_HEIGHT_ARTIST + songsCount * ROW_HEIGHT_SONG
+    })
+    const target = locateSongOffset(
+      ui.headerHeight,
+      artistHeights,
+      artistIdx,
+      songPos,
+      el.clientHeight,
+    )
+    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight)
 
-      if (expandedArtists.includes(rowArtistId)) {
-        offset += artists.entities[rowArtistId].songIds.length * ROW_HEIGHT_SONG
-      }
+    el.scrollTo({ top: Math.min(target, maxScroll) })
+
+    if (Math.abs(el.scrollTop - Math.min(target, maxScroll)) > 2) {
+      // pixel scroll missed (unlaid-out list): center the artist row
+      list.current?.scrollToRow({ index: artistIdx + 1, align: 'center' })
     }
 
-    offset += ROW_HEIGHT_ARTIST + songPos * ROW_HEIGHT_SONG
-    el.scrollTo({ top: Math.max(0, offset - el.clientHeight * 0.25), behavior: 'instant' })
-    handledLocate.current = locateSongId
+    handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight }
   }, [locateSongId, songs, artists, expandedArtists, dispatch, ui.headerHeight])
 
   const handleRowsRendered = ({ startIndex }: { startIndex: number }) => {

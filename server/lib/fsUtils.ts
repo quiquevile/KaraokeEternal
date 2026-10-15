@@ -37,18 +37,34 @@ export function atomicRenameAll (renames: FileRename[]): void {
   try {
     for (const { from, to } of renames) {
       if (to === from) continue
-      fs.renameSync(from, to)
+      moveFileSync(from, to)
       done.push({ from, to })
     }
   } catch (err) {
     for (const { from, to } of done.reverse()) {
       try {
-        fs.renameSync(to, from)
+        moveFileSync(to, from)
       } catch {
         // best effort: the original error is more relevant
       }
     }
 
     throw err
+  }
+}
+
+/**
+ * rename(2) within one filesystem; across filesystems (EXDEV: separate
+ * Docker mounts, symlinked destinations) fall back to copy+delete.
+ * A failed copy leaves the source untouched.
+ */
+function moveFileSync (from: string, to: string): void {
+  try {
+    fs.renameSync(from, to)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code !== 'EXDEV') throw err
+
+    fs.copyFileSync(from, to)
+    fs.unlinkSync(from)
   }
 }

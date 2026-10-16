@@ -23,6 +23,19 @@
   box-shadow: none !important;
 }
 
+.searchWrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.searchWrap .searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .searchInput::placeholder {
   color: var(--btn-bg-color) !important;
 }

@@ -1,0 +1,40 @@
+.container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.list {
+  overflow-y: auto;
+  max-height: 40vh;
+  background-color: var(--bg-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.5);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-s);
+  font-size: var(--font-size-m);
+  color: var(--text-color);
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.itemIcon {
+  flex: none;
+  margin-right: var(--space-s);
+  color: var(--btn-bg-color);
+}
+
+.itemText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

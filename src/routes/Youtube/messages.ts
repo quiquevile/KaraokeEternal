@@ -7,6 +7,7 @@ export const youtubeMessages: Record<string, MessageDescriptor> = {
   loading: { id: 'youtube.preview.loading', defaultMessage: 'Loading preview' },
   merging: { id: 'youtube.downloads.merging', defaultMessage: 'merging' },
   noResults: { id: 'youtube.search.noResults', defaultMessage: 'No results found' },
+  recentSearches: { id: 'youtube.search.recentSearches', defaultMessage: 'Recent searches' },
   placeholder: { id: 'youtube.search.placeholder', defaultMessage: 'search / YouTube URL' },
   queue: { id: 'youtube.download.queue', defaultMessage: 'Add to queue' },
   queued: { id: 'youtube.downloads.queued', defaultMessage: 'queued' },

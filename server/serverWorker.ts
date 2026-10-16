@@ -215,7 +215,16 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
       ...['account', 'library', 'queue', 'player', 'youtube'].map(r => urlPath + r + '/'),
     ]
 
-    content = content.replace('<base href="/">', `<base href="${urlPath}">`)
+    // runtime client config (recent-search history sizes): numbers only,
+    // so no escaping concerns beyond JSON serialization
+    const clientConfig = JSON.stringify({
+      historyLibrarySize: env.KES_HISTORY_LIBRARY_SIZE,
+      historyYoutubeSize: env.KES_HISTORY_YOUTUBE_SIZE,
+    })
+
+    content = content
+      .replace('<base href="/">', `<base href="${urlPath}">`)
+      .replace('</head>', `<script>window.__KE_CONFIG__=${clientConfig}</script></head>`)
 
     return async (ctx, next) => {
       // use a trailing slash for matching purposes

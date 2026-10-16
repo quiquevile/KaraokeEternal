@@ -27,6 +27,18 @@ export const parseLevel = (value: string | undefined): number | undefined => {
   return Number.isInteger(parsed) ? parsed : undefined
 }
 
+// recent-search history sizes: 0 disables the history, while missing or
+// invalid values fall back to the default
+export const DEFAULT_HISTORY_SIZE = 10
+
+export const parseHistorySize = (value: string | undefined): number => {
+  if (value === undefined || value.trim() === '') return DEFAULT_HISTORY_SIZE
+
+  const parsed = parseInt(value, 10)
+
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : DEFAULT_HISTORY_SIZE
+}
+
 const env = {
   NODE_ENV: process.env.NODE_ENV,
   KES_CONSOLE_COLORS: process.env.KES_CONSOLE_COLORS
@@ -40,6 +52,8 @@ const env = {
   KES_SCAN: process.env.KES_SCAN?.trim(),
   KES_LOGIN_MAX_FAILS: parseInt(process.env.KES_LOGIN_MAX_FAILS, 10) || undefined,
   KES_LOGIN_WINDOW_MIN: parseInt(process.env.KES_LOGIN_WINDOW_MIN, 10) || undefined,
+  KES_HISTORY_LIBRARY_SIZE: parseHistorySize(process.env.KES_HISTORY_LIBRARY_SIZE),
+  KES_HISTORY_YOUTUBE_SIZE: parseHistorySize(process.env.KES_HISTORY_YOUTUBE_SIZE),
   KES_SCANNER_CONSOLE_LEVEL: parseLevel(process.env.KES_SCANNER_CONSOLE_LEVEL),
   KES_SCANNER_LOG_LEVEL: parseLevel(process.env.KES_SCANNER_LOG_LEVEL),
   KES_SERVER_CONSOLE_LEVEL: parseLevel(process.env.KES_SERVER_CONSOLE_LEVEL),

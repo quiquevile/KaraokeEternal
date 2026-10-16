@@ -41,6 +41,10 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.
 
+### Search history
+- The library and YouTube search boxes remember recent searches per browser and suggest them while typing; picking one searches immediately.
+- History sizes are configured separately with `KES_HISTORY_LIBRARY_SIZE` / `KES_HISTORY_YOUTUBE_SIZE` (default 10 each, 0 disables).
+
 ### Interface language
 - Bilingual interface (English/Español), per device, switchable from account Preferences; server messages follow the browser language.
 

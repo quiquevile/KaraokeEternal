@@ -27,6 +27,19 @@
   color: var(--btn-bg-color) !important;
 }
 
+.searchWrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.searchWrap .searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .btnMagnifier {
   position: relative;
 }

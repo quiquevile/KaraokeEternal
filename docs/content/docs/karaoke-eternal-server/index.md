@@ -188,6 +188,8 @@ Karaoke Eternal Server supports the following CLI options and environment variab
 | <span style="white-space: nowrap;">`--serverConsoleLevel <number>`</span>| <span style="white-space: nowrap;">`KES_SERVER_CONSOLE_LEVEL`</span> | Web server console output level | 4 |
 | <span style="white-space: nowrap;">`--serverLogLevel <number>`</span>| <span style="white-space: nowrap;">`KES_SERVER_LOG_LEVEL`</span> | Web server log file level | 3 |
 | <span style="white-space: nowrap;">`--urlPath <string>`</span>| <span style="white-space: nowrap;">`KES_URL_PATH`</span> | Web server base URL path (must begin with a forward slash) | / |
+| | <span style="white-space: nowrap;">`KES_HISTORY_LIBRARY_SIZE`</span> | Number of recent library searches remembered per browser (0 disables) | 10 |
+| | <span style="white-space: nowrap;">`KES_HISTORY_YOUTUBE_SIZE`</span> | Number of recent YouTube searches remembered per browser (0 disables) | 10 |
 | <span style="white-space: nowrap;">`-v, --version`</span>| | Show version and exit | |
 
 ## File Locations

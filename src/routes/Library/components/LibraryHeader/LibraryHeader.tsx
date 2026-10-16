@@ -9,6 +9,8 @@ import { setYoutubeQuery, searchYoutubeVideos } from 'store/modules/youtube'
 import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
+import RecentSearches from 'components/RecentSearches/RecentSearches'
+import { filterRecentSearches, getHistoryLimit, getRecentSearches, pushRecentSearch } from 'lib/recentSearches'
 import styles from './LibraryHeader.css'
 import { commonMessages } from '../../../../lib/messages'
 import { libraryMessages } from '../../messages'
@@ -34,16 +36,57 @@ const LibraryHeader = () => {
   }, [dispatch, user.userId, hasDownloadPath])
 
   const searchInput = useRef<HTMLInputElement>(null)
+  const searchWrap = useRef<HTMLDivElement>(null)
   const [value, setValue] = useState(filterStr)
+  const [historyLimit] = useState(() => getHistoryLimit('library'))
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  const openHistory = () => {
+    if (historyLimit > 0 && getRecentSearches('library').length > 0) {
+      setHistoryOpen(true)
+    }
+  }
+
+  // hide the dropdown when scrolling the results underneath it
+  // (scrolls inside the dropdown itself are left alone)
+  useEffect(() => {
+    if (!historyOpen) return
+
+    const hide = (event: Event) => {
+      if (searchWrap.current && !searchWrap.current.contains(event.target as Node)) {
+        setHistoryOpen(false)
+      }
+    }
+
+    document.addEventListener('scroll', hide, true)
+
+    return () => document.removeEventListener('scroll', hide, true)
+  }, [historyOpen])
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setValue(event.target.value)
     dispatch(setFilterStr(event.target.value))
   }
 
+  const handleFocus = () => openHistory()
+
+  const handleBlur = () => {
+    // leaving the field settles the search: remember it, then hide
+    if (value.trim() !== '') pushRecentSearch('library', value)
+
+    setHistoryOpen(false)
+  }
+
+  const handleSelect = (term: string) => {
+    setValue(term)
+    dispatch(setFilterStr(term))
+    setHistoryOpen(false)
+  }
+
   const clearSearch = () => {
     setValue('')
     dispatch(resetFilterStr())
+    openHistory()
   }
 
   const handleMagnifierClick = () => {
@@ -67,6 +110,7 @@ const LibraryHeader = () => {
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') handleMagnifierClick()
+    if (event.key === 'Escape') setHistoryOpen(false)
   }
 
   return (
@@ -81,15 +125,27 @@ const LibraryHeader = () => {
       >
         {filterStr && <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />}
       </Button>
-      <input
-        type='search'
-        className={styles.searchInput}
-        placeholder={intl.formatMessage(libraryMessages.search)}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        ref={searchInput}
-      />
+      <div className={styles.searchWrap} ref={searchWrap}>
+        <input
+          type='search'
+          className={styles.searchInput}
+          placeholder={intl.formatMessage(libraryMessages.search)}
+          value={value}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          ref={searchInput}
+        />
+        {historyOpen && (
+          <RecentSearches
+            items={filterRecentSearches(getRecentSearches('library'), value)}
+            label={intl.formatMessage(libraryMessages.recentSearches)}
+            onSelect={handleSelect}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
+      </div>
       {filterStr && (
         <Button
           icon='CLEAR'

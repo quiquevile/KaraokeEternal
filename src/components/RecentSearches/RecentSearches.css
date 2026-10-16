@@ -39,6 +39,18 @@
   text-overflow: ellipsis;
 }
 
-.item:hover {
+.item:hover,
+.item:active {
   color: var(--link-color);
+  background-color: var(--color-gray-3);
+}
+
+.item:hover .itemIcon,
+.item:active .itemIcon {
+  color: var(--link-color);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--link-color);
+  outline-offset: -2px;
 }

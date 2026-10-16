@@ -147,7 +147,6 @@ const LibraryHeader = () => {
             items={filterRecentSearches(getRecentSearches('library'), value)}
             label={intl.formatMessage(libraryMessages.recentSearches)}
             onSelect={handleSelect}
-            onClose={() => setHistoryOpen(false)}
           />
         )}
       </div>

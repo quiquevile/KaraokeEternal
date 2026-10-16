@@ -150,7 +150,6 @@ const YouTubeSearchHeader = () => {
             items={filterRecentSearches(getRecentSearches('youtube'), value)}
             label={intl.formatMessage(youtubeMessages.recentSearches)}
             onSelect={handleSelect}
-            onClose={() => setHistoryOpen(false)}
           />
         )}
       </div>

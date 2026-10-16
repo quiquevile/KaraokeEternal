@@ -60,6 +60,7 @@ const ArtistList = ({
   const { expandedArtists } = useAppSelector(state => state.library)
   const scrollRow = useAppSelector(state => state.library.scrollRow)
   const locateSongId = useAppSelector(state => state.library.locateSongId)
+  const locateBlinked = useAppSelector(state => state.library.locateBlinked)
   const songs = useAppSelector(state => state.songs.entities)
   const alphaPickerMap = useAppSelector(getAlphaPickerMap)
   const artists = useAppSelector(state => state.artists)
@@ -100,6 +101,11 @@ const ArtistList = ({
   // the locate scroll runs once per song: after it, user-driven expansion
   // changes must never re-scroll (see below)
   const settledLocate = useRef<number | null>(null)
+  // programmatic scrolls spent on this locate: react-window estimates the
+  // total size from rendered rows, so each scroll can reveal new geometry
+  // and ask for another — capped so a fight with the user's finger ends
+  const locateRetries = useRef(0)
+  const MAX_LOCATE_RETRIES = 4
 
   // locate-in-library: scroll the located song fully into view, redoing
   // the math whenever the geometry it was computed with goes stale:
@@ -112,11 +118,22 @@ const ArtistList = ({
     if (!locateSongId) {
       handledLocate.current = null
       settledLocate.current = null
+      locateRetries.current = 0
       return
     }
 
     // already scrolled for this song (or the user took over): run once
     if (settledLocate.current === locateSongId) return
+
+    // fresh locate: spend the retry budget from scratch
+    if (handledLocate.current?.songId !== locateSongId) locateRetries.current = 0
+
+    // the blink played out: everything about this locate is over,
+    // never scroll or blink again no matter what re-renders
+    if (locateBlinked) {
+      settledLocate.current = locateSongId
+      return
+    }
 
     const artistId = songs[locateSongId]?.artistId
 
@@ -184,8 +201,17 @@ const ArtistList = ({
       el.clientHeight,
     )
     const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight)
+    const dest = Math.min(target, maxScroll)
 
-    el.scrollTo({ top: Math.min(target, maxScroll) })
+    if (locateRetries.current >= MAX_LOCATE_RETRIES) {
+      // still converging but out of budget: settle rather than fight
+      // the user's finger forever
+      settledLocate.current = locateSongId
+      return
+    }
+
+    locateRetries.current += 1
+    el.scrollTo({ top: dest })
 
     if (Math.abs(el.scrollTop - Math.min(target, maxScroll)) > 2) {
       // pixel scroll missed (unlaid-out list): center the artist row
@@ -193,7 +219,7 @@ const ArtistList = ({
     }
 
     handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight, footerHeight: ui.footerHeight, scrollHeight: el.scrollHeight, expandedArtists }
-  }, [locateSongId, songs, artists, expandedArtists, dispatch, ui.headerHeight, ui.footerHeight, listTick, renderTick])
+  }, [locateSongId, locateBlinked, songs, artists, expandedArtists, dispatch, ui.headerHeight, ui.footerHeight, listTick, renderTick])
 
   const handleRowsRendered = ({ startIndex }: { startIndex: number }) => {
     // while locating, newly rendered rows can grow react-window's

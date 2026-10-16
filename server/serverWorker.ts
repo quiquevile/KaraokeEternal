@@ -235,6 +235,9 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
       }
 
       ctx.set('content-type', 'text/html')
+      // never cache the app shell: it references hashed bundles that change
+      // every build, and a stale copy would stick clients on old code
+      ctx.set('cache-control', 'no-store')
       ctx.body = content
       ctx.status = 200
     }

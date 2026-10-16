@@ -9,7 +9,7 @@
 .list {
   overflow-y: auto;
   max-height: 40vh;
-  background-color: var(--bg-color);
+  background-color: var(--color-gray-2);
   border-radius: var(--border-radius);
   box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.5);
 }
@@ -37,4 +37,8 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.item:hover {
+  color: var(--link-color);
 }

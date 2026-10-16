@@ -1,20 +1,29 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import Highlighter from 'react-highlight-words'
 import { useIntl } from 'react-intl'
 import { useSwipeable } from 'react-swipeable'
-import { useAppDispatch } from 'store/hooks'
+import { useLongPress } from 'use-long-press'
+import { useAppDispatch, useAppSelector } from 'store/hooks'
+import { hasPermission } from 'store/modules/user'
+import { fetchQueueUsers } from 'store/modules/youtube'
+import { queueSong } from 'routes/Queue/modules/queue'
 import { markLocateBlinked } from '../../modules/library'
 import Button from 'components/Button/Button'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
+import RecentSearches from 'components/RecentSearches/RecentSearches'
 import ToggleAnimation from 'components/ToggleAnimation/ToggleAnimation'
 import { formatDuration } from 'lib/dateTime'
 import styles from './SongItem.css'
 import { commonMessages } from '../../../../lib/messages'
+import { libraryMessages } from '../../messages'
 
 let ignoreMouseup = false
+
+const LONG_PRESS_THRESHOLD_MS = 700
 
 interface SongItemProps {
   songId: number
@@ -56,10 +65,57 @@ const SongItem = ({
   filterKeywords,
 }: SongItemProps) => {
   const [isExpanded, setExpanded] = useState(false)
+  const [queuePickerOpen, setQueuePickerOpen] = useState(false)
+  const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number } | null>(null)
+  const longPressActiveRef = useRef(false)
+  const songRef = useRef<HTMLDivElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
   const intl = useIntl()
+  const user = useAppSelector(state => state.user)
+  const queueUsers = useAppSelector(state => state.youtube.queueUsers)
+
+  const canQueueForOthers = user.isAdmin || hasPermission(user, 'queueForOthers')
+
+  // tapping outside the row or picker (or scrolling either away, or
+  // Escape) dismisses the picker
+  useEffect(() => {
+    if (!queuePickerOpen) return
+
+    const inside = (target: Node | null) => (
+      (songRef.current && songRef.current.contains(target))
+      || (pickerRef.current && pickerRef.current.contains(target))
+    )
+
+    const onPointerDown = (event: Event) => {
+      if (!inside(event.target as Node)) setQueuePickerOpen(false)
+    }
+
+    const onScroll = (event: Event) => {
+      if (!inside(event.target as Node)) setQueuePickerOpen(false)
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setQueuePickerOpen(false)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('scroll', onScroll, true)
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('scroll', onScroll, true)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [queuePickerOpen])
 
   const handleClick = () => {
+    if (longPressActiveRef.current) {
+      longPressActiveRef.current = false
+      return
+    }
+
     if (ignoreMouseup) ignoreMouseup = false
     else if (!isUpcoming) onSongQueue(songId)
   }
@@ -87,9 +143,39 @@ const SongItem = ({
     trackMouse: true,
   })
 
+  // long-press a song to queue it for someone else in the room;
+  // a plain tap still queues it for yourself
+  const bindQueueForOthers = useLongPress(() => {
+    if (!canQueueForOthers) return
+
+    longPressActiveRef.current = true
+    setExpanded(false)
+    void dispatch(fetchQueueUsers(user.roomId))
+
+    // anchor the picker under the song (it portals to document.body,
+    // virtualized rows would paint over an inline dropdown)
+    const rect = songRef.current?.getBoundingClientRect()
+
+    if (rect) {
+      setPickerPos({ top: rect.bottom, left: rect.left, right: window.innerWidth - rect.right })
+    }
+
+    setQueuePickerOpen(true)
+  }, { threshold: LONG_PRESS_THRESHOLD_MS, cancelOnMovement: true })
+
+  const handleQueueForUser = (targetUserId: string) => {
+    dispatch(queueSong(songId, parseInt(targetUserId, 10)))
+    setQueuePickerOpen(false)
+  }
+
+  const queueTargets = queueUsers
+    .filter(u => u.userId !== user.userId)
+    .map(u => ({ value: String(u.userId), label: `${u.name} (${u.username})` }))
+
   return (
     <div
       {...swipeHandlers}
+      ref={songRef}
       onAnimationEnd={handleAnimationEnd}
       className={clsx(
         styles.container,
@@ -105,7 +191,7 @@ const SongItem = ({
         <div className={styles.duration}>
           {formatDuration(duration)}
         </div>
-        <div onClick={handleClick} className={styles.primary}>
+        <div onClick={handleClick} className={styles.primary} {...bindQueueForOthers()}>
           <div className={styles.title}>
             {filterKeywords?.length ? <Highlighter autoEscape textToHighlight={title} searchWords={filterKeywords} /> : title}
             {isAdmin && numMedia > 1 && (
@@ -144,6 +230,21 @@ const SongItem = ({
           </Button>
         )}
       </Buttons>
+      {queuePickerOpen && pickerPos && createPortal(
+        <div
+          ref={pickerRef}
+          className={styles.pickerPortal}
+          style={{ top: pickerPos.top, left: pickerPos.left, right: pickerPos.right }}
+        >
+          <RecentSearches
+            items={queueTargets}
+            label={intl.formatMessage(libraryMessages.queueForUser)}
+            icon='PERSON'
+            onSelect={handleQueueForUser}
+          />
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }

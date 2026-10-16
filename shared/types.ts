@@ -97,6 +97,7 @@ export type Permission
   = | 'queueDelete'
     | 'queueMove'
     | 'queueReplay'
+    | 'queueForOthers'
     | 'playerAccess'
     | 'playerControls'
     | 'youtubeDownload'

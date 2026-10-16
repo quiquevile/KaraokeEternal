@@ -1,8 +1,8 @@
 .container {
   --song-item-btn-size: 48px;
 
-  display: flex;
-  align-items: center;
+  position: relative;
+  display: flex;  align-items: center;
   margin-left: var(--space-xs);
   margin-bottom: var(--space-xs);
   background-color: hsl(var(--hue-blue), 40%, 6%);
@@ -89,6 +89,15 @@
   overflow: hidden;
   white-space: nowrap;
   margin-top: var(--space-xs);
+}
+
+/* queue-for-others picker: portalled to document.body so virtualized
+   rows can't paint over it; zero height so the dropdown anchors at top */
+.pickerPortal {
+  position: fixed;
+  height: 0;
+  overflow: visible;
+  z-index: 50;
 }
 
 /* Buttons */

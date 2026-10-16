@@ -144,7 +144,7 @@ const LibraryHeader = () => {
         />
         {historyOpen && (
           <RecentSearches
-            items={filterRecentSearches(getRecentSearches('library'), value)}
+            items={filterRecentSearches(getRecentSearches('library'), value).map(term => ({ value: term, label: term }))}
             label={intl.formatMessage(libraryMessages.recentSearches)}
             onSelect={handleSelect}
           />

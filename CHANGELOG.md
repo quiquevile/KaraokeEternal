@@ -48,6 +48,7 @@
 
 - Songs can be moved around, and played or currently-playing songs deleted from the queue
 - Room admins with playback and queue controls
+- Users with the new "queue songs for others" capability (or admins) can long-press a library song to queue it for another user in the room
 - Library and YouTube search boxes remember recent searches per browser and suggest them while typing (sizes via `KES_HISTORY_LIBRARY_SIZE` / `KES_HISTORY_YOUTUBE_SIZE`, default 10, 0 disables)
 
 ### Other

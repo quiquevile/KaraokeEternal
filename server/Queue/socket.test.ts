@@ -14,6 +14,13 @@ vi.mock('../Rooms/Rooms.js', () => ({
   default: {
     validate: vi.fn().mockResolvedValue(true),
     prefix: vi.fn((roomId: number) => `room-${roomId}`),
+    isUserPresent: vi.fn().mockReturnValue(true),
+  },
+}))
+
+vi.mock('../User/User.js', () => ({
+  default: {
+    getById: vi.fn(),
   },
 }))
 
@@ -167,5 +174,72 @@ describe('Queue socket permissions', () => {
 
     expect(ack).toHaveBeenCalledWith({ type: QUEUE_REMOVE + '_SUCCESS' })
     expect(Queue.remove).toHaveBeenCalledTimes(2)
+  })
+
+  it('queues a song for another present user with queueForOthers', async () => {
+    const User = (await import('../User/User.js')).default
+    vi.mocked(User.getById).mockReturnValueOnce({ userId: 2 } as never)
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: { queueForOthers: true } })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 2 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ type: QUEUE_ADD + '_SUCCESS' })
+    expect(Queue.add).toHaveBeenCalledWith({ roomId: 5, songId: 7, userId: 2 })
+  })
+
+  it('treats an explicit self target as a normal self-queue without permission', async () => {
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: {} })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 1 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ type: QUEUE_ADD + '_SUCCESS' })
+    expect(Queue.add).toHaveBeenCalledWith({ roomId: 5, songId: 7, userId: 1 })
+  })
+
+  it('rejects queueing for another user without queueForOthers', async () => {
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: {} })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 2 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({
+      type: QUEUE_ADD + '_ERROR',
+      error: 'Cannot queue songs for another user',
+    })
+    expect(Queue.add).not.toHaveBeenCalled()
+  })
+
+  it('rejects queueing for an unknown user', async () => {
+    const User = (await import('../User/User.js')).default
+    vi.mocked(User.getById).mockReturnValueOnce(false)
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: { queueForOthers: true } })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 9 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({
+      type: QUEUE_ADD + '_ERROR',
+      error: 'queue user not found',
+    })
+    expect(Queue.add).not.toHaveBeenCalled()
+  })
+
+  it('rejects queueing for a user not in the room', async () => {
+    const User = (await import('../User/User.js')).default
+    const Rooms = (await import('../Rooms/Rooms.js')).default
+    vi.mocked(User.getById).mockReturnValueOnce({ userId: 2 } as never)
+    vi.mocked(Rooms.isUserPresent).mockReturnValueOnce(false)
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: { queueForOthers: true } })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 2 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({
+      type: QUEUE_ADD + '_ERROR',
+      error: 'queue user is not in the room',
+    })
+    expect(Queue.add).not.toHaveBeenCalled()
   })
 })

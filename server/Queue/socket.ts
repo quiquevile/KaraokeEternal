@@ -1,5 +1,6 @@
 import Queue from './Queue.js'
 import Rooms from '../Rooms/Rooms.js'
+import User from '../User/User.js'
 import { can } from '../lib/permissions.js'
 import { sockLocale, t } from '../lib/locale.js'
 import { QUEUE_ADD, QUEUE_MOVE, QUEUE_REMOVE, QUEUE_PUSH } from '../../shared/actionTypes.js'
@@ -9,7 +10,38 @@ import { QUEUE_ADD, QUEUE_MOVE, QUEUE_REMOVE, QUEUE_PUSH } from '../../shared/ac
 // ------------------------------------
 const ACTION_HANDLERS = {
   [QUEUE_ADD]: async (sock, { payload }, acknowledge) => {
-    const { songId } = payload
+    const { songId, queueUserId } = payload
+    const targetUserId = queueUserId ?? sock.user.userId
+
+    if (queueUserId !== undefined && queueUserId !== null && queueUserId !== sock.user.userId) {
+      if (!Number.isInteger(queueUserId)) {
+        return acknowledge({
+          type: QUEUE_ADD + '_ERROR',
+          error: t(sockLocale(sock), 'server.queue.invalidId', 'Invalid queueUserId'),
+        })
+      }
+
+      if (!can(sock.user, 'queueForOthers')) {
+        return acknowledge({
+          type: QUEUE_ADD + '_ERROR',
+          error: t(sockLocale(sock), 'server.queue.queueOthers', 'Cannot queue songs for another user'),
+        })
+      }
+
+      if (!User.getById(queueUserId)) {
+        return acknowledge({
+          type: QUEUE_ADD + '_ERROR',
+          error: t(sockLocale(sock), 'server.queue.queueUserNotFound', 'queue user not found'),
+        })
+      }
+
+      if (!Rooms.isUserPresent(sock.server, sock.user.roomId, queueUserId)) {
+        return acknowledge({
+          type: QUEUE_ADD + '_ERROR',
+          error: t(sockLocale(sock), 'server.queue.queueUserNotInRoom', 'queue user is not in the room'),
+        })
+      }
+    }
 
     try {
       await Rooms.validate(sock.user.roomId, null, { validatePassword: false, locale: sockLocale(sock) })
@@ -23,7 +55,7 @@ const ACTION_HANDLERS = {
     Queue.add({
       roomId: sock.user.roomId,
       songId,
-      userId: sock.user.userId,
+      userId: targetUserId,
     })
 
     // success

@@ -5,6 +5,7 @@ export const PERMISSIONS: Array<{ value: Permission, message: (typeof accountMes
   { value: 'queueDelete', message: accountMessages.permsQueueDelete },
   { value: 'queueMove', message: accountMessages.permsQueueMove },
   { value: 'queueReplay', message: accountMessages.permsQueueReplay },
+  { value: 'queueForOthers', message: accountMessages.permsQueueForOthers },
   { value: 'playerAccess', message: accountMessages.permsPlayerAccess },
   { value: 'playerControls', message: accountMessages.permsPlayerControls },
   { value: 'youtubeDownload', message: accountMessages.permsYoutubeDownload },

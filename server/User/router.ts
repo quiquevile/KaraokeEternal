@@ -253,10 +253,11 @@ router.get('/users', async (ctx) => {
   ctx.body = users
 })
 
-// slim user list for download targeting (admins and downloadForOthers holders),
-// optionally filtered by live room presence like the user management
+// slim user list for download/queue targeting (admins and downloadForOthers
+// or queueForOthers holders), optionally filtered by live room presence
+// like the user management
 export async function handleUsersNames (ctx) {
-  if (!ctx.user.isAdmin && !can(ctx.user, 'downloadForOthers')) {
+  if (!ctx.user.isAdmin && !can(ctx.user, 'downloadForOthers') && !can(ctx.user, 'queueForOthers')) {
     ctx.throw(401)
   }
 

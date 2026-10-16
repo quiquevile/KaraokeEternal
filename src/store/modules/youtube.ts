@@ -103,6 +103,18 @@ export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, usern
   },
 )
 
+// users in a room for queue-for-others targeting (same endpoint as above)
+export const fetchQueueUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, number | null | undefined>(
+  'youtube/fetchQueueUsers',
+  async (roomId) => {
+    try {
+      return await rootApi.get(roomId == null ? 'users/names' : `users/names?roomId=${roomId}`)
+    } catch {
+      return []
+    }
+  },
+)
+
 export const openPreview = createAsyncThunk<{ streamUrl: string, item: YouTubeResult }, YouTubeResult>(
   'youtube/preview',
   async (item) => {
@@ -182,6 +194,7 @@ export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
 export interface YouTubeState {
   downloads: DownloadReport | null
   downloadUsers: Array<{ userId: number, username: string, name: string }>
+  queueUsers: Array<{ userId: number, username: string, name: string }>
   error: string | null
   hasSearched: boolean
   isSearching: boolean
@@ -204,6 +217,7 @@ export interface YouTubeState {
 const initialState: YouTubeState = {
   downloads: null,
   downloadUsers: [],
+  queueUsers: [],
   error: null,
   hasSearched: false,
   isSearching: false,
@@ -335,6 +349,10 @@ const youtubeReducer = createReducer(initialState, (builder) => {
     .addCase(fetchDownloadUsers.fulfilled, (state, { payload }) => ({
       ...state,
       downloadUsers: payload,
+    }))
+    .addCase(fetchQueueUsers.fulfilled, (state, { payload }) => ({
+      ...state,
+      queueUsers: payload,
     }))
     .addCase(clearYoutube.pending, state => ({
       ...state,

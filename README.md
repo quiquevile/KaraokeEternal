@@ -40,6 +40,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.
+- Queue for others: users with the capability (or admins) long-press a library song to queue it for another user currently in the room.
 
 ### Search history
 - The library and YouTube search boxes remember recent searches per browser and suggest them while typing; picking one searches immediately.

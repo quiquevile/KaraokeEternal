@@ -7,6 +7,7 @@ export const accountMessages: Record<string, MessageDescriptor> = {
   permsQueueDelete: { id: 'account.perms.queueDelete', defaultMessage: 'Can delete queue songs' },
   permsQueueMove: { id: 'account.perms.queueMove', defaultMessage: 'Can move queue songs' },
   permsQueueReplay: { id: 'account.perms.queueReplay', defaultMessage: 'Can restart queue songs' },
+  permsQueueForOthers: { id: 'account.perms.queueForOthers', defaultMessage: 'Can queue songs for others' },
   permsYoutubeDownload: { id: 'account.perms.youtubeDownload', defaultMessage: 'Can download from YouTube' },
   playerPrefsBlink: { id: 'account.playerPrefs.nextUpBlink', defaultMessage: 'Next singer blink time (ms)' },
   playerPrefsLead: { id: 'account.playerPrefs.nextUpLead', defaultMessage: 'Next singer lead time (ms)' },

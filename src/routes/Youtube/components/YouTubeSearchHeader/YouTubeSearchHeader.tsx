@@ -147,7 +147,7 @@ const YouTubeSearchHeader = () => {
         />
         {historyOpen && (
           <RecentSearches
-            items={filterRecentSearches(getRecentSearches('youtube'), value)}
+            items={filterRecentSearches(getRecentSearches('youtube'), value).map(term => ({ value: term, label: term }))}
             label={intl.formatMessage(youtubeMessages.recentSearches)}
             onSelect={handleSelect}
           />

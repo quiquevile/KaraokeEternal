@@ -18,8 +18,8 @@ export const moveItem = createAction<{ queueId: number, prevQueueId: number }>(Q
 export const removeItem = createAction<{ queueId: number | number[] }>(QUEUE_REMOVE)
 export const queuePush = createAction<QueueState>(QUEUE_PUSH)
 
-export const queueSong = createAction(QUEUE_ADD, (songId: number) => ({
-  payload: { songId },
+export const queueSong = createAction(QUEUE_ADD, (songId: number, queueUserId?: number) => ({
+  payload: { songId, queueUserId: queueUserId ?? null },
   meta: { isOptimistic: true },
 }))
 

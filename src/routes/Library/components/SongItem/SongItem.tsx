@@ -3,6 +3,8 @@ import clsx from 'clsx'
 import Highlighter from 'react-highlight-words'
 import { useIntl } from 'react-intl'
 import { useSwipeable } from 'react-swipeable'
+import { useAppDispatch } from 'store/hooks'
+import { markLocateBlinked } from '../../modules/library'
 import Button from 'components/Button/Button'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
@@ -54,6 +56,7 @@ const SongItem = ({
   filterKeywords,
 }: SongItemProps) => {
   const [isExpanded, setExpanded] = useState(false)
+  const dispatch = useAppDispatch()
   const intl = useIntl()
 
   const handleClick = () => {
@@ -64,6 +67,12 @@ const SongItem = ({
   const handleEditClick = () => onSongEdit(songId)
   const handleDeleteClick = () => onSongDelete(songId)
   const handleStarClick = () => onSongStarClick(songId)
+
+  // the blink plays once: after it, drop the highlight so remounts
+  // (e.g. scrolling the song out and back in) don't replay it
+  const handleAnimationEnd = () => {
+    if (isHighlighted) dispatch(markLocateBlinked())
+  }
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: ({ event }) => {
@@ -81,6 +90,7 @@ const SongItem = ({
   return (
     <div
       {...swipeHandlers}
+      onAnimationEnd={handleAnimationEnd}
       className={clsx(
         styles.container,
         isPlayed && styles.played,

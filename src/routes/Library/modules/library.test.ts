@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import reducer, {
+  markLocateBlinked,
   resetFilterStr,
   setFilterStr,
   setLocateSongId,
@@ -57,5 +58,18 @@ describe('setLocateSongId', () => {
     expect(reducer(located, resetFilterStr()).locateSongId).toBe(null)
     expect(reducer(located, toggleFilterStarred()).locateSongId).toBe(null)
     expect(reducer(located, toggleFilterDownloaded()).locateSongId).toBe(null)
+  })
+
+  it('re-arms the blink on every locate and disarms it after', () => {
+    const located = reducer(undefined, setLocateSongId(42))
+
+    expect(located.locateBlinked).toBe(false)
+
+    const blinked = reducer(located, markLocateBlinked())
+
+    expect(blinked.locateBlinked).toBe(true)
+
+    // locating again (even the same song) replays the blink
+    expect(reducer(blinked, setLocateSongId(42)).locateBlinked).toBe(false)
   })
 })

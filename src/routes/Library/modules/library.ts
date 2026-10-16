@@ -5,6 +5,7 @@ import {
   LIBRARY_FILTER_TOGGLE_STARRED,
   LIBRARY_FILTER_TOGGLE_DOWNLOADED,
   LIBRARY_PUSH,
+  LOCATE_BLINKED,
   LOCATE_SONG,
   TOGGLE_ARTIST_EXPANDED,
   TOGGLE_ARTIST_RESULT_EXPANDED,
@@ -16,6 +17,9 @@ import {
 // ------------------------------------
 export const scrollArtists = createAction<number>(SCROLL_ARTISTS)
 export const setLocateSongId = createAction<number | null>(LOCATE_SONG)
+// the locate blink plays once: fired by the highlighted row when its
+// pulse animation ends, so remounts (e.g. scrolling back) don't replay it
+export const markLocateBlinked = createAction<void>(LOCATE_BLINKED)
 export const toggleArtistExpanded = createAction<number>(TOGGLE_ARTIST_EXPANDED)
 export const toggleArtistResultExpanded = createAction<{ artistId: number, isExpanded: boolean }>(TOGGLE_ARTIST_RESULT_EXPANDED)
 const libraryPush = createAction<LibraryState>(LIBRARY_PUSH)
@@ -44,6 +48,7 @@ export interface LibraryState {
   filterDownloaded: boolean
   scrollRow: number
   locateSongId: number | null
+  locateBlinked: boolean
   expandedArtists: number[]
   expandedArtistResults: number[]
   collapsedArtistResults: number[]
@@ -57,6 +62,7 @@ const initialState: LibraryState = {
   filterDownloaded: false,
   scrollRow: 0,
   locateSongId: null,
+  locateBlinked: false,
   expandedArtists: [],
   expandedArtistResults: [],
   collapsedArtistResults: [],
@@ -82,6 +88,10 @@ const libraryReducer = createReducer(initialState, (builder) => {
     })
     .addCase(setLocateSongId, (state, { payload }) => {
       state.locateSongId = payload
+      state.locateBlinked = false
+    })
+    .addCase(markLocateBlinked, (state) => {
+      state.locateBlinked = true
     })
     .addCase(scrollArtists, (state, { payload }) => {
       state.scrollRow = payload

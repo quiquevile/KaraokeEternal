@@ -16,6 +16,10 @@ function asNonNegativeInt (value: unknown, fallback: number): number {
     : fallback
 }
 
+export function formatPitch (pitchSemitones: number): string {
+  return `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
+}
+
 export function getPlayerDisplayPrefs (stored?: Partial<PlayerDisplayPrefs> | null): PlayerDisplayPrefs {
   return {
     nextUpLeadMs: asNonNegativeInt(stored?.nextUpLeadMs, PLAYER_DISPLAY_DEFAULTS.nextUpLeadMs),

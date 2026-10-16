@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { CSSTransition } from 'react-transition-group'
+import { formatPitch } from '../../lib/playerDisplay'
 import styles from './PitchToast.css'
 
 interface PitchToastProps {
@@ -15,10 +16,6 @@ interface PitchToastProps {
 // transient toast mirroring UpNow on the left edge: shows the current
 // pitch for a moment on every change and on song start (when non-zero;
 // mount is silent)
-const formatPitch = (pitchSemitones: number): string => (
-  `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
-)
-
 const PitchToast = ({ pitchSemitones, displayMs, replayKey, queueId, mediaId }: PitchToastProps) => {
   const [show, setShow] = useState(false)
   const [text, setText] = useState('')

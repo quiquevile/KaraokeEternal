@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   PLAYER_DISPLAY_DEFAULTS,
+  formatPitch,
   formatRemaining,
   getPlayerDisplayPrefs,
   isNextUpVisible,
@@ -56,5 +57,11 @@ describe('playerDisplay', () => {
     expect(isProgressVisible(true, false, 210, false, true)).toBe(false)
     expect(isProgressVisible(true, false, 210, true, false)).toBe(false)
     expect(isProgressVisible(true, false, 0, true, true)).toBe(false)
+  })
+
+  it('formats pitch with an explicit sign except zero', () => {
+    expect(formatPitch(0)).toBe('0 st')
+    expect(formatPitch(2)).toBe('+2 st')
+    expect(formatPitch(-2)).toBe('-2 st')
   })
 })

@@ -279,6 +279,8 @@ const PlayerController = (props: PlayerControllerProps) => {
             artist={artist?.name}
             title={song?.title}
             singer={queueItem?.userDisplayName}
+            pitchSemitones={player.pitchSemitones}
+            progress={roomPrefs.progress}
           />
         )
       })()}

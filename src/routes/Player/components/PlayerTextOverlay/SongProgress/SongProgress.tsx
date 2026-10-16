@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { formatRemaining } from '../../../lib/playerDisplay'
+import type { IRoomPrefs } from 'shared/types'
+import { formatPitch, formatRemaining } from '../../../lib/playerDisplay'
 import styles from './SongProgress.css'
 
 interface SongProgressProps {
@@ -8,6 +9,8 @@ interface SongProgressProps {
   artist?: string
   title?: string
   singer?: string
+  pitchSemitones?: number
+  progress?: IRoomPrefs['progress']
 }
 
 // ~50px/s scroll leg; fixed keyframe shape (38% legs, 12% pauses)
@@ -86,26 +89,32 @@ const TitleMarquee = ({ text }: { text: string }) => {
 
 // always-on song progress readout along the bottom edge: slim progress
 // bar plus remaining time, karaoke-machine style (display only, no seek)
-const SongProgress = ({ position, duration, artist, title, singer }: SongProgressProps) => {
+const SongProgress = ({ position, duration, artist, title, singer, pitchSemitones = 0, progress }: SongProgressProps) => {
   const remaining = formatRemaining(position, duration)
 
   if (remaining === null) return null
 
   const pct = Math.min(100, Math.max(0, (position / duration) * 100))
   const songText = [artist, title].filter(Boolean).join(' - ')
+    + (pitchSemitones !== 0 ? ` (${formatPitch(pitchSemitones)})` : '')
+  const showTitle = progress?.showTitle ?? true
+  const showSinger = progress?.showSinger ?? true
+  const showTime = progress?.showTime ?? true
 
   return (
     <div className={styles.container} translate='no'>
-      {songText && <TitleMarquee text={songText} />}
+      {showTitle && songText && <TitleMarquee text={songText} />}
       <div className={styles.barWrap}>
         <div className={styles.bar}>
           <div className={styles.fill} style={{ width: `${pct}%` }} />
         </div>
-        {singer && <div className={styles.singer}>{singer}</div>}
+        {showSinger && singer && <div className={styles.singer}>{singer}</div>}
       </div>
-      <div className={styles.time}>
-        {remaining}
-      </div>
+      {showTime && (
+        <div className={styles.time}>
+          {remaining}
+        </div>
+      )}
     </div>
   )
 }

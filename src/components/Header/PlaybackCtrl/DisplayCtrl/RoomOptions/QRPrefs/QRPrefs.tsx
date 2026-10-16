@@ -85,13 +85,39 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
             />
           </div>
         </fieldset>
-        <div className={styles.field}>
-          <InputCheckbox
-            label={intl.formatMessage(headerMessages.showProgress)}
-            checked={prefs?.progress?.isEnabled ?? true}
-            onChange={event => handleSetPref({ progress: { ...prefs.progress, isEnabled: event.currentTarget.checked } })}
-          />
-        </div>
+        <fieldset className={styles.qrBox}>
+          <legend>
+            <label><FormattedMessage {...headerMessages.showProgress} /></label>
+          </legend>
+          <div className={styles.field}>
+            <InputCheckbox
+              label={intl.formatMessage(headerMessages.showProgress)}
+              checked={prefs?.progress?.isEnabled ?? true}
+              onChange={event => handleSetPref({ progress: { ...prefs.progress, isEnabled: event.currentTarget.checked } })}
+            />
+          </div>
+          <div className={styles.field}>
+            <InputCheckbox
+              label={intl.formatMessage(headerMessages.showProgressTitle)}
+              checked={prefs?.progress?.showTitle ?? true}
+              onChange={event => handleSetPref({ progress: { ...prefs.progress, showTitle: event.currentTarget.checked } })}
+            />
+          </div>
+          <div className={styles.field}>
+            <InputCheckbox
+              label={intl.formatMessage(headerMessages.showProgressSinger)}
+              checked={prefs?.progress?.showSinger ?? true}
+              onChange={event => handleSetPref({ progress: { ...prefs.progress, showSinger: event.currentTarget.checked } })}
+            />
+          </div>
+          <div className={styles.field}>
+            <InputCheckbox
+              label={intl.formatMessage(headerMessages.showProgressTime)}
+              checked={prefs?.progress?.showTime ?? true}
+              onChange={event => handleSetPref({ progress: { ...prefs.progress, showTime: event.currentTarget.checked } })}
+            />
+          </div>
+        </fieldset>
       </div>
     </Accordion>
   )

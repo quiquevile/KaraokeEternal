@@ -55,6 +55,9 @@ export interface IRoomPrefs {
   // song progress readout on the player screen (bar + remaining time)
   progress?: {
     isEnabled?: boolean
+    showTitle?: boolean
+    showSinger?: boolean
+    showTime?: boolean
   }
   user?: {
     isNewAllowed?: boolean

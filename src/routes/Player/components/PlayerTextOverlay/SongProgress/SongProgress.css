@@ -16,6 +16,70 @@
   white-space: nowrap;
 }
 
+.title {
+  flex: 0 1 30%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 2.5vh;
+  text-rendering: optimizeLegibility;
+  text-shadow: 1px 1px 5px #000;
+  white-space: nowrap;
+}
+
+.titleText {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+.marqueeText {
+  display: inline-block;
+  white-space: nowrap;
+  animation-name: song-title-pingpong;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes song-title-pingpong {
+  0% {
+    transform: translateX(0);
+  }
+
+  38% {
+    transform: translateX(var(--dist));
+  }
+
+  50% {
+    transform: translateX(var(--dist));
+  }
+
+  88% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marqueeText {
+    animation: none;
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+  }
+}
+
+.barWrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .bar {
   flex: 1;
   height: 0.8vh;
@@ -27,4 +91,22 @@
 .fill {
   height: 100%;
   background-color: rgba(255, 255, 255, 0.9);
+}
+
+.singer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 2.5vh;
+  text-rendering: optimizeLegibility;
+  color: var(--queued-item-color);
+  text-shadow: var(--text-shadow-glow);
+  background-color: rgba(0, 0, 0, 0.45);
+  border-radius: 1vh;
+  padding: 0 1.5vh;
 }

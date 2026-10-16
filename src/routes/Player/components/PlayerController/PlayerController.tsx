@@ -20,6 +20,8 @@ interface PlayerControllerProps {
 const PlayerController = (props: PlayerControllerProps) => {
   const queue = useAppSelector(getRoundRobinQueue)
   const player = useAppSelector(state => state.player)
+  const songs = useAppSelector(state => state.songs.entities)
+  const artists = useAppSelector(state => state.artists.entities)
   const playerVisualizer = useAppSelector(state => state.playerVisualizer)
   const roomPrefs = useAppSelector(getRoomPrefs)
   const displayPrefs = getPlayerDisplayPrefs(useAppSelector(state => state.prefs.playerDisplay))
@@ -266,9 +268,20 @@ const PlayerController = (props: PlayerControllerProps) => {
         player.duration,
         roomPrefs?.progress?.isEnabled !== false,
         !!queueItem,
-      ) && (
-        <SongProgress position={player.position} duration={player.duration} />
-      )}
+      ) && (() => {
+        const song = queueItem ? songs[queueItem.songId] : undefined
+        const artist = song ? artists[song.artistId] : undefined
+
+        return (
+          <SongProgress
+            position={player.position}
+            duration={player.duration}
+            artist={artist?.name}
+            title={song?.title}
+            singer={queueItem?.userDisplayName}
+          />
+        )
+      })()}
       {roomPrefs?.qr?.isEnabled && isRoomOpen && (
         <PlayerQR
           height={props.height}

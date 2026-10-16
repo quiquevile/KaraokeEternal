@@ -175,7 +175,11 @@ const QueueItem = ({
       locateXRef.current = e.deltaX
       setLocateX(Math.min(e.deltaX, LOCATE_THRESHOLD_PX))
     },
-    preventScrollOnSwipe: true,
+    // NOTE: keep false — react-swipeable preventDefaults every touchmove
+    // once onSwiping exists (all directions become cancelable), which
+    // would block native vertical scrolling; touch-action: pan-y in the
+    // CSS already locks the gesture direction instead
+    preventScrollOnSwipe: false,
     trackMouse: true,
   })
 

@@ -96,7 +96,10 @@ const ArtistList = ({
     return height
   }
 
-  const handledLocate = useRef<{ songId: number, headerHeight: number, footerHeight: number, scrollHeight: number } | null>(null)
+  const handledLocate = useRef<{ songId: number, headerHeight: number, footerHeight: number, scrollHeight: number, expandedArtists: number[] } | null>(null)
+  // the locate scroll runs once per song: after it, user-driven expansion
+  // changes must never re-scroll (see below)
+  const settledLocate = useRef<number | null>(null)
 
   // locate-in-library: scroll the located song fully into view, redoing
   // the math whenever the geometry it was computed with goes stale:
@@ -108,8 +111,12 @@ const ArtistList = ({
 
     if (!locateSongId) {
       handledLocate.current = null
+      settledLocate.current = null
       return
     }
+
+    // already scrolled for this song (or the user took over): run once
+    if (settledLocate.current === locateSongId) return
 
     const artistId = songs[locateSongId]?.artistId
 
@@ -120,7 +127,33 @@ const ArtistList = ({
 
     if (artistIdx === -1 || !el) return
 
-    if (!expandedArtists.includes(artistId)) {
+    const isExpanded = expandedArtists.includes(artistId)
+    const handled = handledLocate.current
+
+    if (handled?.songId === locateSongId && handled.headerHeight === ui.headerHeight
+      && handled.footerHeight === ui.footerHeight) {
+      if (handled.expandedArtists !== expandedArtists) {
+        // expansion changed after our scroll: ours (which also expands)
+        // runs with handled still null, so this is the user expanding or
+        // collapsing something — settle without scrolling, once means once
+        settledLocate.current = locateSongId
+        handledLocate.current = { ...handled, scrollHeight: el.scrollHeight, expandedArtists }
+        return
+      }
+
+      // geometry unchanged since the last scroll: nothing to redo
+      if (handled.scrollHeight === el.scrollHeight) return
+    }
+
+    if (!isExpanded) {
+      // not yet expanded: our own expansion (first run) or the user
+      // collapsed the located artist after our scroll — only the former
+      // may proceed, the latter settles
+      if (handled) {
+        settledLocate.current = locateSongId
+        return
+      }
+
       dispatch(toggleArtistExpanded(artistId))
       return
     }
@@ -159,7 +192,7 @@ const ArtistList = ({
       list.current?.scrollToRow({ index: artistIdx + 1, align: 'center' })
     }
 
-    handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight, footerHeight: ui.footerHeight, scrollHeight: el.scrollHeight }
+    handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight, footerHeight: ui.footerHeight, scrollHeight: el.scrollHeight, expandedArtists }
   }, [locateSongId, songs, artists, expandedArtists, dispatch, ui.headerHeight, ui.footerHeight, listTick, renderTick])
 
   const handleRowsRendered = ({ startIndex }: { startIndex: number }) => {

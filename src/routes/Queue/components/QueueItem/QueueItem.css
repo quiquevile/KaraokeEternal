@@ -11,6 +11,9 @@
   background-color: hsl(var(--hue-blue), 40%, 6%);
   margin: var(--space-s) 0;
   line-height: normal;
+  /* vertical scrolling stays native (never blocked by swipe handlers);
+     horizontal gestures go to react-swipeable for expand/locate */
+  touch-action: pan-y;
 }
 
 .locateGhost {

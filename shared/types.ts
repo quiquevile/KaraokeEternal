@@ -101,6 +101,7 @@ export type Permission
     | 'queueMove'
     | 'queueReplay'
     | 'queueForOthers'
+    | 'ghostUsers'
     | 'playerAccess'
     | 'playerControls'
     | 'youtubeDownload'
@@ -113,6 +114,8 @@ export interface User {
   isAdmin: boolean // todo: client and server ctx only
   isGuest: boolean // todo: client and server ctx only
   permissions?: Record<string, boolean>
+  // ghost users only: the user who created (and manages) them
+  createdBy?: number | null
   dateCreated: number
   dateUpdated: number
 }

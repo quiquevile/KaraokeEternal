@@ -224,9 +224,9 @@ router.get('/user', (ctx) => {
   ctx.body = createUserCtx(user, ctx.user.roomId)
 })
 
-// list all users (admin only)
+// list users (admins see everyone; ghost managers only their own ghosts)
 router.get('/users', async (ctx) => {
-  if (!ctx.user.isAdmin) {
+  if (!ctx.user.isAdmin && !can(ctx.user, 'ghostUsers')) {
     ctx.throw(401)
   }
 
@@ -250,19 +250,37 @@ router.get('/users', async (ctx) => {
     users.entities[userId].rooms = userRooms[userId] || []
   })
 
+  // non-admin ghost managers only see their own ghosts (not even
+  // themselves)
+  if (!ctx.user.isAdmin) {
+    const own = users.result.filter(userId => (
+      users.entities[userId].role === 'ghost'
+      && users.entities[userId].createdBy === ctx.user.userId
+    ))
+    const entities = Object.fromEntries(own.map(userId => [userId, users.entities[userId]]))
+
+    ctx.body = { result: own, entities }
+    return
+  }
+
   ctx.body = users
 })
 
-// slim user list for download/queue targeting (admins and downloadForOthers
-// or queueForOthers holders), optionally filtered by live room presence
-// like the user management
+// slim user list for download/queue targeting (admins, downloadForOthers,
+// queueForOthers or ghostUsers holders); optionally filtered by live room
+// presence like the user management. With ?ghosts=1 the requester's own
+// ghost users are appended (they are never in a room).
 export async function handleUsersNames (ctx) {
-  if (!ctx.user.isAdmin && !can(ctx.user, 'downloadForOthers') && !can(ctx.user, 'queueForOthers')) {
+  const isRoomTargeter = ctx.user.isAdmin || can(ctx.user, 'downloadForOthers') || can(ctx.user, 'queueForOthers')
+  const isGhostManager = can(ctx.user, 'ghostUsers')
+
+  if (!isRoomTargeter && !isGhostManager) {
     ctx.throw(401)
   }
 
   const roomId = ctx.query.roomId === undefined ? null : parseInt(ctx.query.roomId, 10)
   const onlineOnly = ctx.query.online !== undefined && ctx.query.online !== 'false' && ctx.query.online !== '0'
+  const withGhosts = ctx.query.ghosts !== undefined && ctx.query.ghosts !== 'false' && ctx.query.ghosts !== '0'
 
   if (ctx.query.roomId !== undefined && (roomId === null || Number.isNaN(roomId))) {
     ctx.throw(422, t(ctxLocale(ctx), 'server.users.invalidRoomId', 'Invalid roomId'))
@@ -282,30 +300,55 @@ export async function handleUsersNames (ctx) {
   }
 
   const users = User.get()
+  const result: Array<{ userId: number, username: string, name: string, isGhost?: boolean }> = []
 
-  ctx.body = users.result
-    .filter(userId => (
-      (roomId === null || (userRooms[userId] ?? []).includes(roomId))
-      && (!onlineOnly || (userRooms[userId] ?? []).length > 0)
-    ))
-    .map((userId) => {
-      const { userId: id, username, name } = users.entities[userId]
+  if (isRoomTargeter) {
+    for (const userId of users.result) {
+      const entity = users.entities[userId]
 
-      return { userId: id, username, name }
-    })
+      // ghosts are handled below, they are never in a room
+      if (entity.role === 'ghost') continue
+      if (roomId !== null && !(userRooms[userId] ?? []).includes(roomId)) continue
+      if (onlineOnly && !(userRooms[userId] ?? []).length) continue
+
+      result.push({ userId: entity.userId, username: entity.username, name: entity.name })
+    }
+  }
+
+  // own ghosts always apply to the creator (even admins only ever queue
+  // for their own ghosts) and are never room-filtered
+  if (isGhostManager && withGhosts) {
+    for (const userId of users.result) {
+      const entity = users.entities[userId]
+
+      if (entity.role !== 'ghost' || entity.createdBy !== ctx.user.userId) continue
+
+      result.push({ userId: entity.userId, username: entity.username, name: entity.name, isGhost: true })
+    }
+  }
+
+  ctx.body = result
 }
 
 router.get('/users/names', handleUsersNames)
 
-// delete a user (admin only)
+// delete a user (admins anyone but themselves; ghost managers their own
+// ghosts)
 router.delete('/user/:userId', async (ctx) => {
   const targetId = parseIdParam(ctx, 'userId')
 
-  if (!ctx.user.isAdmin || targetId === ctx.user.userId) {
+  if (targetId === ctx.user.userId) {
     ctx.throw(403)
   }
 
   const target = User.getById(targetId)
+
+  // admin, or the creator removing one of their own ghosts
+  const isOwnGhost = target && target.role === 'ghost' && target.createdBy === ctx.user.userId
+
+  if (!ctx.user.isAdmin && !isOwnGhost) {
+    ctx.throw(403)
+  }
 
   if (target && target.role === 'admin' && User.countAdmins() <= 1) {
     ctx.throw(403, t(ctxLocale(ctx), 'server.users.lastAdminDelete', 'Cannot delete the last admin'))
@@ -340,15 +383,24 @@ router.put('/user/:userId', async (ctx) => {
   const targetId = parseIdParam(ctx, 'userId')
   const user = User.getById(ctx.user.userId, true)
 
-  // must be admin if updating another user
   if (!user) {
     ctx.throw(401)
     return
   }
 
+  // must be admin if updating another user, unless it's one of the
+  // requester's own ghosts (managers only touch name and image there)
+  let isOwnGhostEdit = false
+
   if (targetId !== user.userId && user.role !== 'admin') {
-    ctx.throw(401)
-    return
+    const target = User.getById(targetId)
+
+    if (!target || target.role !== 'ghost' || target.createdBy !== user.userId) {
+      ctx.throw(401)
+      return
+    }
+
+    isOwnGhostEdit = true
   }
 
   const req = ctx.request as unknown as RequestWithBody
@@ -370,8 +422,8 @@ router.put('/user/:userId', async (ctx) => {
   // validated
   const fields = new Map()
 
-  // changing username?
-  if (username && !ctx.user.isGuest) {
+  // changing username? (managers can't touch their ghosts' usernames)
+  if (username && !ctx.user.isGuest && !isOwnGhostEdit) {
     username = username.trim()
 
     if (username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
@@ -405,8 +457,8 @@ router.put('/user/:userId', async (ctx) => {
     fields.set('name', name)
   }
 
-  // changing password?
-  if (newPassword && !ctx.user.isGuest) {
+  // changing password? (managers can't set their ghosts' passwords)
+  if (newPassword && !ctx.user.isGuest && !isOwnGhostEdit) {
     if (newPassword.length < PASSWORD_MIN_LENGTH) {
       ctx.throw(400, t(
         ctxLocale(ctx), 'server.users.passwordLength',
@@ -449,9 +501,19 @@ router.put('/user/:userId', async (ctx) => {
       ctx.throw(403)
     }
 
-    if (body.role !== 'admin') {
-      const target = User.getById(targetId)
+    const target = User.getById(targetId)
 
+    // a user cannot be turned into a ghost (like a guest)
+    if (body.role === 'ghost' && target?.role !== 'ghost') {
+      ctx.throw(403, t(ctxLocale(ctx), 'server.users.becomeGhost', 'A user cannot become a ghost'))
+    }
+
+    // leaving the ghost role unlinks the creator
+    if (target?.role === 'ghost' && body.role !== 'ghost') {
+      fields.set('createdBy', null)
+    }
+
+    if (body.role !== 'admin') {
       if (target && target.role === 'admin' && User.countAdmins() <= 1) {
         ctx.throw(403, t(ctxLocale(ctx), 'server.users.lastAdminDemote', 'Cannot demote the last admin'))
       }
@@ -467,10 +529,13 @@ router.put('/user/:userId', async (ctx) => {
       ctx.throw(403)
     }
 
-    const perms = parsePermissions(body.permissions)
+    // ghosts never have permissions
+    if (body.role !== 'ghost') {
+      const perms = parsePermissions(body.permissions)
 
-    if (perms) {
-      fields.set('permissions', JSON.stringify(perms))
+      if (perms) {
+        fields.set('permissions', JSON.stringify(perms))
+      }
     }
   }
 
@@ -485,6 +550,19 @@ router.put('/user/:userId', async (ctx) => {
 
   if (!res.changes) {
     ctx.throw(404, t(ctxLocale(ctx), 'server.users.userNotFound', 'userId {userId} not found', { userId: targetId }))
+  }
+
+  // lost the ghostUsers capability (role/permission change)? their
+  // ghosts cannot outlive it
+  const updated = User.getById(targetId)
+
+  if (updated) {
+    const stillAllowed = updated.role === 'admin'
+      || (parsePermissions(updated.permissions)?.ghostUsers ?? false)
+
+    if (!stillAllowed) {
+      User.removeGhostsByCreator(targetId)
+    }
   }
 
   // emit (potentially) updated queues to each room
@@ -543,25 +621,32 @@ router.post('/user', async (ctx) => {
   let image
 
   if (!ctx.user.isAdmin) {
-    // already signed in?
-    if (ctx.user.userId !== null) {
-      ctx.throw(401, t(ctxLocale(ctx), 'server.users.alreadySignedIn', 'You are already signed in'))
-    }
+    if (body.role === 'ghost') {
+      // signed-in ghost managers create their own ghosts (no room needed)
+      if (ctx.user.userId == null || !can(ctx.user, 'ghostUsers')) {
+        ctx.throw(401)
+      }
+    } else {
+      // already signed in?
+      if (ctx.user.userId !== null && ctx.user.userId !== undefined) {
+        ctx.throw(401, t(ctxLocale(ctx), 'server.users.alreadySignedIn', 'You are already signed in'))
+      }
 
-    // only possible roles; further validated per-room below
-    if (typeof body.role !== 'string' || !['guest', 'standard'].includes(body.role)) {
-      ctx.throw(401, t(ctxLocale(ctx), 'server.users.invalidRole', 'Invalid role'))
-    }
+      // only possible roles; further validated per-room below
+      if (typeof body.role !== 'string' || !['guest', 'standard'].includes(body.role)) {
+        ctx.throw(401, t(ctxLocale(ctx), 'server.users.invalidRole', 'Invalid role'))
+      }
 
-    // new users must choose a room at the same time
-    try {
-      await Rooms.validate(
-        parseInt(body.roomId ?? '', 10),
-        body.roomPassword,
-        { role: body.role, locale: ctxLocale(ctx) },
-      )
-    } catch (err) {
-      ctx.throw(401, err.message)
+      // new users must choose a room at the same time
+      try {
+        await Rooms.validate(
+          parseInt(body.roomId ?? '', 10),
+          body.roomPassword,
+          { role: body.role, locale: ctxLocale(ctx) },
+        )
+      } catch (err) {
+        ctx.throw(401, err.message)
+      }
     }
   }
 
@@ -581,12 +666,18 @@ router.post('/user', async (ctx) => {
     await deleteFile(imageFile.filepath)
   }
 
-  // create user (only admins may preset permissions)
+  // create user (only admins may preset permissions; ghosts are always
+  // tied to their creator)
   try {
-    const userId = await User.create({ ...body, permissions: ctx.user.isAdmin ? body.permissions : undefined, image }, body.role, ctxLocale(ctx))
+    const userId = await User.create({
+      ...body,
+      permissions: ctx.user.isAdmin ? body.permissions : undefined,
+      image,
+      createdBy: body.role === 'ghost' ? ctx.user.userId : undefined,
+    }, body.role, ctxLocale(ctx))
 
-    // if admin creating another user, we're done
-    if (ctx.user.isAdmin) {
+    // if creating another user (admin or ghost manager), we're done
+    if (ctx.user.isAdmin || body.role === 'ghost') {
       ctx.status = 200
       ctx.body = {}
       return
@@ -681,8 +772,12 @@ router.get('/user/:userId/image', (ctx) => {
   const targetId = parseInt(ctx.params.userId, 10)
 
   if (ctx.user.userId !== targetId && !ctx.user.isAdmin) {
+    // the creator of a ghost can always see its image
+    const target = User.getById(targetId)
+    const isCreator = target && target.createdBy === ctx.user.userId
+
     // ensure target user has been in the same room
-    if (!Rooms.hasUserBeenInRoom(ctx.user.roomId, targetId)) {
+    if (!isCreator && !Rooms.hasUserBeenInRoom(ctx.user.roomId, targetId)) {
       ctx.throw(403)
     }
   }

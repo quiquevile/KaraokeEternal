@@ -62,7 +62,7 @@ class User {
     const entities = {}
 
     const query = sql`
-      SELECT users.userId, users.username, users.name, users.dateCreated, users.dateUpdated, users.permissions, roles.name AS role
+      SELECT users.userId, users.username, users.name, users.dateCreated, users.dateUpdated, users.permissions, users.createdBy, roles.name AS role
       FROM users
         INNER JOIN roles USING (roleId)
       ORDER BY dateCreated DESC
@@ -87,6 +87,7 @@ class User {
     name,
     image,
     permissions,
+    createdBy,
   }: {
     username?: string
     newPassword?: string
@@ -94,13 +95,14 @@ class User {
     name?: string
     image?: Buffer
     permissions?: unknown
+    createdBy?: number | null
   }, role = 'standard', locale: LocaleCode = DEFAULT_LOCALE) {
     username = username?.trim()
     name = name?.trim()
 
     const fields = new Map()
 
-    if (role !== 'guest') {
+    if (role !== 'guest' && role !== 'ghost') {
       if (!username) {
         throw new Error(t(locale, 'server.users.usernameRequired', 'Username is required'))
       }
@@ -142,9 +144,9 @@ class User {
     } else {
       let res: { count?: number } = {}
 
-      // ensure unique guest username
+      // ensure unique guest/ghost username
       do {
-        fields.set('username', `guest-${randomChars(5)}`)
+        fields.set('username', `${role}-${randomChars(5)}`)
 
         const query = sql`
         SELECT COUNT(*) AS count
@@ -173,7 +175,14 @@ class User {
     fields.set('dateCreated', Math.floor(Date.now() / 1000))
     fields.set('roleId', sql`(SELECT roleId FROM roles WHERE name = ${role})`)
 
-    if (permissions) {
+    if (role === 'ghost') {
+      // ghosts are always tied to the user who creates them
+      if (typeof createdBy !== 'number') {
+        throw new Error(t(locale, 'server.users.ghostCreatorRequired', 'A ghost user requires its creator'))
+      }
+
+      fields.set('createdBy', createdBy)
+    } else if (permissions) {
       const perms = parsePermissions(permissions)
 
       if (perms) {
@@ -288,6 +297,9 @@ class User {
       throw new Error('userId must be a number')
     }
 
+    // ghosts cannot outlive the user who created them
+    User.removeGhostsByCreator(userId)
+
     // remove user's queue items
     const queueQuery = sql`
       SELECT queueId, roomId
@@ -324,6 +336,31 @@ class User {
     if (!usersQueryRes.changes) {
       throw new Error(`unable to remove userId: ${userId}`)
     }
+  }
+
+  /**
+   * Remove every ghost user created by the given user (e.g. when the
+   * creator is deleted or loses the ghostUsers permission)
+   *
+   * @returns the removed ghost userIds
+   */
+  static removeGhostsByCreator (creatorId: number): number[] {
+    if (typeof creatorId !== 'number') {
+      throw new Error('creatorId must be a number')
+    }
+
+    const query = sql`
+      SELECT userId
+      FROM users
+      WHERE createdBy = ${creatorId}
+    `
+    const rows = db.all<{ userId: number }>(String(query), query.parameters)
+
+    for (const row of rows) {
+      User.remove(row.userId)
+    }
+
+    return rows.map(row => row.userId)
   }
 
   /**

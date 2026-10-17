@@ -21,25 +21,38 @@ const ACTION_HANDLERS = {
         })
       }
 
-      if (!can(sock.user, 'queueForOthers')) {
-        return acknowledge({
-          type: QUEUE_ADD + '_ERROR',
-          error: t(sockLocale(sock), 'server.queue.queueOthers', 'Cannot queue songs for another user'),
-        })
-      }
+      const target = User.getById(queueUserId)
 
-      if (!User.getById(queueUserId)) {
-        return acknowledge({
-          type: QUEUE_ADD + '_ERROR',
-          error: t(sockLocale(sock), 'server.queue.queueUserNotFound', 'queue user not found'),
-        })
-      }
+      if (target?.role === 'ghost') {
+        // ghosts are never in a room; only their creator may queue for
+        // them (not even other admins)
+        if (target.createdBy !== sock.user.userId || !can(sock.user, 'ghostUsers')) {
+          return acknowledge({
+            type: QUEUE_ADD + '_ERROR',
+            error: t(sockLocale(sock), 'server.queue.queueGhost', 'Cannot queue songs for this ghost user'),
+          })
+        }
+      } else {
+        if (!can(sock.user, 'queueForOthers')) {
+          return acknowledge({
+            type: QUEUE_ADD + '_ERROR',
+            error: t(sockLocale(sock), 'server.queue.queueOthers', 'Cannot queue songs for another user'),
+          })
+        }
 
-      if (!Rooms.isUserPresent(sock.server, sock.user.roomId, queueUserId)) {
-        return acknowledge({
-          type: QUEUE_ADD + '_ERROR',
-          error: t(sockLocale(sock), 'server.queue.queueUserNotInRoom', 'queue user is not in the room'),
-        })
+        if (!target) {
+          return acknowledge({
+            type: QUEUE_ADD + '_ERROR',
+            error: t(sockLocale(sock), 'server.queue.queueUserNotFound', 'queue user not found'),
+          })
+        }
+
+        if (!Rooms.isUserPresent(sock.server, sock.user.roomId, queueUserId)) {
+          return acknowledge({
+            type: QUEUE_ADD + '_ERROR',
+            error: t(sockLocale(sock), 'server.queue.queueUserNotInRoom', 'queue user is not in the room'),
+          })
+        }
       }
     }
 

@@ -8,7 +8,8 @@ const { validateMock, roomsValidateMock, getByIdMock, countAdminsMock } = vi.hoi
   countAdminsMock: vi.fn(),
 }))
 
-vi.mock('./User.js', () => ({
+vi.mock('./User.js', async importOriginal => ({
+  ...(await importOriginal<typeof import('./User.js')>()),
   default: {
     get: vi.fn(() => ({
       result: [1, 2],
@@ -20,6 +21,9 @@ vi.mock('./User.js', () => ({
     validate: validateMock,
     getById: getByIdMock,
     countAdmins: countAdminsMock,
+    create: vi.fn(),
+    remove: vi.fn(),
+    removeGhostsByCreator: vi.fn(() => []),
   },
 }))
 
@@ -30,12 +34,18 @@ vi.mock('../Rooms/Rooms.js', () => ({
       result: roomId === 9 ? [] : [roomId ?? 1],
       entities: roomId === 9 ? {} : { [roomId ?? 1]: { roomId: roomId ?? 1, status: 'closed' } },
     })),
+    getActive: vi.fn(() => []),
+    hasUserBeenInRoom: vi.fn(() => false),
   },
   STATUSES: ['open', 'closed'],
 }))
 
 vi.mock('../lib/crypto.js', () => ({
   default: { isLegacy: () => false, hash: vi.fn() },
+}))
+
+vi.mock('../lib/Database.js', () => ({
+  db: { run: vi.fn(() => ({ changes: 1 })), get: vi.fn(), all: vi.fn(() => []) },
 }))
 
 import { handleLogin, handleSwitchRoom, handleUsersNames } from './router.js'
@@ -375,5 +385,298 @@ describe('handleSwitchRoom', () => {
     getByIdMock.mockReturnValue(rootAdmin)
     await expect(handleSwitchRoom(switchCtx({ roomId: 9 }) as never))
       .rejects.toMatchObject({ status: 404 })
+  })
+})
+
+const ghostEntities = {
+  result: [1, 2, 3, 4],
+  entities: {
+    1: { userId: 1, username: 'admin', name: 'Admin', permissions: {}, role: 'admin' },
+    2: { userId: 2, username: 'mgr', name: 'Manager', permissions: { ghostUsers: true }, role: 'standard' },
+    3: { userId: 3, username: 'ghost-aaa11', name: 'Ana', permissions: {}, role: 'ghost', createdBy: 2 },
+    4: { userId: 4, username: 'ghost-bbb22', name: 'Beto', permissions: {}, role: 'ghost', createdBy: 1 },
+  },
+}
+
+describe('handleUsersNames ghosts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('appends the requester\'s own ghosts with ?ghosts=1', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const ctx = makeCtx({ userId: 2, isAdmin: false, permissions: { ghostUsers: true } }, { ghosts: '1' })
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 3, username: 'ghost-aaa11', name: 'Ana', isGhost: true },
+    ])
+  })
+
+  it('does not leak ghosts to downloadForOthers-only users', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const ctx = makeCtx({ userId: 1, isAdmin: false, permissions: { downloadForOthers: true } }, { ghosts: '1' })
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 1, username: 'admin', name: 'Admin' },
+      { userId: 2, username: 'mgr', name: 'Manager' },
+    ])
+  })
+
+  it('lets admins append their own ghosts, never others\'', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const ctx = makeCtx({ userId: 1, isAdmin: true }, { ghosts: '1' })
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 1, username: 'admin', name: 'Admin' },
+      { userId: 2, username: 'mgr', name: 'Manager' },
+      { userId: 4, username: 'ghost-bbb22', name: 'Beto', isGhost: true },
+    ])
+  })
+
+  it('returns nothing for ghost managers without the ghosts param', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const ctx = makeCtx({ userId: 2, isAdmin: false, permissions: { ghostUsers: true } }, {})
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([])
+  })
+})
+
+describe('GET /users (ghost managers)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('shows managers only their own ghosts', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const ctx = routeCtx('GET', '/api/users', {}, { userId: 2, isAdmin: false, permissions: { ghostUsers: true } })
+
+    await dispatch(ctx, () => {})
+
+    expect(ctx.body).toMatchObject({
+      result: [3],
+      entities: {
+        3: { userId: 3, username: 'ghost-aaa11', name: 'Ana', role: 'ghost', createdBy: 2 },
+      },
+    })
+  })
+
+  it('rejects users without ghostUsers or admin', async () => {
+    const ctx = routeCtx('GET', '/api/users', {}, { userId: 2, isAdmin: false, permissions: {} })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+  })
+
+  it('shows admins everyone', async () => {
+    const ctx = routeCtx('GET', '/api/users', {}, { ...rootAdmin, isAdmin: true })
+
+    await dispatch(ctx, () => {})
+
+    expect(ctx.body).toMatchObject({ result: [1, 2] })
+  })
+})
+
+describe('PUT ghost rules', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('lets a manager rename their own ghost, ignoring username and password', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 2) return { userId: 2, username: 'mgr', name: 'Mgr', role: 'standard', password: 'x', permissions: { ghostUsers: true } }
+      if (id === 3) return { userId: 3, username: 'ghost-aaa11', name: 'Ana', role: 'ghost', createdBy: 2, permissions: {} }
+      return false
+    })
+    const db = (await import('../lib/Database.js')).db
+    const crypto = (await import('../lib/crypto.js')).default
+    const ctx = routeCtx('PUT', '/api/user/3', { name: 'Nuevo', username: 'hacked', newPassword: 'abcdef12' }, { userId: 2, isAdmin: false, permissions: { ghostUsers: true } })
+
+    await dispatch(ctx, () => {})
+
+    expect(ctx.status).toBe(200)
+    expect(ctx.body).toEqual({})
+    expect(vi.mocked(crypto.hash)).not.toHaveBeenCalled()
+    const [queryString] = vi.mocked(db.run).mock.calls.at(-1)!
+    expect(queryString).toContain('"name"')
+    expect(queryString).not.toContain('username')
+  })
+
+  it('refuses turning a user into a ghost', async () => {
+    getByIdMock.mockImplementation((id: number) => (
+      id === 1 ? rootAdmin : { ...rootAdmin, userId: 2, username: 'pepe', role: 'standard' }
+    ))
+    const ctx = routeCtx('PUT', '/api/user/2', { role: 'ghost' })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('unlinks the creator when a ghost leaves the role', async () => {
+    getByIdMock.mockImplementation((id: number) => (
+      id === 1 ? rootAdmin : { userId: 3, username: 'ghost-aaa11', name: 'Ana', role: 'ghost', createdBy: 1, permissions: {} }
+    ))
+    const db = (await import('../lib/Database.js')).db
+    const ctx = routeCtx('PUT', '/api/user/3', { role: 'standard' })
+
+    await dispatch(ctx, () => {})
+
+    const [queryString] = vi.mocked(db.run).mock.calls.at(-1)!
+    expect(queryString).toContain('createdBy')
+  })
+
+  it('removes a manager\'s ghosts when ghostUsers is revoked', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 1) return rootAdmin
+      return { userId: 2, username: 'pepe', name: 'Pepe', role: 'standard', permissions: {} }
+    })
+    const User = (await import('./User.js')).default
+    const ctx = routeCtx('PUT', '/api/user/2', { permissions: {} })
+
+    await dispatch(ctx, () => {})
+
+    expect(vi.mocked(User.removeGhostsByCreator)).toHaveBeenCalledWith(2)
+  })
+
+  it('keeps ghosts when the manager still has ghostUsers', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 1) return rootAdmin
+      return { userId: 2, username: 'pepe', name: 'Pepe', role: 'standard', permissions: { ghostUsers: true } }
+    })
+    const User = (await import('./User.js')).default
+    const ctx = routeCtx('PUT', '/api/user/2', { permissions: { ghostUsers: true } })
+
+    await dispatch(ctx, () => {})
+
+    expect(vi.mocked(User.removeGhostsByCreator)).not.toHaveBeenCalled()
+  })
+})
+
+describe('DELETE ghost rules', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('lets a manager delete their own ghost', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 2) return { userId: 2, username: 'mgr', name: 'Mgr', role: 'standard', permissions: { ghostUsers: true } }
+      if (id === 3) return { userId: 3, username: 'ghost-aaa11', name: 'Ana', role: 'ghost', createdBy: 2, permissions: {} }
+      return false
+    })
+    const User = (await import('./User.js')).default
+    const ctx = routeCtx('DELETE', '/api/user/3', {}, { userId: 2, isAdmin: false, permissions: { ghostUsers: true } })
+
+    await dispatch(ctx, () => {})
+
+    expect(vi.mocked(User.remove)).toHaveBeenCalledWith(3)
+    expect(ctx.status).toBe(200)
+  })
+
+  it('rejects a manager deleting a ghost they do not own', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 2) return { userId: 2, username: 'mgr', role: 'standard', permissions: { ghostUsers: true } }
+      if (id === 3) return { userId: 3, username: 'ghost-aaa11', role: 'ghost', createdBy: 99, permissions: {} }
+      return false
+    })
+    const ctx = routeCtx('DELETE', '/api/user/3', {}, { userId: 2, isAdmin: false, permissions: { ghostUsers: true } })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('lets an admin delete another user (cascading their ghosts)', async () => {
+    getByIdMock.mockImplementation((id: number) => (
+      id === 1 ? rootAdmin : { ...rootAdmin, userId: 2, username: 'pepe', role: 'standard', permissions: {} }
+    ))
+    const User = (await import('./User.js')).default
+    const ctx = routeCtx('DELETE', '/api/user/2', {}, { ...rootAdmin, isAdmin: true })
+
+    await dispatch(ctx, () => {})
+
+    expect(vi.mocked(User.remove)).toHaveBeenCalledWith(2)
+    expect(ctx.status).toBe(200)
+  })
+})
+
+describe('POST ghost creation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('lets a signed-in manager create their own ghost', async () => {
+    const User = (await import('./User.js')).default
+    vi.mocked(User.create).mockResolvedValueOnce(99)
+    const ctx = routeCtx('POST', '/api/user', { role: 'ghost', name: 'Ana' }, { userId: 2, isAdmin: false, permissions: { ghostUsers: true } })
+
+    await dispatch(ctx, () => {})
+
+    expect(vi.mocked(User.create)).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: 2, permissions: undefined, name: 'Ana' }),
+      'ghost',
+      'en',
+    )
+    expect(ctx.status).toBe(200)
+    expect(ctx.body).toEqual({})
+  })
+
+  it('ties admin-created ghosts to the admin', async () => {
+    const User = (await import('./User.js')).default
+    vi.mocked(User.create).mockResolvedValueOnce(99)
+    const ctx = routeCtx('POST', '/api/user', { role: 'ghost', name: 'Ana' }, { ...rootAdmin, isAdmin: true })
+
+    await dispatch(ctx, () => {})
+
+    expect(vi.mocked(User.create)).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: 1 }),
+      'ghost',
+      'en',
+    )
+    expect(ctx.status).toBe(200)
+  })
+
+  it('rejects ghost creation without ghostUsers', async () => {
+    const ctx = routeCtx('POST', '/api/user', { role: 'ghost', name: 'Ana' }, { userId: 2, isAdmin: false, permissions: {} })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+  })
+
+  it('rejects signed-out ghost creation', async () => {
+    const ctx = routeCtx('POST', '/api/user', { role: 'ghost', name: 'Ana' }, { userId: null, isAdmin: false, permissions: {} })
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 401 })
+  })
+})
+
+describe('ghost image access', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('lets the creator fetch their ghost\'s image', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 3) return { userId: 3, image: Buffer.from('jpeg'), role: 'ghost', createdBy: 2 }
+      return false
+    })
+    const ctx = routeCtx('GET', '/api/user/3/image', {}, { userId: 2, isAdmin: false, permissions: {} })
+    ctx.params = { userId: '3' }
+
+    await dispatch(ctx, () => {})
+
+    expect(ctx.status).toBe(200)
+  })
+
+  it('rejects strangers even with the ghostUsers permission', async () => {
+    getByIdMock.mockImplementation((id: number) => {
+      if (id === 3) return { userId: 3, image: Buffer.from('jpeg'), role: 'ghost', createdBy: 99 }
+      return false
+    })
+    const ctx = routeCtx('GET', '/api/user/3/image', {}, { userId: 2, isAdmin: false, permissions: { ghostUsers: true } })
+    ctx.params = { userId: '3' }
+
+    await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 403 })
   })
 })

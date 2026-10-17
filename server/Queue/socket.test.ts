@@ -242,4 +242,48 @@ describe('Queue socket permissions', () => {
     })
     expect(Queue.add).not.toHaveBeenCalled()
   })
+
+  it('queues for the own ghost with ghostUsers, skipping room presence', async () => {
+    const User = (await import('../User/User.js')).default
+    const Rooms = (await import('../Rooms/Rooms.js')).default
+    vi.mocked(User.getById).mockReturnValueOnce({ userId: 3, role: 'ghost', createdBy: 1 } as never)
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: { ghostUsers: true } })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 3 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ type: QUEUE_ADD + '_SUCCESS' })
+    expect(Queue.add).toHaveBeenCalledWith({ roomId: 5, songId: 7, userId: 3 })
+    expect(Rooms.isUserPresent).not.toHaveBeenCalled()
+  })
+
+  it('rejects queueing for another user\'s ghost even for admins', async () => {
+    const User = (await import('../User/User.js')).default
+    vi.mocked(User.getById).mockReturnValueOnce({ userId: 3, role: 'ghost', createdBy: 2 } as never)
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: true, permissions: {} })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 3 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({
+      type: QUEUE_ADD + '_ERROR',
+      error: 'Cannot queue songs for this ghost user',
+    })
+    expect(Queue.add).not.toHaveBeenCalled()
+  })
+
+  it('rejects queueing for the own ghost without ghostUsers', async () => {
+    const User = (await import('../User/User.js')).default
+    vi.mocked(User.getById).mockReturnValueOnce({ userId: 3, role: 'ghost', createdBy: 1 } as never)
+    const ack = vi.fn()
+    const sock = makeSock({ userId: 1, roomId: 5, isAdmin: false, permissions: { queueForOthers: true } })
+
+    await handlers[QUEUE_ADD](sock, { payload: { songId: 7, queueUserId: 3 } }, ack)
+
+    expect(ack).toHaveBeenCalledWith({
+      type: QUEUE_ADD + '_ERROR',
+      error: 'Cannot queue songs for this ghost user',
+    })
+    expect(Queue.add).not.toHaveBeenCalled()
+  })
 })

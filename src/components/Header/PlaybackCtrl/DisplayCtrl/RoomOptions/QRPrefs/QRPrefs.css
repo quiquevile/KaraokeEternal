@@ -42,3 +42,7 @@
 .hidden {
   display: none;
 }
+
+.nested {
+  margin-left: var(--space-l);
+}

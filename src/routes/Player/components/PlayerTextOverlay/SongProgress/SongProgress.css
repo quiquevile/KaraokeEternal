@@ -37,40 +37,8 @@
 .marqueeText {
   display: inline-block;
   white-space: nowrap;
-  animation-name: song-title-pingpong;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
-}
-
-@keyframes song-title-pingpong {
-  0% {
-    transform: translateX(0);
-  }
-
-  38% {
-    transform: translateX(var(--dist));
-  }
-
-  50% {
-    transform: translateX(var(--dist));
-  }
-
-  88% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marqueeText {
-    animation: none;
-    overflow: hidden;
-    max-width: 100%;
-    text-overflow: ellipsis;
-  }
 }
 
 .barWrap {

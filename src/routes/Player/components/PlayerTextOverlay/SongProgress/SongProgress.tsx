@@ -13,15 +13,24 @@ interface SongProgressProps {
   progress?: IRoomPrefs['progress']
 }
 
-// ~50px/s scroll leg; fixed keyframe shape (38% legs, 12% pauses)
-const SCROLL_SPEED_PX_S = 50
+// half the original speed; pauses in seconds (start pause before scrolling again)
+const SCROLL_SPEED_PX_S = 25
 const MIN_LEG_S = 2
-const LEG_FRACTION = 0.38
+const END_PAUSE_S = 1.5
+const START_PAUSE_S = 5
+
+let marqueeUid = 0
 
 const TitleMarquee = ({ text }: { text: string }) => {
   const wrapRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
   const [overflow, setOverflow] = useState(0)
+  const [animName] = useState(() => `song-title-marquee-${++marqueeUid}`)
+  const [reducedMotion] = useState(
+    () => typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -61,7 +70,7 @@ const TitleMarquee = ({ text }: { text: string }) => {
     }
   }, [text])
 
-  if (overflow === 0) {
+  if (overflow === 0 || reducedMotion) {
     return (
       <div key={text} ref={wrapRef} className={styles.title}>
         <span ref={textRef} className={styles.titleText}>{text}</span>
@@ -70,16 +79,29 @@ const TitleMarquee = ({ text }: { text: string }) => {
   }
 
   const leg = Math.max(MIN_LEG_S, overflow / SCROLL_SPEED_PX_S)
+  const total = leg + END_PAUSE_S + leg + START_PAUSE_S
+  const toPct = (seconds: number) => `${(seconds / total) * 100}%`
+  const dist = -overflow
+  const keyframes = `@keyframes ${animName} {
+    0% { transform: translateX(0); }
+    ${toPct(leg)} { transform: translateX(${dist}px); }
+    ${toPct(leg + END_PAUSE_S)} { transform: translateX(${dist}px); }
+    ${toPct(leg + END_PAUSE_S + leg)} { transform: translateX(0); }
+    100% { transform: translateX(0); }
+  }`
 
   return (
     <div key={text} ref={wrapRef} className={styles.title}>
+      <style>
+        {keyframes}
+      </style>
       <span
         ref={textRef}
         className={styles.marqueeText}
         style={{
-          ['--dist' as string]: `${-overflow}px`,
-          animationDuration: `${leg / LEG_FRACTION}s`,
-        } as React.CSSProperties}
+          animationName: animName,
+          animationDuration: `${total}s`,
+        }}
       >
         {text}
       </span>

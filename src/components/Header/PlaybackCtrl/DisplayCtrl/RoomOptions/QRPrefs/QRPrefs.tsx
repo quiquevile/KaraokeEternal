@@ -87,7 +87,7 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
         </fieldset>
         <fieldset className={styles.qrBox}>
           <legend>
-            <label><FormattedMessage {...headerMessages.showProgress} /></label>
+            <label><FormattedMessage {...headerMessages.progressInfo} /></label>
           </legend>
           <div className={styles.field}>
             <InputCheckbox
@@ -96,21 +96,21 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
               onChange={event => handleSetPref({ progress: { ...prefs.progress, isEnabled: event.currentTarget.checked } })}
             />
           </div>
-          <div className={styles.field}>
+          <div className={clsx(styles.field, styles.nested)}>
             <InputCheckbox
               label={intl.formatMessage(headerMessages.showProgressTitle)}
               checked={prefs?.progress?.showTitle ?? true}
               onChange={event => handleSetPref({ progress: { ...prefs.progress, showTitle: event.currentTarget.checked } })}
             />
           </div>
-          <div className={styles.field}>
+          <div className={clsx(styles.field, styles.nested)}>
             <InputCheckbox
               label={intl.formatMessage(headerMessages.showProgressSinger)}
               checked={prefs?.progress?.showSinger ?? true}
               onChange={event => handleSetPref({ progress: { ...prefs.progress, showSinger: event.currentTarget.checked } })}
             />
           </div>
-          <div className={styles.field}>
+          <div className={clsx(styles.field, styles.nested)}>
             <InputCheckbox
               label={intl.formatMessage(headerMessages.showProgressTime)}
               checked={prefs?.progress?.showTime ?? true}

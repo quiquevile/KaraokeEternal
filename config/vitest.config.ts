@@ -22,6 +22,8 @@ export default defineConfig({
       'dist/**',
       '**/cypress/**',
       '**/.{idea,git,cache,output,temp}/**',
+      // scratch specs (e.g. Playwright e2e) live here
+      'tmp/**',
     ],
     setupFiles: [path.resolve(__dirname, '../server/lib/test-setup.ts')],
   },

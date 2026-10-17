@@ -5,6 +5,7 @@ import reducer, {
   downloadVideo,
   fetchDownloadUsers,
   fetchDownloads,
+  fetchQueueUsers,
   removeDownload,
   searchYoutubeVideos,
   type YouTubeResult,
@@ -48,7 +49,7 @@ describe('fetchDownloadUsers', () => {
     await store.dispatch(fetchDownloadUsers(1))
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost/api/users/names?roomId=1',
+      'http://localhost/api/users/names?roomId=1&for=download',
       expect.anything(),
     )
     expect(store.getState().youtube.downloadUsers).toEqual(users)
@@ -62,6 +63,35 @@ describe('fetchDownloadUsers', () => {
 
     expect(store.getState().youtube.downloadUsers).toEqual([])
     expect(store.getState().youtube.error).toBeNull()
+  })
+})
+
+describe('fetchQueueUsers', () => {
+  it('requests the queue-intent endpoint with ghosts and stores the list', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: async () => users,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const store = makeStore()
+    await store.dispatch(fetchQueueUsers(1))
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost/api/users/names?roomId=1&for=queue&ghosts=1',
+      expect.anything(),
+    )
+    expect(store.getState().youtube.queueUsers).toEqual(users)
+  })
+
+  it('fails silently keeping an empty list', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
+
+    const store = makeStore()
+    await store.dispatch(fetchQueueUsers(null))
+
+    expect(store.getState().youtube.queueUsers).toEqual([])
   })
 })
 

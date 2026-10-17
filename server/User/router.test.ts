@@ -180,6 +180,42 @@ describe('handleUsersNames', () => {
     await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 422 })
     expect(User.get).not.toHaveBeenCalled()
   })
+
+  it('for=queue rejects downloadForOthers-only requesters with 401', async () => {
+    const ctx = makeCtx({ isAdmin: false, permissions: { downloadForOthers: true } }, { for: 'queue' })
+
+    await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(User.get).not.toHaveBeenCalled()
+  })
+
+  it('for=download rejects queueForOthers-only requesters with 401', async () => {
+    const ctx = makeCtx({ isAdmin: false, permissions: { queueForOthers: true } }, { for: 'download' })
+
+    await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(User.get).not.toHaveBeenCalled()
+  })
+
+  it('for=queue returns room users for queueForOthers holders', async () => {
+    const sockets = [
+      { userId: 1, roomId: 1 },
+      { userId: 2, roomId: 1 },
+    ]
+    const ctx = makeCtx({ userId: 2, isAdmin: false, permissions: { queueForOthers: true } }, { for: 'queue', roomId: '1' }, sockets)
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 1, username: 'admin', name: 'Admin' },
+      { userId: 2, username: 'pepe', name: 'Pepe' },
+    ])
+  })
+
+  it('rejects unknown for values with 422', async () => {
+    const ctx = makeCtx({ isAdmin: true }, { for: 'both' })
+
+    await expect(handleUsersNames(ctx)).rejects.toMatchObject({ status: 422 })
+    expect(User.get).not.toHaveBeenCalled()
+  })
 })
 
 describe('handleLogin', () => {
@@ -446,6 +482,41 @@ describe('handleUsersNames ghosts', () => {
     await handleUsersNames(ctx)
 
     expect(ctx.body).toEqual([])
+  })
+
+  it('hides room users from ghost managers with downloadForOthers using ?for=queue', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const sockets = [
+      { userId: 1, roomId: 1 },
+      { userId: 2, roomId: 1 },
+    ]
+    const ctx = makeCtx(
+      { userId: 2, isAdmin: false, permissions: { ghostUsers: true, downloadForOthers: true } },
+      { for: 'queue', roomId: '1', ghosts: '1' },
+      sockets,
+    )
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 3, username: 'ghost-aaa11', name: 'Ana', isGhost: true },
+    ])
+  })
+
+  it('ignores ?ghosts=1 for the download intent', async () => {
+    vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
+    const sockets = [{ userId: 1, roomId: 1 }]
+    const ctx = makeCtx(
+      { userId: 2, isAdmin: false, permissions: { ghostUsers: true, downloadForOthers: true } },
+      { for: 'download', roomId: '1', ghosts: '1' },
+      sockets,
+    )
+
+    await handleUsersNames(ctx)
+
+    expect(ctx.body).toEqual([
+      { userId: 1, username: 'admin', name: 'Admin' },
+    ])
   })
 })
 

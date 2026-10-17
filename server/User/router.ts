@@ -268,10 +268,29 @@ router.get('/users', async (ctx) => {
 
 // slim user list for download/queue targeting (admins, downloadForOthers,
 // queueForOthers or ghostUsers holders); optionally filtered by live room
-// presence like the user management. With ?ghosts=1 the requester's own
-// ghost users are appended (they are never in a room).
+// presence like the user management. ?for=queue|download tells which action
+// feeds the list, so room users require exactly that capability (this
+// endpoint backs both pickers); without it either capability passes.
+// ?ghosts=1 appends the requester's own ghost users (never in a room) and
+// is ignored for the download intent.
 export async function handleUsersNames (ctx) {
-  const isRoomTargeter = ctx.user.isAdmin || can(ctx.user, 'downloadForOthers') || can(ctx.user, 'queueForOthers')
+  const intent = ctx.query.for === undefined ? null : String(ctx.query.for)
+
+  if (intent !== null && intent !== 'queue' && intent !== 'download') {
+    ctx.throw(422)
+  }
+
+  let canTargetRoom: boolean
+
+  if (intent === 'queue') {
+    canTargetRoom = can(ctx.user, 'queueForOthers')
+  } else if (intent === 'download') {
+    canTargetRoom = can(ctx.user, 'downloadForOthers')
+  } else {
+    canTargetRoom = can(ctx.user, 'downloadForOthers') || can(ctx.user, 'queueForOthers')
+  }
+
+  const isRoomTargeter = ctx.user.isAdmin || canTargetRoom
   const isGhostManager = can(ctx.user, 'ghostUsers')
 
   if (!isRoomTargeter && !isGhostManager) {
@@ -280,7 +299,7 @@ export async function handleUsersNames (ctx) {
 
   const roomId = ctx.query.roomId === undefined ? null : parseInt(ctx.query.roomId, 10)
   const onlineOnly = ctx.query.online !== undefined && ctx.query.online !== 'false' && ctx.query.online !== '0'
-  const withGhosts = ctx.query.ghosts !== undefined && ctx.query.ghosts !== 'false' && ctx.query.ghosts !== '0'
+  const withGhosts = ctx.query.ghosts !== undefined && ctx.query.ghosts !== 'false' && ctx.query.ghosts !== '0' && intent !== 'download'
 
   if (ctx.query.roomId !== undefined && (roomId === null || Number.isNaN(roomId))) {
     ctx.throw(422, t(ctxLocale(ctx), 'server.users.invalidRoomId', 'Invalid roomId'))

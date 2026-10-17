@@ -95,7 +95,7 @@ export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, usern
   'youtube/fetchDownloadUsers',
   async (roomId) => {
     try {
-      return await rootApi.get(roomId == null ? 'users/names' : `users/names?roomId=${roomId}`)
+      return await rootApi.get(roomId == null ? 'users/names?for=download' : `users/names?roomId=${roomId}&for=download`)
     } catch {
       // the select falls back to the current user alone
       return []
@@ -104,12 +104,13 @@ export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, usern
 )
 
 // users in a room for queue-for-others targeting (same endpoint as
-// above; ?ghosts=1 also appends the requester's own ghosts)
+// above; ?for=queue limits room users to queueForOthers holders and
+// ?ghosts=1 also appends the requester's own ghosts)
 export const fetchQueueUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string, isGhost?: boolean }>, number | null | undefined>(
   'youtube/fetchQueueUsers',
   async (roomId) => {
     try {
-      return await rootApi.get(roomId == null ? 'users/names?ghosts=1' : `users/names?roomId=${roomId}&ghosts=1`)
+      return await rootApi.get(roomId == null ? 'users/names?for=queue&ghosts=1' : `users/names?roomId=${roomId}&for=queue&ghosts=1`)
     } catch {
       return []
     }

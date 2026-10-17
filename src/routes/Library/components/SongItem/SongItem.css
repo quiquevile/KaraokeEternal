@@ -100,6 +100,14 @@
   z-index: 50;
 }
 
+/* no room below the row: anchor at the row top and grow upward
+   (child is RecentSearches' .container, whose top:100% is overridden;
+   bottom:100% of a zero-height parent sits at the parent's top edge) */
+.pickerPortalFlip > div {
+  top: auto;
+  bottom: 100%;
+}
+
 /* Buttons */
 .btn {
   position: relative;

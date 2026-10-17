@@ -25,6 +25,11 @@ let ignoreMouseup = false
 
 const LONG_PRESS_THRESHOLD_MS = 700
 
+// keep the queue-for-others picker fully on screen: when there is no
+// room below the song row, anchor it above instead
+const PICKER_FIT_MARGIN = 8
+const PICKER_MIN_ABOVE_PX = 160
+
 interface SongItemProps {
   songId: number
   artist?: string
@@ -66,7 +71,7 @@ const SongItem = ({
 }: SongItemProps) => {
   const [isExpanded, setExpanded] = useState(false)
   const [queuePickerOpen, setQueuePickerOpen] = useState(false)
-  const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number } | null>(null)
+  const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number, flip: boolean } | null>(null)
   const longPressActiveRef = useRef(false)
   const songRef = useRef<HTMLDivElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
@@ -170,7 +175,15 @@ const SongItem = ({
     const rect = songRef.current?.getBoundingClientRect()
 
     if (rect) {
-      setPickerPos({ top: rect.bottom, left: rect.left, right: window.innerWidth - rect.right })
+      const spaceBelow = window.innerHeight - rect.bottom - PICKER_FIT_MARGIN
+      const flip = spaceBelow < PICKER_MIN_ABOVE_PX && rect.top - PICKER_FIT_MARGIN > spaceBelow
+
+      setPickerPos({
+        top: flip ? rect.top : rect.bottom,
+        left: rect.left,
+        right: window.innerWidth - rect.right,
+        flip,
+      })
     }
 
     setQueuePickerOpen(true)
@@ -247,7 +260,7 @@ const SongItem = ({
       {queuePickerOpen && pickerPos && createPortal(
         <div
           ref={pickerRef}
-          className={styles.pickerPortal}
+          className={clsx(styles.pickerPortal, pickerPos.flip && styles.pickerPortalFlip)}
           style={{ top: pickerPos.top, left: pickerPos.left, right: pickerPos.right }}
         >
           <RecentSearches

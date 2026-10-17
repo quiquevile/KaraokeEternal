@@ -82,14 +82,14 @@ const SongItem = ({
 
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'queueForOthers') || hasPermission(user, 'ghostUsers')
 
-  // tapping outside the row or picker (or scrolling either away, or
-  // Escape) dismisses the picker
+  // tapping outside the picker (including on the song row itself, so a
+  // tap that queues for you also dismisses the list; or scrolling away,
+  // or Escape) closes the picker
   useEffect(() => {
     if (!queuePickerOpen) return
 
     const inside = (target: Node | null) => (
-      (songRef.current && songRef.current.contains(target))
-      || (pickerRef.current && pickerRef.current.contains(target))
+      pickerRef.current && pickerRef.current.contains(target)
     )
 
     const onPointerDown = (event: Event) => {

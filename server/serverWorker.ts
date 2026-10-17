@@ -146,7 +146,7 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
   app.use(async (ctx, next) => {
     ctx.set('X-Content-Type-Options', 'nosniff')
     ctx.set('X-Frame-Options', 'SAMEORIGIN')
-    ctx.set('Content-Security-Policy', "frame-ancestors 'self'")
+    ctx.set('Content-Security-Policy', 'frame-ancestors \'self\'')
     ctx.set('Referrer-Policy', 'same-origin')
 
     await next()

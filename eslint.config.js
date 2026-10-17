@@ -31,7 +31,7 @@ export default defineConfig(
     },
   },
   {
-    ignores: ['build/**', 'docs/**', 'dist/**', 'node_modules/**'],
+    ignores: ['build/**', 'docs/**', 'dist/**', 'node_modules/**', 'tmp/**'],
   },
   // client-only config
   {

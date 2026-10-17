@@ -28,7 +28,7 @@ afterAll(() => {
 describe('Media.scanRows', () => {
   it('creates the scan-cache indexes', () => {
     const row = db.get<{ count: number }>(
-      "SELECT COUNT(*) AS count FROM sqlite_master WHERE name IN ('idxMediaPathRelPath', 'idxMediaPath', 'idxSongArtistTitleNorm')",
+      'SELECT COUNT(*) AS count FROM sqlite_master WHERE name IN (\'idxMediaPathRelPath\', \'idxMediaPath\', \'idxSongArtistTitleNorm\')',
     )
 
     expect(row?.count).toBe(3)

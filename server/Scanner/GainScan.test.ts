@@ -325,7 +325,9 @@ describe('GainScan', () => {
 
   it('finishes without unhandled rejections from throttled progress', async () => {
     const unhandled: unknown[] = []
-    const listener = (err: unknown) => { unhandled.push(err) }
+    const listener = (err: unknown) => {
+      unhandled.push(err)
+    }
     process.on('unhandledRejection', listener)
 
     try {

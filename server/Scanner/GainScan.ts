@@ -100,7 +100,7 @@ export function startGainScan (io): boolean {
   total = row?.count ?? 0
 
   emitDropped = false
-  emit = throttle(action => {
+  emit = throttle((action) => {
     if (!emitDropped) io.emit('action', action)
   }, 1000)
 

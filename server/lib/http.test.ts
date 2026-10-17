@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mapDomainError, parseIdParam, requireAdmin, requireSameOrigin, type HttpContext } from './http.js'
 
 const makeCtx = (headers?: Record<string, string | string[] | undefined>): HttpContext & { status: number } => ({

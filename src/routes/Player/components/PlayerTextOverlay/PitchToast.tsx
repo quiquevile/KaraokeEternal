@@ -19,37 +19,33 @@ interface PitchToastProps {
 const PitchToast = ({ pitchSemitones, displayMs, replayKey, queueId, mediaId }: PitchToastProps) => {
   const [show, setShow] = useState(false)
   const [text, setText] = useState('')
-  const timeoutID = useRef<ReturnType<typeof setTimeout> | null>(null)
   const nodeRef = useRef<HTMLDivElement | null>(null)
-  const prev = useRef({ pitchSemitones, replayKey, queueId, mediaId })
+  const [prev, setPrev] = useState({ pitchSemitones, replayKey, queueId, mediaId })
 
-  useEffect(() => {
-    const pitchChanged = prev.current.pitchSemitones !== pitchSemitones
-    const startChanged = prev.current.replayKey !== replayKey
-      || prev.current.queueId !== queueId
-      || prev.current.mediaId !== mediaId
+  // react to prop changes during render (previous-props comparison), so
+  // showing the toast never has to trigger a cascading effect render
+  const pitchChanged = prev.pitchSemitones !== pitchSemitones
+  const startChanged = prev.replayKey !== replayKey
+    || prev.queueId !== queueId
+    || prev.mediaId !== mediaId
 
-    prev.current = { pitchSemitones, replayKey, queueId, mediaId }
-
-    if (!pitchChanged && !(startChanged && pitchSemitones !== 0)) return
-
-    if (timeoutID.current) {
-      clearTimeout(timeoutID.current)
-    }
-
+  if (pitchChanged || (startChanged && pitchSemitones !== 0)) {
+    setPrev({ pitchSemitones, replayKey, queueId, mediaId })
     setText(formatPitch(pitchSemitones))
     setShow(true)
+  }
 
-    timeoutID.current = setTimeout(() => {
+  // hide again after displayMs; only ever scheduled while shown, so the
+  // mount itself stays silent
+  useEffect(() => {
+    if (!show) return
+
+    const id = setTimeout(() => {
       setShow(false)
     }, displayMs)
 
-    return () => {
-      if (timeoutID.current) {
-        clearTimeout(timeoutID.current)
-      }
-    }
-  }, [pitchSemitones, replayKey, queueId, mediaId, displayMs])
+    return () => clearTimeout(id)
+  }, [show, text, displayMs])
 
   return (
     <CSSTransition

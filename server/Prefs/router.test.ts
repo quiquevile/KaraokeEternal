@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const {
   getGainStatusMock,
@@ -35,7 +35,6 @@ import {
   handleScanPath,
   handleScanStop,
 } from './router.js'
-import Prefs from './Prefs.js'
 import User from '../User/User.js'
 import type { RouterContext } from './router.js'
 

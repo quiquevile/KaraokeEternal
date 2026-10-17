@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import Highlighter from 'react-highlight-words'
@@ -143,6 +143,18 @@ const SongItem = ({
     trackMouse: true,
   })
 
+  // react-swipeable passes its ref callback through the handlers object;
+  // handing the row a plain ref={songRef} would overwrite it and the
+  // touch listeners would never attach (mouse swipes still work, which
+  // makes this very hard to spot), so forward to both
+  const setRowRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      songRef.current = el
+      swipeHandlers.ref(el)
+    },
+    [swipeHandlers],
+  )
+
   // long-press a song to queue it for someone else in the room (or for
   // one of your own ghosts);
   // a plain tap still queues it for yourself
@@ -177,7 +189,7 @@ const SongItem = ({
   return (
     <div
       {...swipeHandlers}
-      ref={songRef}
+      ref={setRowRef}
       onAnimationEnd={handleAnimationEnd}
       className={clsx(
         styles.container,

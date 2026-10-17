@@ -103,12 +103,13 @@ export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, usern
   },
 )
 
-// users in a room for queue-for-others targeting (same endpoint as above)
-export const fetchQueueUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, number | null | undefined>(
+// users in a room for queue-for-others targeting (same endpoint as
+// above; ?ghosts=1 also appends the requester's own ghosts)
+export const fetchQueueUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string, isGhost?: boolean }>, number | null | undefined>(
   'youtube/fetchQueueUsers',
   async (roomId) => {
     try {
-      return await rootApi.get(roomId == null ? 'users/names' : `users/names?roomId=${roomId}`)
+      return await rootApi.get(roomId == null ? 'users/names?ghosts=1' : `users/names?roomId=${roomId}&ghosts=1`)
     } catch {
       return []
     }
@@ -194,7 +195,7 @@ export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
 export interface YouTubeState {
   downloads: DownloadReport | null
   downloadUsers: Array<{ userId: number, username: string, name: string }>
-  queueUsers: Array<{ userId: number, username: string, name: string }>
+  queueUsers: Array<{ userId: number, username: string, name: string, isGhost?: boolean }>
   error: string | null
   hasSearched: boolean
   isSearching: boolean

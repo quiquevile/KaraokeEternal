@@ -75,7 +75,7 @@ const SongItem = ({
   const user = useAppSelector(state => state.user)
   const queueUsers = useAppSelector(state => state.youtube.queueUsers)
 
-  const canQueueForOthers = user.isAdmin || hasPermission(user, 'queueForOthers')
+  const canQueueForOthers = user.isAdmin || hasPermission(user, 'queueForOthers') || hasPermission(user, 'ghostUsers')
 
   // tapping outside the row or picker (or scrolling either away, or
   // Escape) dismisses the picker
@@ -143,7 +143,8 @@ const SongItem = ({
     trackMouse: true,
   })
 
-  // long-press a song to queue it for someone else in the room;
+  // long-press a song to queue it for someone else in the room (or for
+  // one of your own ghosts);
   // a plain tap still queues it for yourself
   const bindQueueForOthers = useLongPress(() => {
     if (!canQueueForOthers) return
@@ -170,7 +171,8 @@ const SongItem = ({
 
   const queueTargets = queueUsers
     .filter(u => u.userId !== user.userId)
-    .map(u => ({ value: String(u.userId), label: `${u.name} (${u.username})` }))
+    // ghosts show their visible name only (their username is auto-generated)
+    .map(u => ({ value: String(u.userId), label: u.isGhost ? u.name : `${u.name} (${u.username})` }))
 
   return (
     <div

@@ -1,6 +1,6 @@
 import React from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
-import { useAppDispatch } from 'store/hooks'
+import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { createUser, removeUser, updateUser } from '../../../modules/users'
 import Button from 'components/Button/Button'
 import Modal from 'components/Modal/Modal'
@@ -18,14 +18,22 @@ interface EditUserProps {
 const EditUser = ({ user, onClose }: EditUserProps) => {
   const dispatch = useAppDispatch()
   const intl = useIntl()
+  const isAdmin = useAppSelector(state => state.user.isAdmin)
+  // non-admin managers only create/edit their own ghosts: avatar + name
+  const isLimited = !isAdmin
 
   const handleSubmit = (data: FormData) => {
     if (user) dispatch(updateUser({ userId: user.userId, data }))
-    else dispatch(createUser(data))
+    else {
+      if (isLimited) data.append('role', 'ghost')
+      dispatch(createUser(data))
+    }
   }
 
   const handleRemoveClick = () => {
-    if (user && confirm(intl.formatMessage(accountMessages.removeConfirm2, { username: user.username }))) {
+    if (user && confirm(intl.formatMessage(accountMessages.removeConfirm2, {
+      username: user.role === 'ghost' ? user.name : user.username,
+    }))) {
       dispatch(removeUser(user.userId))
     }
   }
@@ -35,10 +43,17 @@ const EditUser = ({ user, onClose }: EditUserProps) => {
       className={styles.modal}
       onClose={onClose}
       title={user
-        ? user.username
+        ? (user.role === 'ghost' ? user.name : user.username)
         : intl.formatMessage(commonMessages.createUser)}
     >
-      <AccountForm user={user} onSubmit={handleSubmit} showRole autoFocus={!user}>
+      <AccountForm
+        user={user}
+        onSubmit={handleSubmit}
+        showRole={!isLimited}
+        showUsername={!isLimited}
+        showPassword={!isLimited}
+        autoFocus={!user}
+      >
         <div className={styles.btnContainer}>
           {!user && (
             <Button type='submit' className={styles.btn} variant='primary'>

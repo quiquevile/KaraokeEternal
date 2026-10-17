@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import combinedReducer from 'store/reducers'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { fetchAccount } from 'store/modules/user'
+import { fetchAccount, hasPermission } from 'store/modules/user'
 import usersReducer, { sliceInjectNoOp } from '../../modules/users'
 import About from '../../components/About/About'
 import Account from '../../components/Account/Account'
@@ -11,11 +11,13 @@ import Rooms from '../../components/Rooms/Rooms'
 import Users from '../../components/Users/Users'
 
 const SignedInView = () => {
-  const { isAdmin } = useAppSelector(state => state.user)
+  const user = useAppSelector(state => state.user)
   const sliceExists = !!useAppSelector(state => state.users)
   const dispatch = useAppDispatch()
+  // admins see everything; ghost managers only see their own ghosts
+  const canManageUsers = user.isAdmin || hasPermission(user, 'ghostUsers')
 
-  if (isAdmin && !sliceExists) {
+  if (canManageUsers && !sliceExists) {
     combinedReducer.inject({ reducerPath: 'users', reducer: usersReducer })
     dispatch(sliceInjectNoOp()) // update store with new slice
   }
@@ -29,13 +31,13 @@ const SignedInView = () => {
     <>
       <LanguagePrefs />
 
-      {isAdmin
+      {user.isAdmin
         && <Rooms />}
 
-      {isAdmin
+      {canManageUsers
         && <Users />}
 
-      {isAdmin
+      {user.isAdmin
         && <Prefs />}
 
       <Account />

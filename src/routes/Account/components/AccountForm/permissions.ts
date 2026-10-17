@@ -10,4 +10,5 @@ export const PERMISSIONS: Array<{ value: Permission, message: (typeof accountMes
   { value: 'playerControls', message: accountMessages.permsPlayerControls },
   { value: 'youtubeDownload', message: accountMessages.permsYoutubeDownload },
   { value: 'downloadForOthers', message: accountMessages.permsDownloadForOthers, parent: 'youtubeDownload' },
+  { value: 'ghostUsers', message: accountMessages.permsGhostUsers },
 ]

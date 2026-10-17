@@ -63,6 +63,10 @@ const AccountForm = ({
   const [selectedRole, setSelectedRole] = useState(user?.role ?? '')
   const intl = useIntl()
   const isSignedIn = user && user.userId !== null
+  // ghost accounts get their username/password server-side when created
+  const hideCredentials = !user && selectedRole === 'ghost'
+  const showUsernameField = showUsername && !hideCredentials
+  const showPasswordField = showPassword && !hideCredentials
 
   const updateDirty = (perms: Record<string, boolean> = state.perms) => {
     if (!user || user.userId === null) return
@@ -72,11 +76,12 @@ const AccountForm = ({
 
     setState(prev => ({
       ...prev,
-      isDirty: !!username.current?.value || !!newPassword.current?.value
+      isDirty: (showUsernameField && !!username.current?.value)
+        || (showPasswordField && !!newPassword.current?.value)
         || (name.current?.value !== user.name)
         || (role.current && role.current.value !== (user.role ?? ''))
         || permsChanged,
-      isChangingPassword: !!newPassword.current?.value,
+      isChangingPassword: showPasswordField && !!newPassword.current?.value,
     }))
   }
 
@@ -111,11 +116,11 @@ const AccountForm = ({
       data.append('name', name.current.value.trim())
     }
 
-    if (username.current?.value.trim()) {
+    if (showUsernameField && username.current?.value.trim()) {
       data.append('username', username.current.value.trim())
     }
 
-    if (state.isChangingPassword) {
+    if (showPasswordField && state.isChangingPassword) {
       data.append('newPassword', newPassword.current?.value || '')
       data.append('newPasswordConfirm', newPasswordConfirm.current?.value || '')
     }
@@ -128,7 +133,7 @@ const AccountForm = ({
       data.append('role', role.current.value)
     }
 
-    if (showRole && selectedRole !== 'admin' && selectedRole !== 'guest') {
+    if (showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && selectedRole !== 'ghost') {
       data.append('permissions', JSON.stringify(state.perms))
     }
 
@@ -142,7 +147,7 @@ const AccountForm = ({
       noValidate
       onSubmit={handleSubmit}
     >
-      {showUsername && (
+      {showUsernameField && (
         <input
           type='email'
           autoComplete='off'
@@ -159,7 +164,7 @@ const AccountForm = ({
         />
       )}
 
-      {showPassword && (
+      {showPasswordField && (
         <input
           type='password'
           autoComplete='new-password'
@@ -171,7 +176,7 @@ const AccountForm = ({
         />
       )}
 
-      {state.isChangingPassword && (
+      {showPasswordField && state.isChangingPassword && (
         <input
           type='password'
           autoComplete='new-password'
@@ -189,6 +194,7 @@ const AccountForm = ({
         />
         <input
           type='text'
+          autoFocus={autoFocus && !showUsernameField}
           defaultValue={user?.name ?? ''}
           onChange={() => updateDirty()}
           placeholder={intl.formatMessage(commonMessages.displayName)}
@@ -207,12 +213,13 @@ const AccountForm = ({
         >
           <option key='choose' value='' disabled>{intl.formatMessage(accountMessages.selectRole)}</option>
           {user?.role === 'guest' && <option key='guest' value='guest'>{intl.formatMessage(commonMessages.guest)}</option>}
+          {(!user || user.role === 'ghost') && <option key='ghost' value='ghost'>{intl.formatMessage(accountMessages.roleGhost)}</option>}
           <option key='standard' value='standard'>{intl.formatMessage(accountMessages.roleStandard)}</option>
           <option key='admin' value='admin'>{intl.formatMessage(accountMessages.roleAdmin)}</option>
         </select>
       )}
 
-      {showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && (
+      {showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && selectedRole !== 'ghost' && (
         <Accordion
           headingComponent={(
             <div className={styles.permsHeading}>

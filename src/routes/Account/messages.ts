@@ -2,6 +2,7 @@ import type { MessageDescriptor } from 'react-intl'
 
 export const accountMessages: Record<string, MessageDescriptor> = {
   permsDownloadForOthers: { id: 'account.perms.downloadForOthers', defaultMessage: 'Can queue downloads for others' },
+  permsGhostUsers: { id: 'account.perms.ghostUsers', defaultMessage: 'Can manage ghost users' },
   permsPlayerAccess: { id: 'account.perms.playerAccess', defaultMessage: 'Can open the player' },
   permsPlayerControls: { id: 'account.perms.playerControls', defaultMessage: 'Can control playback' },
   permsQueueDelete: { id: 'account.perms.queueDelete', defaultMessage: 'Can delete queue songs' },
@@ -61,6 +62,7 @@ export const accountMessages: Record<string, MessageDescriptor> = {
   removeUser: { id: 'account.editUser.removeUser', defaultMessage: 'Remove User' },
   role: { id: 'account.users.role', defaultMessage: 'Role' },
   roleAdmin: { id: 'account.form.roleAdmin', defaultMessage: 'Administrator' },
+  roleGhost: { id: 'account.form.roleGhost', defaultMessage: 'Ghost' },
   roleStandard: { id: 'account.form.roleStandard', defaultMessage: 'Standard' },
   roomPassword: { id: 'account.selectRoom.roomPassword', defaultMessage: 'room password (required)' },
   scanFolders: { id: 'account.pathPrefs.scanFolders', defaultMessage: 'Scan Folders' },

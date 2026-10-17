@@ -16,6 +16,7 @@ const Users = () => {
   const intl = useIntl()
 
   const curUserId = useAppSelector(state => state.user.userId)
+  const isAdmin = useAppSelector(state => state.user.isAdmin)
   const { isEditorOpen, filterOnline, filterRoomId } = useAppSelector(state => state.users)
   const rooms = useAppSelector(state => state.rooms)
   const users = useAppSelector(getUsers)
@@ -40,6 +41,19 @@ const Users = () => {
 
   const rows = users.result.map((userId) => {
     const user = users.entities[userId]
+
+    // ghosts show their visible name only, indented below their creator
+    if (user.role === 'ghost') {
+      return (
+        <tr key={userId}>
+          <td className={styles.ghostCell}>
+            <a data-user-id={userId} onClick={handleOpen}>{user.name}</a>
+          </td>
+          <td>{intl.formatMessage(accountMessages.roleGhost)}</td>
+          <td>{formatDateTime(new Date(user.dateCreated * 1000))}</td>
+        </tr>
+      )
+    }
 
     return (
       <tr key={userId}>
@@ -93,7 +107,7 @@ const Users = () => {
   return (
     <Panel
       title={intl.formatMessage(commonMessages.users)}
-      titleComponent={userFilter}
+      titleComponent={isAdmin ? userFilter : undefined}
     >
       <>
         <table className={styles.table}>

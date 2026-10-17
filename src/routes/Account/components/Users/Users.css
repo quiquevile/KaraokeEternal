@@ -38,3 +38,15 @@
   text-overflow: ellipsis;
   max-width: 0;
 }
+
+.ghostCell {
+  padding-left: calc(var(--space-m) + 2ch);
+  position: relative;
+}
+
+.ghostCell::before {
+  color: hsl(var(--hue-blue), 10%, 60%);
+  content: '└';
+  left: var(--space-m);
+  position: absolute;
+}

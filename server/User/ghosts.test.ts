@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { open, close } from '../lib/Database.js'
+import { open, close, db } from '../lib/Database.js'
+import crypto from '../lib/crypto.js'
 import User from './User.js'
 
 let dir: string
@@ -66,6 +67,18 @@ describe('ghost users', () => {
     const users = User.get()
 
     expect(users.entities[ghostId]).toMatchObject({ role: 'ghost', createdBy: creatorId })
+  })
+
+  it('never lets a ghost sign in, even with a real password', async () => {
+    const ghostId = await User.create({ name: 'Signin', createdBy: creatorId }, 'ghost')
+    const ghost = User.getById(ghostId, true)!
+    const hashed = await crypto.hash('supersecret123')
+
+    // simulate someone setting an actual password on the ghost
+    db.run('UPDATE users SET password = ? WHERE userId = ?', [hashed, ghostId])
+
+    await expect(User.validate({ username: ghost.username, password: 'supersecret123' }))
+      .rejects.toThrow('Incorrect username or password')
   })
 
   it('removes a creator\'s ghosts with them (cascade)', async () => {

@@ -222,7 +222,9 @@ class User {
 
     const user = User.getByUsername(username, true) as ServerUser
 
-    if (!user || !(await crypto.compare(password, user.password))) {
+    // ghosts are owned accounts and can never sign in, even if a real
+    // password was set on them
+    if (!user || user.role === 'ghost' || !(await crypto.compare(password, user.password))) {
       throw new Error(t(locale, 'server.auth.incorrectCredentials', 'Incorrect username or password'))
     }
 

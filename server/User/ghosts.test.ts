@@ -6,6 +6,13 @@ import { open, close, db } from '../lib/Database.js'
 import crypto from '../lib/crypto.js'
 import User from './User.js'
 
+// getById reports a miss as false; tests want the entity or a hard failure
+function getOrThrow (userId: number, creds: boolean = false) {
+  const found = User.getById(userId, creds)
+  if (found === false) throw new Error(`expected user ${userId}`)
+  return found
+}
+
 let dir: string
 let creatorId: number
 let standardId: number
@@ -36,7 +43,7 @@ afterAll(() => {
 describe('ghost users', () => {
   it('creates ghosts with an auto username, no password and a creator', async () => {
     const ghostId = await User.create({ name: 'Ana', createdBy: creatorId }, 'ghost')
-    const ghost = User.getById(ghostId, true)
+    const ghost = getOrThrow(ghostId, true)
 
     expect(ghost).toMatchObject({
       role: 'ghost',
@@ -45,7 +52,7 @@ describe('ghost users', () => {
       password: 'guest',
     })
     expect(ghost!.username).toMatch(/^ghost-[a-zA-Z0-9]{5}$/)
-    expect(JSON.parse(String(User.getById(ghostId)!.permissions))).toEqual({})
+    expect(JSON.parse(String(getOrThrow(ghostId).permissions))).toEqual({})
   })
 
   it('rejects ghosts without a creator', async () => {
@@ -59,7 +66,7 @@ describe('ghost users', () => {
       'ghost',
     )
 
-    expect(JSON.parse(String(User.getById(ghostId)!.permissions))).toEqual({})
+    expect(JSON.parse(String(getOrThrow(ghostId).permissions))).toEqual({})
   })
 
   it('lists createdBy in get()', async () => {
@@ -71,7 +78,7 @@ describe('ghost users', () => {
 
   it('never lets a ghost sign in, even with a real password', async () => {
     const ghostId = await User.create({ name: 'Signin', createdBy: creatorId }, 'ghost')
-    const ghost = User.getById(ghostId, true)!
+    const ghost = getOrThrow(ghostId, true)
     const hashed = await crypto.hash('supersecret123')
 
     // simulate someone setting an actual password on the ghost

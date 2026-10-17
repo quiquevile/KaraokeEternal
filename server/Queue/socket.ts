@@ -23,7 +23,7 @@ const ACTION_HANDLERS = {
 
       const target = User.getById(queueUserId)
 
-      if (target?.role === 'ghost') {
+      if (target && target.role === 'ghost') {
         // ghosts are never in a room; only their creator may queue for
         // them (not even other admins)
         if (target.createdBy !== sock.user.userId || !can(sock.user, 'ghostUsers')) {

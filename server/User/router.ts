@@ -523,12 +523,12 @@ router.put('/user/:userId', async (ctx) => {
     const target = User.getById(targetId)
 
     // a user cannot be turned into a ghost (like a guest)
-    if (body.role === 'ghost' && target?.role !== 'ghost') {
+    if (body.role === 'ghost' && (!target || target.role !== 'ghost')) {
       ctx.throw(403, t(ctxLocale(ctx), 'server.users.becomeGhost', 'A user cannot become a ghost'))
     }
 
     // leaving the ghost role unlinks the creator
-    if (target?.role === 'ghost' && body.role !== 'ghost') {
+    if (target && target.role === 'ghost' && body.role !== 'ghost') {
       fields.set('createdBy', null)
     }
 

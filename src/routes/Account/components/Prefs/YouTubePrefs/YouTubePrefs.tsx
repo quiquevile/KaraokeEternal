@@ -1,14 +1,18 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import { setPref } from 'store/modules/prefs'
+import { fitPathTail } from '../../../lib/fitPathTail'
 import YtDlpChooser from './YtDlpChooser/YtDlpChooser'
 import YtdlUpdater from './YtdlUpdater/YtdlUpdater'
 import styles from './YouTubePrefs.css'
 import { accountMessages } from '../../../messages'
+
+// slack so the UA never has to ellipsize what we already fitted
+const FIT_BUFFER_PX = 4
 
 const DirField = ({ value }: { value: string }) => {
   const [dir, setDir] = useState(value)
@@ -78,6 +82,42 @@ const YouTubePrefs = () => {
     }
   }
 
+  const selectRef = useRef<HTMLSelectElement>(null)
+  const [pathLabel, setPathLabel] = useState<((path: string) => string) | null>(null)
+
+  // shrink each option label to the select's text area, keeping the
+  // tail of the path: full path when there is room, '...' + end when
+  // the screen is too narrow to show it all
+  useEffect(() => {
+    const el = selectRef.current
+    if (!el) return
+
+    const ctx = document.createElement('canvas').getContext('2d')
+    const cs = getComputedStyle(el)
+
+    const fit = () => {
+      const availWidth
+        = el.clientWidth
+          - parseFloat(cs.paddingLeft)
+          - parseFloat(cs.paddingRight)
+          - FIT_BUFFER_PX
+
+      if (!ctx || availWidth <= 0) {
+        setPathLabel(null)
+        return
+      }
+
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+      setPathLabel(() => (path: string) =>
+        fitPathTail(path, availWidth, s => ctx.measureText(s).width))
+    }
+
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <Accordion
       className={styles.container}
@@ -106,15 +146,22 @@ const YouTubePrefs = () => {
               <FormattedMessage {...accountMessages.downloadFolder} />
             </span>
             <select
+              ref={selectRef}
               value={selectedPathId != null ? String(selectedPathId) : ''}
               onChange={handlePathChange}
               disabled={!paths.result.length}
             >
               {!paths.result.length
                 && <option value=''>{intl.formatMessage(accountMessages.noFolders)}</option>}
-              {paths.result.map(pathId => (
-                <option key={pathId} value={String(pathId)}>{paths.entities[pathId].path}</option>
-              ))}
+              {paths.result.map((pathId) => {
+                const path = paths.entities[pathId].path
+
+                return (
+                  <option key={pathId} value={String(pathId)}>
+                    {pathLabel ? pathLabel(path) : path}
+                  </option>
+                )
+              })}
             </select>
           </label>
         </div>

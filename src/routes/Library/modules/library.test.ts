@@ -5,7 +5,6 @@ import reducer, {
   setFilterStr,
   setLocateSongId,
   toggleArtistResultExpanded,
-  toggleFilterDownloaded,
   toggleFilterStarred,
 } from './library'
 
@@ -57,7 +56,6 @@ describe('setLocateSongId', () => {
     expect(reducer(located, setFilterStr('queen')).locateSongId).toBe(null)
     expect(reducer(located, resetFilterStr()).locateSongId).toBe(null)
     expect(reducer(located, toggleFilterStarred()).locateSongId).toBe(null)
-    expect(reducer(located, toggleFilterDownloaded()).locateSongId).toBe(null)
   })
 
   it('re-arms the blink on every locate and disarms it after', () => {

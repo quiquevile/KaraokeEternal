@@ -10,7 +10,6 @@ import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
-import Prefs from '../Prefs/Prefs.js'
 import { toFilename } from '../Youtube/metadata.js'
 
 const log = getLogger('Library')
@@ -48,28 +47,40 @@ class Library {
       entities: {},
     }
 
-    // songs with a version in the configured YouTube download folder
-    // (strictly the configured one: without it no downloads are possible)
-    const downloadPathId = (Prefs.get() as unknown as Record<string, unknown>).youtubeDownloadPathId
-    const downloadPath = typeof downloadPathId === 'number' ? downloadPathId : -1
+    // media folders per song, as "pathId:relative dir" (dir '' = path root)
+    const foldersBySong: Record<number, string[]> = {}
+    {
+      const query = sql`SELECT songId, pathId, relPath FROM media`
+      const rows = db.all<{ songId: number, pathId: number, relPath: string }>(String(query), query.parameters)
+
+      for (const row of rows) {
+        const dir = path.dirname(row.relPath)
+        const entry = `${row.pathId}:${dir === '.' ? '' : dir}`
+        const folders = (foldersBySong[row.songId] ??= [])
+
+        if (!folders.includes(entry)) folders.push(entry)
+      }
+    }
 
     // query #1: songs
     {
       const query = sql`
         SELECT duration, songs.artistId AS artistId, songs.songId AS songId, songs.title AS title,
-          MAX(isPreferred) AS isPreferred, COUNT(DISTINCT media.mediaId) AS numMedia,
-          MAX(CASE WHEN media.pathId = ${downloadPath} THEN 1 ELSE 0 END) AS isDownloaded
+          MAX(isPreferred) AS isPreferred, COUNT(DISTINCT media.mediaId) AS numMedia
         FROM media
           INNER JOIN songs USING (songId)
           INNER JOIN paths USING (pathId)
         GROUP BY songId
         ORDER BY songs.titleNorm, paths.priority ASC
       `
-      const rows = db.all<Omit<Song, 'isDownloaded'> & { isPreferred: number, isDownloaded: number }>(String(query), query.parameters)
+      const rows = db.all<Omit<Song, 'isPreferred' | 'folders'> & { isPreferred: number }>(String(query), query.parameters)
 
       for (const row of rows) {
-        delete row.isPreferred
-        songs.entities[row.songId] = { ...row, isDownloaded: row.isDownloaded === 1 }
+        songs.entities[row.songId] = {
+          ...row,
+          isPreferred: row.isPreferred === 1,
+          folders: foldersBySong[row.songId] ?? [],
+        }
         songs.result.push(row.songId)
 
         // add to artist's songIds
@@ -126,6 +137,15 @@ class Library {
       if (entities[mediaId].isPreferred) media = entities[mediaId]
     }
 
+    const folders: string[] = []
+    for (const mediaId of result) {
+      const row = entities[mediaId]
+      const dir = path.dirname(row.relPath)
+      const entry = `${row.pathId}:${dir === '.' ? '' : dir}`
+
+      if (!folders.includes(entry)) folders.push(entry)
+    }
+
     return {
       [songId]: {
         artistId: media.artistId,
@@ -133,6 +153,8 @@ class Library {
         songId: media.songId,
         title: media.title,
         numMedia: result.length,
+        isPreferred: !!media.isPreferred,
+        folders,
       },
     }
   }

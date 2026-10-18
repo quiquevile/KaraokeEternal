@@ -308,73 +308,63 @@ describe('Library.deleteMedia', () => {
   })
 })
 
-describe('Library.get download flag', () => {
-  const seedDownloadSetup = () => {
-    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['DL Artist', 'DL Artist'])
-    const artistId = (db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['DL Artist']) as { artistId: number }).artistId
-    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)', [artistId, 'DL Song', 'DL Song'])
-    const songId = (db.get<{ songId: number }>('SELECT songId FROM songs WHERE title = ?', ['DL Song']) as { songId: number }).songId
-    db.run('INSERT INTO paths (path, priority, data) VALUES (?, ?, ?)', ['/downloads', 0, '{}'])
-    const pathId = (db.get<{ pathId: number }>('SELECT pathId FROM paths WHERE path = ?', ['/downloads']) as { pathId: number }).pathId
-    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)', [songId, pathId, 'dl-song.mp4', 200])
-    db.run('INSERT INTO prefs (key, data) VALUES (\'youtubeDownloadPathId\', ?)', [String(pathId)])
+describe('Library.get folders and preferred flag', () => {
+  let pathId: number
 
-    return songId
-  }
+  beforeAll(() => {
+    pathId = (db.get<{ pathId: number }>('SELECT pathId FROM paths WHERE path = ?', [musicDir]) as { pathId: number }).pathId
+  })
 
-  const clearDownloadSetup = () => {
-    db.run('DELETE FROM media WHERE relPath = \'dl-song.mp4\'')
-    db.run('DELETE FROM songs WHERE title = \'DL Song\'')
-    db.run('DELETE FROM artists WHERE name = \'DL Artist\'')
-    db.run('DELETE FROM paths WHERE path = \'/downloads\'')
-    db.run('DELETE FROM prefs WHERE key = \'youtubeDownloadPathId\'')
+  it('lists every media folder of a song as pathId-relative dir entries', () => {
     Library.cache.version = null
-  }
+    const lib = Library.get()
 
-  it('marks only songs with a version in the download folder', () => {
-    const songId = seedDownloadSetup()
+    expect(lib.songs.entities[1].folders).toEqual([
+      `${pathId}:${join('set1')}`,
+      `${pathId}:${join('set2')}`,
+    ])
+    expect(lib.songs.entities[2].folders).toEqual([`${pathId}:${join('set1')}`])
+  })
+
+  it('keeps subdirectories and normalizes the path root to an empty dir', () => {
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+      [1, pathId, join('set1', 'sub', 'clip.mp4'), 100])
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)', [2, 'Root Song', 'Root Song'])
+    const rootSongId = (db.get<{ songId: number }>('SELECT songId FROM songs WHERE title = ?', ['Root Song']) as { songId: number }).songId
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+      [rootSongId, pathId, 'root.mp4', 100])
     Library.cache.version = null
 
     try {
       const lib = Library.get()
 
-      expect(lib.songs.entities[songId].isDownloaded).toBe(true)
-
-      for (const id of lib.songs.result) {
-        if (id !== songId) expect(lib.songs.entities[id].isDownloaded).toBe(false)
-      }
+      expect(lib.songs.entities[1].folders).toContain(`${pathId}:${join('set1', 'sub')}`)
+      expect(lib.songs.entities[rootSongId].folders).toEqual([`${pathId}:`])
     } finally {
-      clearDownloadSetup()
+      db.run('DELETE FROM media WHERE songId = ?', [rootSongId])
+      db.run('DELETE FROM songs WHERE songId = ?', [rootSongId])
+      db.run('DELETE FROM media WHERE relPath = ?', [join('set1', 'sub', 'clip.mp4')])
+      Library.cache.version = null
     }
   })
 
-  it('flags nothing without a configured download folder', () => {
+  it('flags a song as preferred once any version is', () => {
+    Library.cache.version = null
+    expect(Library.get().songs.entities[1].isPreferred).toBe(false)
+
+    const media = db.get<{ mediaId: number }>(
+      'SELECT mediaId FROM media WHERE songId = 1 ORDER BY mediaId LIMIT 1',
+    ) as { mediaId: number }
+    db.run('UPDATE media SET isPreferred = 1 WHERE mediaId = ?', [media.mediaId])
     Library.cache.version = null
 
     try {
       const lib = Library.get()
 
-      for (const id of lib.songs.result) {
-        expect(lib.songs.entities[id].isDownloaded).toBe(false)
-      }
+      expect(lib.songs.entities[1].isPreferred).toBe(true)
+      expect(lib.songs.entities[2].isPreferred).toBe(false)
     } finally {
-      Library.cache.version = null
-    }
-  })
-
-  it('recomputes the flag after a version moves folders', () => {
-    const songId = seedDownloadSetup()
-    Library.cache.version = null
-
-    try {
-      expect(Library.get().songs.entities[songId].isDownloaded).toBe(true)
-
-      // what handleMoveMedia persists (plus cache invalidation via push)
-      db.run('UPDATE media SET pathId = 1, relPath = ? WHERE relPath = ?', ['dl-song.mp4', 'dl-song.mp4'])
-      Library.cache.version = null
-
-      expect(Library.get().songs.entities[songId].isDownloaded).toBe(false)
-    } finally {
+      db.run('UPDATE media SET isPreferred = 0 WHERE mediaId = ?', [media.mediaId])
       Library.cache.version = null
     }
   })

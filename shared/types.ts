@@ -10,8 +10,10 @@ export interface Song {
   songId: number
   title: string
   numMedia: number
-  // whether any version lives in the configured YouTube download folder
-  isDownloaded?: boolean
+  // whether any version is marked as preferred
+  isPreferred: boolean
+  // media folders as "pathId:relative dir" entries (dir '' = path root)
+  folders: string[]
 }
 
 export interface QueueItem {

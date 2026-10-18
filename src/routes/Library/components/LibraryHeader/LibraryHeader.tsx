@@ -4,8 +4,7 @@ import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { setFilterStr, resetFilterStr, toggleFilterDownloaded, toggleFilterFlawed, toggleFilterStarred } from '../../modules/library'
-import { fetchPrefs } from 'store/modules/prefs'
+import { setFilterStr, resetFilterStr, toggleFilterFlawed, toggleFilterStarred } from '../../modules/library'
 import { setYoutubeQuery, searchYoutubeVideos } from 'store/modules/youtube'
 import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
@@ -21,14 +20,10 @@ const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const intl = useIntl()
-  const { filterStr, filterStarred, filterFlawed, filterDownloaded } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterFlawed } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
   const canDownload = hasPermission(user, 'youtubeDownload')
   const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
-  const hasDownloadPath = useAppSelector(state => state.prefs.youtubeDownloadPathId != null)
-  const showDownloadFilter = useAppSelector(state =>
-    state.user.isAdmin && state.prefs.youtubeDownloadPathId != null,
-  )
 
   // a mouse swipe across the filter group also fires a click on whatever
   // button it ends over: swallow it (same dance as the song rows); if the
@@ -48,14 +43,6 @@ const LibraryHeader = () => {
 
     dispatch(action)
   }
-
-  // the download-folder filter needs global prefs, which are only fetched
-  // at login: re-fetch on mount when missing so the button self-heals
-  useEffect(() => {
-    if (user.userId !== null && !hasDownloadPath) {
-      dispatch(fetchPrefs())
-    }
-  }, [dispatch, user.userId, hasDownloadPath])
 
   const searchInput = useRef<HTMLInputElement>(null)
   const searchWrap = useRef<HTMLDivElement>(null)
@@ -204,7 +191,7 @@ const LibraryHeader = () => {
       <div
         className={clsx(
           styles.filters,
-          !filtersExpanded && (filterFlawed || filterDownloaded) && styles.filtersHint,
+          !filtersExpanded && filterFlawed && styles.filtersHint,
         )}
         {...filterSwipeHandlers}
         onMouseDown={handleFilterMousedown}
@@ -226,16 +213,6 @@ const LibraryHeader = () => {
               onClick={() => handleFilterClick(toggleFilterFlawed())}
               aria-label={intl.formatMessage(libraryMessages.flawedOnly)}
               aria-pressed={filterFlawed}
-            />
-          )}
-          {showDownloadFilter && (
-            <Button
-              data-hide
-              className={clsx(styles.btnFilter, filterDownloaded && styles.active)}
-              icon='DOWNLOAD'
-              onClick={() => handleFilterClick(toggleFilterDownloaded())}
-              aria-label={intl.formatMessage(libraryMessages.downloadedOnly)}
-              aria-pressed={filterDownloaded}
             />
           )}
         </Buttons>

@@ -8,7 +8,6 @@ const getSongs = (state: RootState) => state.songs
 const getFilterStr = (state: RootState) => state.library.filterStr.trim().toLowerCase()
 const getFilterStarred = (state: RootState) => state.library.filterStarred
 const getFilterFlawed = (state: RootState) => state.library.filterFlawed
-const getFilterDownloaded = (state: RootState) => state.library.filterDownloaded
 const getStarredSongs = (state: RootState) => ensureState(state.userStars).starredSongs
 const getFlawedSongs = (state: RootState) => ensureState(state.userFlaws).flawedSongs
 
@@ -36,11 +35,11 @@ export interface SearchTreeNode {
 
 // the search view is always an artist tree (never loose songs): an artist
 // is listed when its name matches or one of its songs matches (and passes
-// the starred/downloaded filters); a name-matching artist lists all its
+// the starred/flawed filters); a name-matching artist lists all its
 // passing songs, otherwise only the title-matching ones
 const getSearchTree = createSelector(
-  [getArtists, getSongs, getArtistSearcher, getSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterFlawed, getFlawedSongs, getFilterDownloaded],
-  (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterFlawed, flawedSongs, filterDownloaded) => {
+  [getArtists, getArtistSearcher, getSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterFlawed, getFlawedSongs],
+  (artists, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterFlawed, flawedSongs) => {
     const hasText = str.length > 0
     const nameHits = new Set<number>(hasText
       ? artistSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
@@ -52,7 +51,6 @@ const getSearchTree = createSelector(
     const flagOK = (songId: number): boolean => {
       if (filterStarred && !starredSongs.includes(songId)) return false
       if (filterFlawed && !flawedSongs.includes(songId)) return false
-      if (filterDownloaded && !songs.entities[songId]?.isDownloaded) return false
       return true
     }
 

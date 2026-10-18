@@ -3,7 +3,6 @@ import type { MessageDescriptor } from 'react-intl'
 export const libraryMessages: Record<string, MessageDescriptor> = {
   admin: { id: 'library.empty.admin', defaultMessage: '<link>Add media folders</link> to get started.' },
   counts: { id: 'library.search.counts', defaultMessage: '{artists, plural, one {# artist} other {# artists}}, {songs, plural, one {# song} other {# songs}}' },
-  downloadedOnly: { id: 'library.header.downloadedOnly', defaultMessage: 'Show only downloaded songs' },
   flawedOnly: { id: 'library.header.flawedOnly', defaultMessage: 'Show only defective songs' },
   flawMark: { id: 'library.flaw.mark', defaultMessage: 'Mark as defective' },
   flawUnmark: { id: 'library.flaw.unmark', defaultMessage: 'Remove defective mark' },

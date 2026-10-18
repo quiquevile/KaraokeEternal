@@ -30,6 +30,25 @@ const LibraryHeader = () => {
     state.user.isAdmin && state.prefs.youtubeDownloadPathId != null,
   )
 
+  // a mouse swipe across the filter group also fires a click on whatever
+  // button it ends over: swallow it (same dance as the song rows); if the
+  // compat click lands outside the buttons, the next mousedown disarms
+  const ignoreMouseupRef = useRef(false)
+
+  const handleFilterMousedown = (event: React.MouseEvent<HTMLDivElement>) => {
+    ignoreMouseupRef.current = false
+    filterSwipeHandlers.onMouseDown?.(event)
+  }
+
+  const handleFilterClick = (action: ReturnType<typeof toggleFilterStarred>) => {
+    if (ignoreMouseupRef.current) {
+      ignoreMouseupRef.current = false
+      return
+    }
+
+    dispatch(action)
+  }
+
   // the download-folder filter needs global prefs, which are only fetched
   // at login: re-fetch on mount when missing so the button self-heals
   useEffect(() => {
@@ -48,8 +67,14 @@ const LibraryHeader = () => {
   // (like the song row actions) to reveal the extra filters
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const filterSwipeHandlers = useSwipeable({
-    onSwipedLeft: () => setFiltersExpanded(true),
-    onSwipedRight: () => setFiltersExpanded(false),
+    onSwipedLeft: ({ event }) => {
+      ignoreMouseupRef.current = event.type === 'mouseup'
+      setFiltersExpanded(true)
+    },
+    onSwipedRight: ({ event }) => {
+      ignoreMouseupRef.current = event.type === 'mouseup'
+      setFiltersExpanded(false)
+    },
     preventScrollOnSwipe: true,
     trackMouse: true,
   })
@@ -179,13 +204,14 @@ const LibraryHeader = () => {
       <div
         className={styles.filters}
         {...filterSwipeHandlers}
+        onMouseDown={handleFilterMousedown}
         ref={setFiltersRef}
       >
         <Buttons btnWidth={56} isExpanded={filtersExpanded}>
           <Button
             className={clsx(styles.btnFilter, filterStarred && styles.active)}
             icon='STAR_FULL'
-            onClick={() => dispatch(toggleFilterStarred())}
+            onClick={() => handleFilterClick(toggleFilterStarred())}
             aria-label={intl.formatMessage(libraryMessages.starredOnly)}
             aria-pressed={filterStarred}
           />
@@ -194,7 +220,7 @@ const LibraryHeader = () => {
               data-hide
               className={clsx(styles.btnFilter, filterFlawed && styles.active)}
               icon='STAR_BROKEN'
-              onClick={() => dispatch(toggleFilterFlawed())}
+              onClick={() => handleFilterClick(toggleFilterFlawed())}
               aria-label={intl.formatMessage(libraryMessages.flawedOnly)}
               aria-pressed={filterFlawed}
             />
@@ -204,7 +230,7 @@ const LibraryHeader = () => {
               data-hide
               className={clsx(styles.btnFilter, filterDownloaded && styles.active)}
               icon='DOWNLOAD'
-              onClick={() => dispatch(toggleFilterDownloaded())}
+              onClick={() => handleFilterClick(toggleFilterDownloaded())}
               aria-label={intl.formatMessage(libraryMessages.downloadedOnly)}
               aria-pressed={filterDownloaded}
             />

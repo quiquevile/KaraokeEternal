@@ -17,6 +17,12 @@
 - Admins can filter the library to songs with at least one version in the YouTube download folder
 - All changes are pushed live to every connected client
 
+### Defective song marks
+
+- Users with the new "mark songs as defective" capability (or admins) can flag a song version from its row with a broken-star icon; marks are per user and pushed live to every connected client
+- The library header gains a "only defective songs" filter (swipe the filter group left, next to the starred filter) showing only the songs the current user marked
+- The capability appears in the account editor next to the other granular permissions
+
 ### Permissions
 
 - Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor

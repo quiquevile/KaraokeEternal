@@ -418,6 +418,9 @@ class Library {
     const deleteSongStars = sql`DELETE FROM songStars WHERE songId = ${songId}`
     db.run(String(deleteSongStars), deleteSongStars.parameters)
 
+    const deleteSongFlaws = sql`DELETE FROM songFlaws WHERE songId = ${songId}`
+    db.run(String(deleteSongFlaws), deleteSongFlaws.parameters)
+
     const deleteSong = sql`DELETE FROM songs WHERE songId = ${songId}`
     db.run(String(deleteSong), deleteSong.parameters)
 
@@ -613,6 +616,50 @@ class Library {
       // invalidate cache
       this.starCountsCache.version = null
     }
+
+    return res.changes
+  }
+
+  /**
+  * Gets a user's flawed songs (marked as defective)
+  */
+  static getUserFlaws (userId: number): { flawedSongs: number[] } {
+    const query = sql`
+      SELECT songId
+      FROM songFlaws
+      WHERE userId = ${userId}
+    `
+    const rows = db.all<{ songId: number }>(String(query), query.parameters)
+
+    return { flawedSongs: rows.map(row => row.songId) }
+  }
+
+  /**
+  * Add a user's defective mark to a song
+  */
+  static flawSong (songId: number, userId: number): number {
+    const fields = new Map()
+    fields.set('songId', songId)
+    fields.set('userId', userId)
+
+    const query = sql`
+      INSERT OR IGNORE INTO songFlaws ${sql.tuple(Array.from(fields.keys()).map(sql.column))}
+      VALUES ${sql.tuple(Array.from(fields.values()))}
+    `
+    const res = db.run(String(query), query.parameters)
+
+    return res.changes
+  }
+
+  /**
+  * Remove a user's defective mark from a song
+  */
+  static unflawSong (songId: number, userId: number): number {
+    const query = sql`
+      DELETE FROM songFlaws
+      WHERE userId = ${userId} AND songId = ${songId}
+    `
+    const res = db.run(String(query), query.parameters)
 
     return res.changes
   }

@@ -106,6 +106,7 @@ export type Permission
     | 'playerControls'
     | 'youtubeDownload'
     | 'downloadForOthers'
+    | 'songFlaws'
 
 export interface User {
   userId: number

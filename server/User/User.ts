@@ -328,6 +328,13 @@ class User {
     `
     db.run(String(artistStarsQuery), artistStarsQuery.parameters)
 
+    // remove user's defective song marks
+    const songFlawsQuery = sql`
+      DELETE FROM songFlaws
+      WHERE userId = ${userId}
+    `
+    db.run(String(songFlawsQuery), songFlawsQuery.parameters)
+
     // remove the user
     const usersQuery = sql`
       DELETE FROM users

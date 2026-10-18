@@ -14,6 +14,8 @@ export const TOGGLE_ARTIST_RESULT_EXPANDED = 'library/TOGGLE_ARTIST_RESULT_EXPAN
 export const SCROLL_ARTISTS = 'library/SCROLL_ARTISTS'
 export const SONG_STARRED = 'library/SONG_STARRED'
 export const SONG_UNSTARRED = 'library/SONG_UNSTARRED'
+export const SONG_FLAWED = 'library/SONG_FLAWED'
+export const SONG_UNFLAWED = 'library/SONG_UNFLAWED'
 export const STAR_COUNTS_PUSH = 'library/STAR_COUNTS_PUSH'
 export const LIBRARY_PUSH = 'library/PUSH'
 export const LIBRARY_PUSH_SONG = 'library/PUSH_SONG'
@@ -76,6 +78,11 @@ export const ROOM_PREFS_PUSH_REQUEST = 'server/ROOM_PREFS_PUSH_REQUEST'
 export const STAR_SONG = 'server/STAR_SONG'
 export const UNSTAR_SONG = 'server/UNSTAR_SONG'
 export const STARS_PUSH = 'user/STARS_PUSH'
+
+// Song flaws (per-user defective marks)
+export const FLAW_SONG = 'server/FLAW_SONG'
+export const UNFLAW_SONG = 'server/UNFLAW_SONG'
+export const FLAWS_PUSH = 'user/FLAWS_PUSH'
 
 // Preferences
 export const PREFS_RECEIVE = 'prefs/RECEIVE'

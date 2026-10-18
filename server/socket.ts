@@ -16,6 +16,7 @@ import {
   QUEUE_PUSH,
   STARS_PUSH,
   STAR_COUNTS_PUSH,
+  FLAWS_PUSH,
   PLAYER_STATUS,
   PLAYER_LEAVE,
   PREFS_PUSH,
@@ -131,6 +132,12 @@ export default function (io, jwtKey) {
     io.to(sock.id).emit('action', {
       type: STARS_PUSH,
       payload: Library.getUserStars(sock.user.userId),
+    })
+
+    // push user's defective song marks
+    io.to(sock.id).emit('action', {
+      type: FLAWS_PUSH,
+      payload: Library.getUserFlaws(sock.user.userId),
     })
 
     // push star counts (only if client's is outdated)

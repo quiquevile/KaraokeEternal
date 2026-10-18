@@ -307,6 +307,7 @@
   "server.library.mediaFileNotFound": "archivo multimedia no encontrado: {path}",
   "server.library.invalidMediaId": "Id multimedia no válido",
   "server.library.mediaNotFound": "Id multimedia {mediaId} no encontrado",
+  "server.library.flawForbidden": "No puedes marcar canciones como defectuosas",
   "server.queue.invalidId": "Id de cola no válido",
   "server.queue.moveOthers": "No puedes mover la canción de otro usuario",
   "server.queue.removeOthers": "No puedes quitar la canción de otro usuario",

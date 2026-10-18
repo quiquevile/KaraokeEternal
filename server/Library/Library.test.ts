@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
@@ -287,6 +287,7 @@ describe('Library.deleteMedia', () => {
     db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)',
       [1, songIdOf(), 1, null])
     db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?)', [1, songIdOf()])
+    db.run('INSERT INTO songFlaws (userId, songId) VALUES (?, ?)', [1, songIdOf()])
     const mediaId = Number(db.get<{ mediaId: number }>(
       'SELECT mediaId FROM media WHERE songId = ?', [songIdOf()],
     )?.mediaId)
@@ -296,6 +297,8 @@ describe('Library.deleteMedia', () => {
     expect(existsSync(abs('set2', 'Multiversion - Two Ways.mp4'))).toBe(false)
     expect(db.get('SELECT songId FROM songs WHERE songId = ?', [songIdOf()])).toBeUndefined()
     expect(db.get('SELECT * FROM queue WHERE songId = ?', [songIdOf()])).toBeUndefined()
+    expect(db.get('SELECT * FROM songStars WHERE songId = ?', [songIdOf()])).toBeUndefined()
+    expect(db.get('SELECT * FROM songFlaws WHERE songId = ?', [songIdOf()])).toBeUndefined()
     expect(db.get('SELECT artistId FROM artists WHERE nameNorm = ?', ['Multiversion'])).toBeUndefined()
   })
 
@@ -372,7 +375,32 @@ describe('Library.get download flag', () => {
 
       expect(Library.get().songs.entities[songId].isDownloaded).toBe(false)
     } finally {
-      clearDownloadSetup()
+      Library.cache.version = null
     }
+  })
+})
+
+describe('Library song flaws', () => {
+  afterEach(() => {
+    db.run('DELETE FROM songFlaws')
+  })
+
+  it('flaws a song once and lists it per user', () => {
+    expect(Library.flawSong(2, 1)).toBe(1)
+    // idempotent
+    expect(Library.flawSong(2, 1)).toBe(0)
+
+    expect(Library.getUserFlaws(1)).toEqual({ flawedSongs: [2] })
+    // other users are unaffected
+    expect(Library.getUserFlaws(99)).toEqual({ flawedSongs: [] })
+  })
+
+  it('unflaws a song', () => {
+    Library.flawSong(2, 1)
+
+    expect(Library.unflawSong(2, 1)).toBe(1)
+    // idempotent
+    expect(Library.unflawSong(2, 1)).toBe(0)
+    expect(Library.getUserFlaws(1)).toEqual({ flawedSongs: [] })
   })
 })

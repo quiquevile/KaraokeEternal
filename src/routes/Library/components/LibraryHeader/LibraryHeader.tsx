@@ -202,7 +202,10 @@ const LibraryHeader = () => {
         />
       )}
       <div
-        className={styles.filters}
+        className={clsx(
+          styles.filters,
+          !filtersExpanded && (filterFlawed || filterDownloaded) && styles.filtersHint,
+        )}
         {...filterSwipeHandlers}
         onMouseDown={handleFilterMousedown}
         ref={setFiltersRef}

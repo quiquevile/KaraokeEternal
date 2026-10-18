@@ -68,9 +68,31 @@
    group or the search field starves it on narrow screens and the last
    filter stays clipped even when expanded */
 .filters {
+  position: relative;
   flex: 0 0 auto;
   margin-right: var(--space-s);
   overflow: hidden;
+}
+
+/* lit strip on the right edge while the tray is collapsed and one of
+   the hidden filters (flawed/downloaded) is active; the strip lives in
+   the DOM permanently so it can fade both ways */
+.filters::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--btn-active-bg-color);
+  filter: var(--btn-active-filter);
+  opacity: 0;
+  transition: opacity .3s linear;
+  pointer-events: none;
+}
+
+.filters.filtersHint::after {
+  opacity: 1;
 }
 
 .btnFilter {

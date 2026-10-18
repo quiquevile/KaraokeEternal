@@ -3,6 +3,7 @@ import {
   LIBRARY_FILTER_STRING,
   LIBRARY_FILTER_STRING_RESET,
   LIBRARY_FILTER_TOGGLE_STARRED,
+  LIBRARY_FILTER_TOGGLE_FLAWED,
   LIBRARY_FILTER_TOGGLE_DOWNLOADED,
   LIBRARY_PUSH,
   LOCATE_BLINKED,
@@ -26,6 +27,7 @@ const libraryPush = createAction<LibraryState>(LIBRARY_PUSH)
 
 export const resetFilterStr = createAction(LIBRARY_FILTER_STRING_RESET)
 export const toggleFilterStarred = createAction<void>(LIBRARY_FILTER_TOGGLE_STARRED)
+export const toggleFilterFlawed = createAction<void>(LIBRARY_FILTER_TOGGLE_FLAWED)
 export const toggleFilterDownloaded = createAction<void>(LIBRARY_FILTER_TOGGLE_DOWNLOADED)
 export const setFilterStr = createAction(LIBRARY_FILTER_STRING, (payload: string) => ({
   payload,
@@ -45,6 +47,7 @@ export interface LibraryState {
   version: number
   filterStr: string
   filterStarred: boolean
+  filterFlawed: boolean
   filterDownloaded: boolean
   scrollRow: number
   locateSongId: number | null
@@ -59,6 +62,7 @@ const initialState: LibraryState = {
   version: 0,
   filterStr: '',
   filterStarred: false,
+  filterFlawed: false,
   filterDownloaded: false,
   scrollRow: 0,
   locateSongId: null,
@@ -80,6 +84,10 @@ const libraryReducer = createReducer(initialState, (builder) => {
     })
     .addCase(toggleFilterStarred, (state) => {
       state.filterStarred = !state.filterStarred
+      state.locateSongId = null
+    })
+    .addCase(toggleFilterFlawed, (state) => {
+      state.filterFlawed = !state.filterFlawed
       state.locateSongId = null
     })
     .addCase(toggleFilterDownloaded, (state) => {

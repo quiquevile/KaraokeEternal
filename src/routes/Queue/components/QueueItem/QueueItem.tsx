@@ -20,6 +20,7 @@ import {
   setLocateSongId,
   toggleArtistExpanded,
   toggleFilterDownloaded,
+  toggleFilterFlawed,
   toggleFilterStarred,
 } from 'routes/Library/modules/library'
 import styles from './QueueItem.css'
@@ -112,6 +113,7 @@ const QueueItem = ({
   const artistIds = useAppSelector(state => state.artists.result)
   const expandedArtists = useAppSelector(state => state.library.expandedArtists)
   const filterStarred = useAppSelector(state => state.library.filterStarred)
+  const filterFlawed = useAppSelector(state => state.library.filterFlawed)
   const filterDownloaded = useAppSelector(state => state.library.filterDownloaded)
   const navigate = useNavigate()
   const locateXRef = useRef(0)
@@ -133,6 +135,10 @@ const QueueItem = ({
 
     if (filterStarred) {
       dispatch(toggleFilterStarred())
+    }
+
+    if (filterFlawed) {
+      dispatch(toggleFilterFlawed())
     }
 
     if (filterDownloaded) {

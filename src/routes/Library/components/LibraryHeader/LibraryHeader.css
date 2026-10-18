@@ -63,15 +63,17 @@
   }
 }
 
-.btnStar {
+/* the extra filters hide to the right and are clipped until the group
+   swipes open (Buttons animates the group's width) */
+.filters {
   margin-right: var(--space-s);
-
-  svg {
-    height: 3rem;
-  }
+  overflow: hidden;
 }
 
-.btnDownload {
+.btnFilter {
+  width: 48px;
+  flex-shrink: 0;
+
   svg {
     height: 3rem;
   }

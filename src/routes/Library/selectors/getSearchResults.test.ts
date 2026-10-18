@@ -33,13 +33,19 @@ const state = {
       52: { songId: 52, artistId: 5, title: 'Acme', isDownloaded: false },
     },
   },
-  library: { filterStr: '', filterStarred: false, filterDownloaded: false },
+  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterDownloaded: false },
   userStars: { starredArtists: [], starredSongs: [10, 20, 40, 50, 52] },
+  userFlaws: { userId: null, flawedSongs: [30, 42, 52] },
 } as unknown as RootState
 
-const search = (filterStr: string, filterStarred = false, filterDownloaded = false): RootState => ({
+const search = (
+  filterStr: string,
+  filterStarred = false,
+  filterDownloaded = false,
+  filterFlawed = false,
+): RootState => ({
   ...state,
-  library: { filterStr, filterStarred, filterDownloaded },
+  library: { filterStr, filterStarred, filterFlawed, filterDownloaded },
 } as unknown as RootState)
 
 describe('getSearchTree', () => {
@@ -121,6 +127,20 @@ describe('getSearchTree', () => {
   it('9. text "te" with starred and downloaded', () => {
     expect(getSearchTree(search('te', true, true))).toEqual([
       { artistId: 5, songIds: [50], autoExpanded: false },
+    ])
+  })
+
+  it('10. flawed: only defective songs, artists expanded', () => {
+    expect(getSearchTree(search('', false, false, true))).toEqual([
+      { artistId: 3, songIds: [30], autoExpanded: true },
+      { artistId: 4, songIds: [42], autoExpanded: true },
+      { artistId: 5, songIds: [52], autoExpanded: true },
+    ])
+  })
+
+  it('11. starred and flawed', () => {
+    expect(getSearchTree(search('', true, false, true))).toEqual([
+      { artistId: 5, songIds: [52], autoExpanded: true },
     ])
   })
 })

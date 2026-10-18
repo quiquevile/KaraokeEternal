@@ -1,13 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useState, useRef } from 'react'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
+import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { setFilterStr, resetFilterStr, toggleFilterDownloaded, toggleFilterStarred } from '../../modules/library'
+import { setFilterStr, resetFilterStr, toggleFilterDownloaded, toggleFilterFlawed, toggleFilterStarred } from '../../modules/library'
 import { fetchPrefs } from 'store/modules/prefs'
 import { setYoutubeQuery, searchYoutubeVideos } from 'store/modules/youtube'
 import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
+import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
 import { filterRecentSearches, getHistoryLimit, getRecentSearches, pushRecentSearch } from 'lib/recentSearches'
@@ -19,9 +21,10 @@ const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const intl = useIntl()
-  const { filterStr, filterStarred, filterDownloaded } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterFlawed, filterDownloaded } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
   const canDownload = hasPermission(user, 'youtubeDownload')
+  const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
   const hasDownloadPath = useAppSelector(state => state.prefs.youtubeDownloadPathId != null)
   const showDownloadFilter = useAppSelector(state =>
     state.user.isAdmin && state.prefs.youtubeDownloadPathId != null,
@@ -40,6 +43,21 @@ const LibraryHeader = () => {
   const [value, setValue] = useState(filterStr)
   const [historyLimit] = useState(() => getHistoryLimit('library'))
   const [historyOpen, setHistoryOpen] = useState(false)
+
+  // only the star filter shows by default: swipe the filter group left
+  // (like the song row actions) to reveal the extra filters
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const filterSwipeHandlers = useSwipeable({
+    onSwipedLeft: () => setFiltersExpanded(true),
+    onSwipedRight: () => setFiltersExpanded(false),
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  })
+  // react-swipeable passes its ref callback through the handlers object;
+  // forward to it without reading it during render
+  const setFiltersRef = useCallback((el: HTMLDivElement | null) => {
+    filterSwipeHandlers.ref(el)
+  }, [filterSwipeHandlers])
 
   const openHistory = () => {
     if (historyLimit > 0 && getRecentSearches('library').length > 0) {
@@ -158,22 +176,41 @@ const LibraryHeader = () => {
           aria-label={intl.formatMessage(commonMessages.clearSearch)}
         />
       )}
-      {showDownloadFilter && (
-        <Button
-          className={clsx(styles.btnDownload, filterDownloaded && styles.active)}
-          icon='DOWNLOAD'
-          onClick={() => dispatch(toggleFilterDownloaded())}
-          aria-label={intl.formatMessage(libraryMessages.downloadedOnly)}
-          aria-pressed={filterDownloaded}
-        />
-      )}
-      <Button
-        className={clsx(styles.btnStar, filterStarred && styles.active)}
-        icon='STAR_FULL'
-        onClick={() => dispatch(toggleFilterStarred())}
-        aria-label={intl.formatMessage(libraryMessages.starredOnly)}
-        aria-pressed={filterStarred}
-      />
+      <div
+        className={styles.filters}
+        {...filterSwipeHandlers}
+        ref={setFiltersRef}
+      >
+        <Buttons btnWidth={56} isExpanded={filtersExpanded}>
+          <Button
+            className={clsx(styles.btnFilter, filterStarred && styles.active)}
+            icon='STAR_FULL'
+            onClick={() => dispatch(toggleFilterStarred())}
+            aria-label={intl.formatMessage(libraryMessages.starredOnly)}
+            aria-pressed={filterStarred}
+          />
+          {canMarkFlaws && (
+            <Button
+              data-hide
+              className={clsx(styles.btnFilter, filterFlawed && styles.active)}
+              icon='STAR_BROKEN'
+              onClick={() => dispatch(toggleFilterFlawed())}
+              aria-label={intl.formatMessage(libraryMessages.flawedOnly)}
+              aria-pressed={filterFlawed}
+            />
+          )}
+          {showDownloadFilter && (
+            <Button
+              data-hide
+              className={clsx(styles.btnFilter, filterDownloaded && styles.active)}
+              icon='DOWNLOAD'
+              onClick={() => dispatch(toggleFilterDownloaded())}
+              aria-label={intl.formatMessage(libraryMessages.downloadedOnly)}
+              aria-pressed={filterDownloaded}
+            />
+          )}
+        </Buttons>
+      </div>
     </div>
   )
 }

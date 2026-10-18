@@ -10,6 +10,7 @@ interface ButtonFlawedProps {
   'onClick': (e: React.MouseEvent) => void
   'isFlawed': boolean
   'aria-label'?: string
+  'data-hide'?: boolean
 }
 
 const ButtonFlawed = ({
@@ -17,6 +18,7 @@ const ButtonFlawed = ({
   onClick,
   isFlawed,
   'aria-label': ariaLabel,
+  ...rest
 }: ButtonFlawedProps) => {
   return (
     <Button
@@ -24,6 +26,7 @@ const ButtonFlawed = ({
       className={clsx(styles.container, isFlawed && styles.flawed, className)}
       aria-pressed={isFlawed}
       aria-label={ariaLabel}
+      {...rest}
     >
       <ToggleAnimation toggle={isFlawed} className={styles.animateFlaw}>
         <Icon icon='STAR_BROKEN' />

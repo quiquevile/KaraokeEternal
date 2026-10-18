@@ -218,7 +218,7 @@ const LibraryHeader = () => {
           {canMarkFlaws && (
             <Button
               data-hide
-              className={clsx(styles.btnFilter, filterFlawed && styles.active)}
+              className={clsx(styles.btnFilter, styles.btnFilterFlawed, filterFlawed && styles.active)}
               icon='STAR_BROKEN'
               onClick={() => handleFilterClick(toggleFilterFlawed())}
               aria-label={intl.formatMessage(libraryMessages.flawedOnly)}

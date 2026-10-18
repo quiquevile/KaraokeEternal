@@ -145,7 +145,9 @@ const SongItem = ({
   const swipeHandlers = useSwipeable({
     onSwipedLeft: ({ event }) => {
       ignoreMouseup = event.type === 'mouseup'
-      setExpanded(isAdmin)
+      // the flaw action lives in the expanded menu now, so anyone
+      // holding the capability needs to be able to expand the row
+      setExpanded(isAdmin || canMarkFlaws)
     },
     onSwipedRight: ({ event }) => {
       ignoreMouseup = event.type === 'mouseup'
@@ -252,6 +254,7 @@ const SongItem = ({
         />
         {canMarkFlaws && (
           <ButtonFlawed
+            data-hide
             className={styles.btn}
             onClick={handleFlawClick}
             isFlawed={isFlawed}

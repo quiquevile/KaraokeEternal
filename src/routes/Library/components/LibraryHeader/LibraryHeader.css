@@ -64,8 +64,11 @@
 }
 
 /* the extra filters hide to the right and are clipped until the group
-   swipes open (Buttons animates the group's width) */
+   swipes open (Buttons animates the group's width); never shrink the
+   group or the search field starves it on narrow screens and the last
+   filter stays clipped even when expanded */
 .filters {
+  flex: 0 0 auto;
   margin-right: var(--space-s);
   overflow: hidden;
 }
@@ -77,4 +80,11 @@
   svg {
     height: 3rem;
   }
+}
+
+/* the flaw filter mirrors the row's flaw icon: plain while off, the
+   same pink (and glow) as a marked song when the filter is on */
+.container button.btnFilterFlawed.active {
+  color: var(--btn-danger-bg-color);
+  filter: var(--btn-danger-filter);
 }

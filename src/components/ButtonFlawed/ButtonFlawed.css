@@ -1,0 +1,21 @@
+.container {
+  color: var(--song-item-btn-bg-color);
+
+  svg {
+    display: block;
+  }
+}
+
+.flawed {
+  color: var(--btn-danger-bg-color);
+  filter: var(--btn-danger-filter);
+}
+
+.animateFlaw {
+  animation: var(--animation-btn-star);
+  will-change: transform;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

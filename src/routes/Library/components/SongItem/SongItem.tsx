@@ -11,6 +11,7 @@ import { fetchQueueUsers } from 'store/modules/youtube'
 import { queueSong } from 'routes/Queue/modules/queue'
 import { markLocateBlinked } from '../../modules/library'
 import Button from 'components/Button/Button'
+import ButtonFlawed from 'components/ButtonFlawed/ButtonFlawed'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
@@ -37,11 +38,13 @@ interface SongItemProps {
   duration: number
   onSongQueue(songId: number): void
   onSongStarClick(songId: number): void
+  onSongFlawClick(songId: number): void
   onSongInfo(songId: number): void
   onSongEdit(songId: number): void
   onSongDelete(songId: number): void
   isPlayed: boolean
   isStarred: boolean
+  isFlawed: boolean
   isUpcoming: boolean
   isHighlighted?: boolean
   isAdmin: boolean
@@ -57,11 +60,13 @@ const SongItem = ({
   duration,
   onSongQueue,
   onSongStarClick,
+  onSongFlawClick,
   onSongInfo,
   onSongEdit,
   onSongDelete,
   isPlayed,
   isStarred,
+  isFlawed,
   isUpcoming,
   isHighlighted,
   isAdmin,
@@ -81,6 +86,7 @@ const SongItem = ({
   const queueUsers = useAppSelector(state => state.youtube.queueUsers)
 
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'queueForOthers') || hasPermission(user, 'ghostUsers')
+  const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
 
   // tapping outside the picker (including on the song row itself, so a
   // tap that queues for you also dismisses the list; or scrolling away,
@@ -128,6 +134,7 @@ const SongItem = ({
   const handleEditClick = () => onSongEdit(songId)
   const handleDeleteClick = () => onSongDelete(songId)
   const handleStarClick = () => onSongStarClick(songId)
+  const handleFlawClick = () => onSongFlawClick(songId)
 
   // the blink plays once: after it, drop the highlight so remounts
   // (e.g. scrolling the song out and back in) don't replay it
@@ -243,6 +250,14 @@ const SongItem = ({
           isStarred={isStarred}
           count={numStars}
         />
+        {canMarkFlaws && (
+          <ButtonFlawed
+            className={styles.btn}
+            onClick={handleFlawClick}
+            isFlawed={isFlawed}
+            aria-label={intl.formatMessage(isFlawed ? libraryMessages.flawUnmark : libraryMessages.flawMark)}
+          />
+        )}
         <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(commonMessages.songInfo)}>
           <Icon icon='INFO_OUTLINE' />
         </Button>

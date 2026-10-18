@@ -5,6 +5,7 @@ import SongItem from '../SongItem/SongItem'
 import { queueSong } from 'routes/Queue/modules/queue'
 import { showSongEditor, showDeleteSong, showSongInfo } from 'store/modules/songInfo'
 import { toggleSongStarred } from 'store/modules/userStars'
+import { toggleSongFlawed } from 'store/modules/userFlaws'
 import getSongsStatus from '../../selectors/getSongsStatus'
 
 interface SongListProps {
@@ -18,6 +19,7 @@ const SongList = (props: SongListProps) => {
   const artists = useAppSelector(state => state.artists.entities)
   const songs = useAppSelector(state => state.songs.entities)
   const starredSongs = useAppSelector(state => ensureState(state.userStars).starredSongs)
+  const flawedSongs = useAppSelector(state => ensureState(state.userFlaws).flawedSongs)
   const starredSongCounts = useAppSelector(state => state.starCounts.songs)
   const isAdmin = useAppSelector(state => state.user.isAdmin)
   const locateSongId = useAppSelector(state => state.library.locateSongId)
@@ -29,6 +31,7 @@ const SongList = (props: SongListProps) => {
   const handleSongEdit = (songId: number) => dispatch(showSongEditor(songId))
   const handleSongDelete = (songId: number) => dispatch(showDeleteSong(songId))
   const handleSongStar = (songId: number) => dispatch(toggleSongStarred(songId))
+  const handleSongFlaw = (songId: number) => dispatch(toggleSongFlawed(songId))
 
   return props.songIds.map((songId) => {
     const song = songs[songId]
@@ -50,11 +53,13 @@ const SongList = (props: SongListProps) => {
         isUpcoming={upcoming.includes(songId) || current === songId}
         isHighlighted={locateSongId === songId && !locateBlinked}
         isStarred={starredSongs.includes(songId)}
+        isFlawed={flawedSongs.includes(songId)}
         isAdmin={isAdmin}
         key={songId}
         numStars={starredSongCounts[songId] || 0}
         onSongQueue={handleSongQueue}
         onSongStarClick={handleSongStar}
+        onSongFlawClick={handleSongFlaw}
         onSongInfo={handleSongInfo}
         onSongEdit={handleSongEdit}
         onSongDelete={handleSongDelete}

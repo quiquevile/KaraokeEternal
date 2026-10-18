@@ -21,19 +21,19 @@ const state = {
   songs: {
     result: [10, 11, 20, 30, 40, 41, 42, 50, 51, 52],
     entities: {
-      10: { songId: 10, artistId: 1, title: 'Superestrella' },
-      11: { songId: 11, artistId: 1, title: 'Vas a quedarte' },
-      20: { songId: 20, artistId: 2, title: 'La casa por el tejado' },
-      30: { songId: 30, artistId: 3, title: 'Tarzan y Jane' },
-      40: { songId: 40, artistId: 4, title: 'Me cole en una fiesta' },
-      41: { songId: 41, artistId: 4, title: 'Barco super' },
-      42: { songId: 42, artistId: 4, title: 'Voy a quedarme' },
-      50: { songId: 50, artistId: 5, title: 'Big love' },
-      51: { songId: 51, artistId: 5, title: 'Super Crash' },
-      52: { songId: 52, artistId: 5, title: 'Acme' },
+      10: { songId: 10, artistId: 1, title: 'Superestrella', folders: ['1:cds'] },
+      11: { songId: 11, artistId: 1, title: 'Vas a quedarte', folders: ['1:cds'] },
+      20: { songId: 20, artistId: 2, title: 'La casa por el tejado', folders: ['1:new'] },
+      30: { songId: 30, artistId: 3, title: 'Tarzan y Jane', folders: ['1:new'] },
+      40: { songId: 40, artistId: 4, title: 'Me cole en una fiesta', folders: ['1:cds', '1:new'] },
+      41: { songId: 41, artistId: 4, title: 'Barco super', folders: ['1:new'] },
+      42: { songId: 42, artistId: 4, title: 'Voy a quedarme', folders: ['1:cds'] },
+      50: { songId: 50, artistId: 5, title: 'Big love', folders: ['1:cds'] },
+      51: { songId: 51, artistId: 5, title: 'Super Crash', folders: ['1:new'] },
+      52: { songId: 52, artistId: 5, title: 'Acme', folders: ['1:new'] },
     },
   },
-  library: { filterStr: '', filterStarred: false, filterFlawed: false },
+  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterFolder: null },
   userStars: { starredArtists: [], starredSongs: [10, 20, 40, 50, 52] },
   userFlaws: { userId: null, flawedSongs: [30, 42, 52] },
 } as unknown as RootState
@@ -42,9 +42,10 @@ const search = (
   filterStr: string,
   filterStarred = false,
   filterFlawed = false,
+  filterFolder: string | null = null,
 ): RootState => ({
   ...state,
-  library: { filterStr, filterStarred, filterFlawed },
+  library: { filterStr, filterStarred, filterFlawed, filterFolder },
 } as unknown as RootState)
 
 describe('getSearchTree', () => {
@@ -105,6 +106,29 @@ describe('getSearchTree', () => {
   it('8. starred and flawed', () => {
     expect(getSearchTree(search('', true, true))).toEqual([
       { artistId: 5, songIds: [52], autoExpanded: true },
+    ])
+  })
+
+  it('9. folder: only songs in that folder, artists expanded', () => {
+    expect(getSearchTree(search('', false, false, '1:cds'))).toEqual([
+      { artistId: 1, songIds: [10, 11], autoExpanded: true },
+      { artistId: 4, songIds: [40, 42], autoExpanded: true },
+      { artistId: 5, songIds: [50], autoExpanded: true },
+    ])
+  })
+
+  it('10. folder and starred', () => {
+    expect(getSearchTree(search('', true, false, '1:cds'))).toEqual([
+      { artistId: 1, songIds: [10], autoExpanded: true },
+      { artistId: 4, songIds: [40], autoExpanded: true },
+      { artistId: 5, songIds: [50], autoExpanded: true },
+    ])
+  })
+
+  it('11. text "super" and folder', () => {
+    expect(getSearchTree(search('super', false, false, '1:new'))).toEqual([
+      { artistId: 4, songIds: [41], autoExpanded: true },
+      { artistId: 5, songIds: [51], autoExpanded: true },
     ])
   })
 })

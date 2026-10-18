@@ -1,0 +1,29 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.groupTitle {
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  overflow-wrap: anywhere;
+}
+
+.btnContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+}

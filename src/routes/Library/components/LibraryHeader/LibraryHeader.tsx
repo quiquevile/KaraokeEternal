@@ -4,13 +4,14 @@ import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { setFilterStr, resetFilterStr, toggleFilterFlawed, toggleFilterStarred } from '../../modules/library'
+import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterFlawed, toggleFilterStarred } from '../../modules/library'
 import { setYoutubeQuery, searchYoutubeVideos } from 'store/modules/youtube'
 import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
+import FolderFilterDialog from '../FolderFilterDialog/FolderFilterDialog'
 import { filterRecentSearches, getHistoryLimit, getRecentSearches, pushRecentSearch } from 'lib/recentSearches'
 import styles from './LibraryHeader.css'
 import { commonMessages } from '../../../../lib/messages'
@@ -20,7 +21,7 @@ const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const intl = useIntl()
-  const { filterStr, filterStarred, filterFlawed } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterFlawed, filterFolder } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
   const canDownload = hasPermission(user, 'youtubeDownload')
   const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
@@ -42,6 +43,20 @@ const LibraryHeader = () => {
     }
 
     dispatch(action)
+  }
+
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false)
+
+  // same guard as handleFilterClick, for the folder button: it either
+  // opens the dialog or clears an active filter instead of dispatching
+  const handleFolderClick = () => {
+    if (ignoreMouseupRef.current) {
+      ignoreMouseupRef.current = false
+      return
+    }
+
+    if (filterFolder === null) setFolderDialogOpen(true)
+    else dispatch(setFilterFolder(null))
   }
 
   const searchInput = useRef<HTMLInputElement>(null)
@@ -191,7 +206,7 @@ const LibraryHeader = () => {
       <div
         className={clsx(
           styles.filters,
-          !filtersExpanded && filterFlawed && styles.filtersHint,
+          !filtersExpanded && (filterFlawed || filterFolder !== null) && styles.filtersHint,
         )}
         {...filterSwipeHandlers}
         onMouseDown={handleFilterMousedown}
@@ -215,8 +230,21 @@ const LibraryHeader = () => {
               aria-pressed={filterFlawed}
             />
           )}
+          {user.isAdmin && (
+            <Button
+              data-hide
+              className={clsx(styles.btnFilter, filterFolder !== null && styles.active)}
+              icon='FOLDER'
+              onClick={handleFolderClick}
+              aria-label={intl.formatMessage(libraryMessages.filterFolder)}
+              aria-pressed={filterFolder !== null}
+            />
+          )}
         </Buttons>
       </div>
+      {folderDialogOpen && (
+        <FolderFilterDialog onClose={() => setFolderDialogOpen(false)} />
+      )}
     </div>
   )
 }

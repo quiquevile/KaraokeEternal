@@ -4,6 +4,7 @@ import {
   LIBRARY_FILTER_STRING_RESET,
   LIBRARY_FILTER_TOGGLE_STARRED,
   LIBRARY_FILTER_TOGGLE_FLAWED,
+  LIBRARY_FILTER_FOLDER,
   LIBRARY_PUSH,
   LOCATE_BLINKED,
   LOCATE_SONG,
@@ -27,6 +28,8 @@ const libraryPush = createAction<LibraryState>(LIBRARY_PUSH)
 export const resetFilterStr = createAction(LIBRARY_FILTER_STRING_RESET)
 export const toggleFilterStarred = createAction<void>(LIBRARY_FILTER_TOGGLE_STARRED)
 export const toggleFilterFlawed = createAction<void>(LIBRARY_FILTER_TOGGLE_FLAWED)
+// null = no folder filter; payload is a song folder entry ("pathId:dir")
+export const setFilterFolder = createAction<string | null>(LIBRARY_FILTER_FOLDER)
 export const setFilterStr = createAction(LIBRARY_FILTER_STRING, (payload: string) => ({
   payload,
   meta: {
@@ -46,6 +49,7 @@ export interface LibraryState {
   filterStr: string
   filterStarred: boolean
   filterFlawed: boolean
+  filterFolder: string | null
   scrollRow: number
   locateSongId: number | null
   locateBlinked: boolean
@@ -60,6 +64,7 @@ const initialState: LibraryState = {
   filterStr: '',
   filterStarred: false,
   filterFlawed: false,
+  filterFolder: null,
   scrollRow: 0,
   locateSongId: null,
   locateBlinked: false,
@@ -84,6 +89,10 @@ const libraryReducer = createReducer(initialState, (builder) => {
     })
     .addCase(toggleFilterFlawed, (state) => {
       state.filterFlawed = !state.filterFlawed
+      state.locateSongId = null
+    })
+    .addCase(setFilterFolder, (state, { payload }) => {
+      state.filterFolder = payload
       state.locateSongId = null
     })
     .addCase(setLocateSongId, (state, { payload }) => {

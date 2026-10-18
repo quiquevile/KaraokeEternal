@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import reducer, {
   markLocateBlinked,
   resetFilterStr,
+  setFilterFolder,
   setFilterStr,
   setLocateSongId,
   toggleArtistResultExpanded,
@@ -39,6 +40,18 @@ describe('toggleArtistResultExpanded', () => {
   })
 })
 
+describe('setFilterFolder', () => {
+  it('sets and clears the folder filter', () => {
+    const filtered = reducer(undefined, setFilterFolder('1:set1'))
+
+    expect(filtered.filterFolder).toBe('1:set1')
+
+    const cleared = reducer(filtered, setFilterFolder(null))
+
+    expect(cleared.filterFolder).toBe(null)
+  })
+})
+
 describe('setLocateSongId', () => {
   it('sets and clears the located song', () => {
     const located = reducer(undefined, setLocateSongId(42))
@@ -56,6 +69,7 @@ describe('setLocateSongId', () => {
     expect(reducer(located, setFilterStr('queen')).locateSongId).toBe(null)
     expect(reducer(located, resetFilterStr()).locateSongId).toBe(null)
     expect(reducer(located, toggleFilterStarred()).locateSongId).toBe(null)
+    expect(reducer(located, setFilterFolder('1:set1')).locateSongId).toBe(null)
   })
 
   it('re-arms the blink on every locate and disarms it after', () => {

@@ -6,6 +6,7 @@ import type { MessageDescriptor } from 'react-intl'
 // a duplicated es.json line is cheaper than a wrong translation.
 export const commonMessages: Record<string, MessageDescriptor> = {
   cancel: { id: 'common.cancel', defaultMessage: 'Cancel' },
+  accept: { id: 'common.accept', defaultMessage: 'Accept' },
   done: { id: 'common.done', defaultMessage: 'Done' },
   download: { id: 'common.download', defaultMessage: 'Download' },
   addFolder: { id: 'common.addFolder', defaultMessage: 'Add Folder' },

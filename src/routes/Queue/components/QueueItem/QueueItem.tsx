@@ -19,6 +19,7 @@ import {
   setFilterStr,
   setLocateSongId,
   toggleArtistExpanded,
+  setFilterFolder,
   toggleFilterFlawed,
   toggleFilterStarred,
 } from 'routes/Library/modules/library'
@@ -113,6 +114,7 @@ const QueueItem = ({
   const expandedArtists = useAppSelector(state => state.library.expandedArtists)
   const filterStarred = useAppSelector(state => state.library.filterStarred)
   const filterFlawed = useAppSelector(state => state.library.filterFlawed)
+  const filterFolder = useAppSelector(state => state.library.filterFolder)
   const navigate = useNavigate()
   const locateXRef = useRef(0)
   const [locateX, setLocateX] = useState(0)
@@ -137,6 +139,10 @@ const QueueItem = ({
 
     if (filterFlawed) {
       dispatch(toggleFilterFlawed())
+    }
+
+    if (filterFolder !== null) {
+      dispatch(setFilterFolder(null))
     }
 
     if (!expandedArtists.includes(artistId)) {

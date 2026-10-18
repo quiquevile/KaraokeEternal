@@ -37,6 +37,7 @@
   "account.perms.youtubeDownload": "Descargar de YouTube",
   "account.perms.downloadForOthers": "Descargar para otros",
   "account.perms.ghostUsers": "Gestionar usuarios fantasma",
+  "account.perms.songFlaws": "Marcar canciones como defectuosas",
   "account.users.filterAll": "Todas",
   "account.users.filterOnline": "En línea",
   "account.users.filterOnlineIn": "En línea en...",

@@ -252,28 +252,32 @@ const LibraryHeader = () => {
               aria-pressed={filterFolder !== null}
             />
           )}
-          <Button
-            data-hide
-            className={clsx(styles.btnFilter, filterMultiVersion && styles.active)}
-            icon='NOTE_DUO'
-            onClick={() => handleFilterClick(toggleFilterMultiVersion())}
-            aria-label={intl.formatMessage(libraryMessages.multiVersionOnly)}
-            aria-pressed={filterMultiVersion}
-          />
-          <Button
-            data-hide
-            className={clsx(styles.btnFilter, filterPreferred !== null && styles.active)}
-            icon={filterPreferred === 'without' ? 'HEART_X' : filterPreferred === 'with' ? 'HEART_CHECK' : 'HEART'}
-            onClick={handlePreferredClick}
-            aria-label={intl.formatMessage(
-              filterPreferred === 'without'
-                ? libraryMessages.preferredWithout
-                : filterPreferred === 'with'
-                  ? libraryMessages.preferredWith
-                  : libraryMessages.preferredAny,
-            )}
-            aria-pressed={filterPreferred !== null}
-          />
+          {user.isAdmin && (
+            <Button
+              data-hide
+              className={clsx(styles.btnFilter, filterMultiVersion && styles.active)}
+              icon='NOTE_DUO'
+              onClick={() => handleFilterClick(toggleFilterMultiVersion())}
+              aria-label={intl.formatMessage(libraryMessages.multiVersionOnly)}
+              aria-pressed={filterMultiVersion}
+            />
+          )}
+          {user.isAdmin && (
+            <Button
+              data-hide
+              className={clsx(styles.btnFilter, filterPreferred !== null && styles.active)}
+              icon={filterPreferred === 'without' ? 'HEART_X' : filterPreferred === 'with' ? 'HEART_CHECK' : 'HEART'}
+              onClick={handlePreferredClick}
+              aria-label={intl.formatMessage(
+                filterPreferred === 'without'
+                  ? libraryMessages.preferredWithout
+                  : filterPreferred === 'with'
+                    ? libraryMessages.preferredWith
+                    : libraryMessages.preferredAny,
+              )}
+              aria-pressed={filterPreferred !== null}
+            />
+          )}
         </Buttons>
       </div>
       {folderDialogOpen && (

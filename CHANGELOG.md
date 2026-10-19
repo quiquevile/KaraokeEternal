@@ -59,7 +59,7 @@
 ### Library and queue filters
 
 - The library can be filtered by media folder (admin); the YouTube downloads folder is now a regular folder entry and the old "Downloaded" filter is gone
-- New header filters narrow the library to songs with multiple versions and cycle by preferred version (any / without / with)
+- New admin header filters narrow the library to songs with multiple versions and cycle by preferred version (any / without / with)
 - The queue header gains quick filters: search by title or artist, starred songs only, and songs queued by a specific user (tapping the active user filter clears it)
 - A "No Songs Match the Filters" message replaces the queue list when every song is filtered out
 

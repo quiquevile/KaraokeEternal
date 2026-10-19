@@ -15,6 +15,7 @@ const QueueHeader = () => {
   const intl = useIntl()
   const { filterStr, filterStarred, filterUserId } = useAppSelector(state => state.ui)
   const queueEntities = useAppSelector(state => ensureState(state.queue).entities)
+  const userId = useAppSelector(state => state.user.userId)
 
   const searchInput = useRef<HTMLInputElement>(null)
   const searchWrap = useRef<HTMLDivElement>(null)
@@ -23,7 +24,7 @@ const QueueHeader = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   // users with queued songs, deduped in queue order (optimistic items
-  // don't know their user yet)
+  // don't know their user yet); the current user comes first
   const users = useMemo(() => {
     const seen = new Map<number, string>()
 
@@ -34,9 +35,10 @@ const QueueHeader = () => {
     })
 
     return [...seen.entries()]
-      .map(([userId, label]) => ({ value: String(userId), label }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  }, [queueEntities])
+      .map(([id, label]) => ({ value: String(id), label, isSelf: id === userId }))
+      .sort((a, b) => Number(b.isSelf) - Number(a.isSelf) || a.label.localeCompare(b.label))
+      .map(({ value, label }) => ({ value, label }))
+  }, [queueEntities, userId])
 
   // hide the dropdown when clicking or scrolling outside it (the input
   // and the toggle button count as inside; scrolls inside the dropdown
@@ -123,6 +125,7 @@ const QueueHeader = () => {
             items={users}
             label={intl.formatMessage(queueMessages.userFilter)}
             icon='PERSON'
+            highlight={userId !== null ? String(userId) : undefined}
             onSelect={handleUserSelect}
           />
         )}

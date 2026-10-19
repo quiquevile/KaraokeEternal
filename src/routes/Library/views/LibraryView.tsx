@@ -20,16 +20,34 @@ const LibraryView = () => {
   // ArtistList virtualizes rows against ui.headerHeight (the header includes
   // LibraryHeader on this route, measured async via ResizeObserver). Mounting
   // before the height settles makes saved scroll positions land off by
-  // (delta / rowHeight) rows. Wait for the first growth past the value at
-  // mount before rendering ArtistList.
+  // (delta / rowHeight) rows. A height that differs from the value captured
+  // at mount means this route's header has measured and settled. When the
+  // swap leaves the height untouched (the queue and library headers are the
+  // same size, so no measurement is coming) waiting for growth would hang
+  // forever: settle after two frames instead, giving a pending
+  // ResizeObserver dispatch its rendering opportunity first (a change
+  // re-runs this effect, cancels the frame and settles immediately). The
+  // pristine initial 0 keeps waiting for its first dispatch.
   const initialHeaderHeight = useRef(ui.headerHeight)
   const [isReady, setIsReady] = useState(false)
   useEffect(() => {
-    if (!isReady && ui.headerHeight > initialHeaderHeight.current) {
-      // one-shot gate: render ArtistList only once the header height settles
+    if (isReady) return
+
+    if (ui.headerHeight !== initialHeaderHeight.current) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsReady(true)
+      return
     }
+
+    if (initialHeaderHeight.current === 0) return
+
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        setIsReady(true)
+      })
+    })
+
+    return () => cancelAnimationFrame(frame)
   }, [ui.headerHeight, isReady])
 
   if (!isReady) return null

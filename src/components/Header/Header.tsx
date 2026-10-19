@@ -10,6 +10,7 @@ import { hasPermission } from 'store/modules/user'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import getWaits from 'routes/Queue/selectors/getWaits'
 import LibraryHeader from 'routes/Library/components/LibraryHeader/LibraryHeader'
+import QueueHeader from 'routes/Queue/components/QueueHeader/QueueHeader'
 import YouTubeSearchHeader from 'routes/Youtube/components/YouTubeSearchHeader/YouTubeSearchHeader'
 import PlaybackCtrl from './PlaybackCtrl/PlaybackCtrl'
 import ProgressBar from './ProgressBar/ProgressBar'
@@ -94,6 +95,7 @@ const Header = React.forwardRef<HTMLDivElement>((_, ref) => {
 
       <Routes>
         <Route path='/library' element={<LibraryHeader />} />
+        <Route path='/queue' element={<QueueHeader />} />
         <Route path='/youtube' element={<YouTubeSearchHeader />} />
       </Routes>
     </div>

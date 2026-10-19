@@ -1,0 +1,160 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import clsx from 'clsx'
+import { useIntl } from 'react-intl'
+import { ensureState } from 'redux-optimistic-ui'
+import { useAppDispatch, useAppSelector } from 'store/hooks'
+import Button from 'components/Button/Button'
+import RecentSearches from 'components/RecentSearches/RecentSearches'
+import { resetQueueFilterStr, setQueueFilterStr, setQueueFilterUser, toggleQueueFilterStarred } from 'store/modules/ui'
+import styles from './QueueHeader.css'
+import { commonMessages } from 'lib/messages'
+import { queueMessages } from '../../messages'
+
+const QueueHeader = () => {
+  const dispatch = useAppDispatch()
+  const intl = useIntl()
+  const { filterStr, filterStarred, filterUserId } = useAppSelector(state => state.ui)
+  const queueEntities = useAppSelector(state => ensureState(state.queue).entities)
+
+  const searchInput = useRef<HTMLInputElement>(null)
+  const searchWrap = useRef<HTMLDivElement>(null)
+  const userWrap = useRef<HTMLDivElement>(null)
+  const [value, setValue] = useState(filterStr)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+
+  // users with queued songs, deduped in queue order (optimistic items
+  // don't know their user yet)
+  const users = useMemo(() => {
+    const seen = new Map<number, string>()
+
+    Object.values(queueEntities).forEach((item) => {
+      if ('userDisplayName' in item && !seen.has(item.userId)) {
+        seen.set(item.userId, item.userDisplayName)
+      }
+    })
+
+    return [...seen.entries()]
+      .map(([userId, label]) => ({ value: String(userId), label }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [queueEntities])
+
+  // hide the dropdown when clicking or scrolling outside it (the input
+  // and the toggle button count as inside; scrolls inside the dropdown
+  // itself are left alone)
+  useEffect(() => {
+    if (!userMenuOpen) return
+
+    const hide = (event: Event) => {
+      const target = event.target as Node
+
+      if (
+        (searchWrap.current && searchWrap.current.contains(target))
+        || (userWrap.current && userWrap.current.contains(target))
+      ) return
+
+      setUserMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', hide)
+    document.addEventListener('scroll', hide, true)
+
+    return () => {
+      document.removeEventListener('mousedown', hide)
+      document.removeEventListener('scroll', hide, true)
+    }
+  }, [userMenuOpen])
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(event.target.value)
+    dispatch(setQueueFilterStr(event.target.value))
+  }
+
+  const clearSearch = () => {
+    setValue('')
+    dispatch(resetQueueFilterStr())
+    searchInput.current?.focus()
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Escape') return
+
+    if (userMenuOpen) {
+      setUserMenuOpen(false)
+      return
+    }
+
+    if (value) {
+      event.preventDefault()
+      clearSearch()
+    }
+  }
+
+  // an active user filter is cleared by tapping its icon again;
+  // otherwise the icon opens the picker
+  const handleUserClick = () => {
+    if (filterUserId !== null) {
+      setUserMenuOpen(false)
+      dispatch(setQueueFilterUser(null))
+      return
+    }
+
+    setUserMenuOpen(open => !open)
+  }
+
+  const handleUserSelect = (userId: string) => {
+    dispatch(setQueueFilterUser(Number(userId)))
+    setUserMenuOpen(false)
+  }
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.searchWrap} ref={searchWrap}>
+        <input
+          type='search'
+          className={styles.searchInput}
+          placeholder={intl.formatMessage(queueMessages.search)}
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          ref={searchInput}
+        />
+        {userMenuOpen && (
+          <RecentSearches
+            items={users}
+            label={intl.formatMessage(queueMessages.userFilter)}
+            icon='PERSON'
+            onSelect={handleUserSelect}
+          />
+        )}
+      </div>
+      {value && (
+        <Button
+          icon='CLEAR'
+          onClick={clearSearch}
+          className={clsx(styles.btnClear, styles.active)}
+          aria-label={intl.formatMessage(commonMessages.clearSearch)}
+        />
+      )}
+      <Button
+        className={clsx(styles.btnFilter, filterStarred && styles.active)}
+        icon='STAR_FULL'
+        onClick={() => dispatch(toggleQueueFilterStarred())}
+        aria-label={intl.formatMessage(queueMessages.starredOnly)}
+        aria-pressed={filterStarred}
+      />
+      <div className={styles.userWrap} ref={userWrap}>
+        <Button
+          className={clsx(styles.btnFilter, filterUserId !== null && styles.active)}
+          icon='PERSON'
+          onClick={handleUserClick}
+          aria-label={intl.formatMessage(queueMessages.userFilter)}
+          aria-pressed={filterUserId !== null}
+          aria-expanded={userMenuOpen}
+          aria-haspopup='listbox'
+        />
+      </div>
+    </div>
+  )
+}
+
+export default QueueHeader

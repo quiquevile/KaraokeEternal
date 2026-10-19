@@ -9,6 +9,7 @@ import { hasPermission } from 'store/modules/user'
 import getPlayerHistory from '../../selectors/getPlayerHistory'
 import getMoveAnchor from '../../selectors/getMoveAnchor'
 import getRoundRobinQueue from '../../selectors/getRoundRobinQueue'
+import getVisibleQueue from '../../selectors/getVisibleQueue'
 import getWaits from '../../selectors/getWaits'
 
 const QueueList = () => {
@@ -16,7 +17,10 @@ const QueueList = () => {
   const { errorMessage, isAtQueueEnd, isErrored, isPlaying, position, queueId } = useAppSelector(state => state.status)
 
   const playerHistory = useAppSelector(getPlayerHistory)
-  const queue = useAppSelector(getRoundRobinQueue)
+  // movement works on the raw queue so hidden songs can't shift anchors;
+  // only what's on screen renders
+  const rawQueue = useAppSelector(getRoundRobinQueue)
+  const queue = useAppSelector(getVisibleQueue)
   const songs = useAppSelector(state => state.songs)
   const starredSongs = useAppSelector(state => ensureState(state.userStars).starredSongs)
   const starCounts = useAppSelector(state => state.starCounts)
@@ -28,8 +32,8 @@ const QueueList = () => {
   const handleMoveClick = (qId: number) => {
     // reference user's last-played item as the new prevQueueId; the status
     // anchor may be stale with no player open, so validate it first
-    const userId = queue.entities[qId].userId
-    const lastPlayed = getMoveAnchor(queue, queueId, userId)
+    const userId = rawQueue.entities[qId].userId
+    const lastPlayed = getMoveAnchor(rawQueue, queueId, userId)
 
     dispatch(moveItem({ queueId: qId, prevQueueId: lastPlayed }))
   }

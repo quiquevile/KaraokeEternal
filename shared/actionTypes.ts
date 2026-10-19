@@ -28,6 +28,10 @@ export const QUEUE_ADD = 'server/QUEUE_ADD'
 export const QUEUE_MOVE = 'server/QUEUE_MOVE'
 export const QUEUE_PUSH = 'queue/PUSH'
 export const QUEUE_REMOVE = 'server/QUEUE_REMOVE'
+export const QUEUE_FILTER_STRING = 'queue/FILTER_KEYWORD'
+export const QUEUE_FILTER_STRING_RESET = 'queue/FILTER_KEYWORD_CLEAR'
+export const QUEUE_FILTER_TOGGLE_STARRED = 'queue/TOGGLE_FILTER_STARRED'
+export const QUEUE_FILTER_USER = 'queue/FILTER_USER'
 
 // Player internal
 export const PLAYER_UPDATE = 'player/UPDATE'

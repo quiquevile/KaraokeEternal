@@ -3,6 +3,11 @@ import {
   CLEAR_ERROR_MESSAGE,
   FOOTER_HEIGHT_CHANGE,
   HEADER_HEIGHT_CHANGE,
+  LOGOUT,
+  QUEUE_FILTER_STRING,
+  QUEUE_FILTER_STRING_RESET,
+  QUEUE_FILTER_TOGGLE_STARRED,
+  QUEUE_FILTER_USER,
   SHOW_ERROR_MESSAGE,
   UI_SET_LOCALE,
   UI_WINDOW_RESIZE,
@@ -54,6 +59,15 @@ export const windowResize = createAction(UI_WINDOW_RESIZE, window => ({
   },
 }))
 
+// queue filters (client-side only, reset on logout); the text filter is
+// not throttled: the list is small and a trailing dispatch would race
+// with an immediate reset (Escape/Clear) and resurrect stale text
+export const setQueueFilterStr = createAction<string>(QUEUE_FILTER_STRING)
+
+export const resetQueueFilterStr = createAction(QUEUE_FILTER_STRING_RESET)
+export const toggleQueueFilterStarred = createAction(QUEUE_FILTER_TOGGLE_STARRED)
+export const setQueueFilterUser = createAction<number | null>(QUEUE_FILTER_USER)
+
 // does not dispatch anything (only affects the DOM)
 export const lockScrolling = (lock: boolean) => {
   if (lock) {
@@ -82,6 +96,9 @@ export interface UIState {
   innerHeight: number
   contentWidth: number
   locale: LocaleCode
+  filterStr: string
+  filterStarred: boolean
+  filterUserId: number | null
 }
 
 const initialState: UIState = {
@@ -93,6 +110,9 @@ const initialState: UIState = {
   innerHeight: window.innerHeight,
   contentWidth: Math.min(window.innerWidth, MAX_CONTENT_WIDTH),
   locale: getInitialLocale(),
+  filterStr: '',
+  filterStarred: false,
+  filterUserId: null,
 }
 
 const uiReducer = createReducer(initialState, (builder) => {
@@ -117,6 +137,23 @@ const uiReducer = createReducer(initialState, (builder) => {
     })
     .addCase(setLocale, (state, { payload }) => {
       state.locale = payload
+    })
+    .addCase(setQueueFilterStr, (state, { payload }) => {
+      state.filterStr = payload
+    })
+    .addCase(resetQueueFilterStr, (state) => {
+      state.filterStr = ''
+    })
+    .addCase(toggleQueueFilterStarred, (state) => {
+      state.filterStarred = !state.filterStarred
+    })
+    .addCase(setQueueFilterUser, (state, { payload }) => {
+      state.filterUserId = payload
+    })
+    .addCase(LOGOUT, (state) => {
+      state.filterStr = ''
+      state.filterStarred = false
+      state.filterUserId = null
     })
     .addMatcher(
       (action): action is AnyAction => !!action.error,

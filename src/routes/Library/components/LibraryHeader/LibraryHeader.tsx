@@ -202,6 +202,7 @@ const LibraryHeader = () => {
           <RecentSearches
             items={filterRecentSearches(getRecentSearches('library'), value).map(term => ({ value: term, label: term }))}
             label={intl.formatMessage(libraryMessages.recentSearches)}
+            highlight={value.trim()}
             onSelect={handleSelect}
           />
         )}

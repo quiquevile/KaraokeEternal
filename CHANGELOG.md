@@ -14,7 +14,6 @@
 - Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
 - Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
 - Admins can move a version's file (mp3+g sidecar included) to another media folder from Song Info, with name-clash protection
-- Admins can filter the library to songs with at least one version in the YouTube download folder
 - All changes are pushed live to every connected client
 
 ### Defective song marks
@@ -56,6 +55,13 @@
 - Room admins with playback and queue controls
 - Users with the new "queue songs for others" capability (or admins) can long-press a library song to queue it for another user in the room
 - Library and YouTube search boxes remember recent searches per browser and suggest them while typing (sizes via `KES_HISTORY_LIBRARY_SIZE` / `KES_HISTORY_YOUTUBE_SIZE`, default 10, 0 disables)
+
+### Library and queue filters
+
+- The library can be filtered by media folder (admin); the YouTube downloads folder is now a regular folder entry and the old "Downloaded" filter is gone
+- New header filters narrow the library to songs with multiple versions and cycle by preferred version (any / without / with)
+- The queue header gains quick filters: search by title or artist, starred songs only, and songs queued by a specific user (tapping the active user filter clears it)
+- A "No Songs Match the Filters" message replaces the queue list when every song is filtered out
 
 ### Other
 

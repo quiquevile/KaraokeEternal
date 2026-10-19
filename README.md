@@ -9,6 +9,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Media files are renamed automatically to match (`Artist - Title.ext`, MP3+G sidecars included); clashes are refused without changing anything.
 - Delete whole songs or individual versions: the dialog lists every file with its full path, inline audio/video preview and checkboxes, plus a Delete all option with confirmation.
 - Deleting removes queue entries in every room; if the playing song is deleted, playback skips ahead, and if the playing version is deleted it restarts with the new current one.
+- Filter the library by media folder (YouTube downloads folder included; the old "Downloaded" toggle is gone), and narrow results to multi-version songs or by preferred version (any / without / with) from the header.
 - Everything updates live on all connected clients.
 
 ### YouTube downloads
@@ -41,6 +42,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.
 - Queue for others: users with the capability (or admins) long-press a library song to queue it for another user currently in the room.
+- Queue header filters: search by title or artist, show only starred songs, and show only the songs queued by one user; a message appears when every song is filtered out.
 
 ### Search history
 - The library and YouTube search boxes remember recent searches per browser and suggest them while typing; picking one searches immediately.

@@ -54,3 +54,17 @@
   outline: 2px solid var(--link-color);
   outline-offset: -2px;
 }
+
+/* the entry that reflects the current selection (typed search or
+   active user filter) stands out in accent */
+.item.highlight,
+.item.highlight:hover,
+.item.highlight:active {
+  color: var(--btn-danger-bg-color);
+}
+
+.item.highlight .itemIcon,
+.item.highlight:hover .itemIcon,
+.item.highlight:active .itemIcon {
+  color: var(--btn-danger-bg-color);
+}

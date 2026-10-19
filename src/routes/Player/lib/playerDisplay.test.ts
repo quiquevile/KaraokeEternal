@@ -50,13 +50,29 @@ describe('playerDisplay', () => {
     expect(formatRemaining(0, NaN)).toBe(null)
   })
 
-  it('shows progress only while playing a known song with the toggle on', () => {
-    expect(isProgressVisible(true, false, 210, true, true)).toBe(true)
-    expect(isProgressVisible(false, false, 210, true, true)).toBe(false)
-    expect(isProgressVisible(true, true, 210, true, true)).toBe(false)
-    expect(isProgressVisible(true, false, 210, false, true)).toBe(false)
-    expect(isProgressVisible(true, false, 210, true, false)).toBe(false)
-    expect(isProgressVisible(true, false, 0, true, true)).toBe(false)
+  it('shows progress only while playing a known song with an element enabled', () => {
+    expect(isProgressVisible(true, false, 210, {}, true)).toBe(true)
+    expect(isProgressVisible(true, false, 210, undefined, true)).toBe(true)
+    expect(isProgressVisible(false, false, 210, {}, true)).toBe(false)
+    expect(isProgressVisible(true, true, 210, {}, true)).toBe(false)
+    expect(isProgressVisible(true, false, 210, {}, false)).toBe(false)
+    expect(isProgressVisible(true, false, 0, {}, true)).toBe(false)
+    // hiding the bar alone keeps the row (the other elements stay on)
+    expect(isProgressVisible(true, false, 210, { isEnabled: false }, true)).toBe(true)
+    // only the bar enabled keeps the row too
+    expect(
+      isProgressVisible(true, false, 210, { showTitle: false, showSinger: false, showTime: false }, true),
+    ).toBe(true)
+    // every element off hides the whole row
+    expect(
+      isProgressVisible(
+        true,
+        false,
+        210,
+        { isEnabled: false, showTitle: false, showSinger: false, showTime: false },
+        true,
+      ),
+    ).toBe(false)
   })
 
   it('formats pitch with an explicit sign except zero', () => {

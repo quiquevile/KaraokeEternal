@@ -85,6 +85,8 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
             />
           </div>
         </fieldset>
+        {/* each readout element toggles on its own: the bar can be off
+            while the text elements stay, and the other way round */}
         <fieldset className={styles.qrBox}>
           <legend>
             <label><FormattedMessage {...headerMessages.progressInfo} /></label>
@@ -96,21 +98,21 @@ const QRPrefs = ({ onChange, prefs = {}, passwordPresent }: QRPrefsProps) => {
               onChange={event => handleSetPref({ progress: { ...prefs.progress, isEnabled: event.currentTarget.checked } })}
             />
           </div>
-          <div className={clsx(styles.field, styles.nested)}>
+          <div className={styles.field}>
             <InputCheckbox
               label={intl.formatMessage(headerMessages.showProgressTitle)}
               checked={prefs?.progress?.showTitle ?? true}
               onChange={event => handleSetPref({ progress: { ...prefs.progress, showTitle: event.currentTarget.checked } })}
             />
           </div>
-          <div className={clsx(styles.field, styles.nested)}>
+          <div className={styles.field}>
             <InputCheckbox
               label={intl.formatMessage(headerMessages.showProgressSinger)}
               checked={prefs?.progress?.showSinger ?? true}
               onChange={event => handleSetPref({ progress: { ...prefs.progress, showSinger: event.currentTarget.checked } })}
             />
           </div>
-          <div className={clsx(styles.field, styles.nested)}>
+          <div className={styles.field}>
             <InputCheckbox
               label={intl.formatMessage(headerMessages.showProgressTime)}
               checked={prefs?.progress?.showTime ?? true}

@@ -1,4 +1,5 @@
 import type { PlayerDisplayPrefs } from 'store/modules/prefs'
+import type { IRoomPrefs } from 'shared/types'
 
 export const PLAYER_DISPLAY_DEFAULTS: PlayerDisplayPrefs = {
   nextUpLeadMs: 30000,
@@ -62,20 +63,39 @@ export function isNextUpVisible (
 }
 
 /**
+ * Which parts of the song progress readout are on for this room. Each
+ * element toggles independently (defaults on); `isEnabled` is the bar
+ * track itself, kept under its legacy key so stored prefs stay valid.
+ */
+export function progressElements (progress?: IRoomPrefs['progress']): {
+  bar: boolean
+  title: boolean
+  singer: boolean
+  time: boolean
+} {
+  return {
+    bar: progress?.isEnabled ?? true,
+    title: progress?.showTitle ?? true,
+    singer: progress?.showSinger ?? true,
+    time: progress?.showTime ?? true,
+  }
+}
+
+/**
  * Whether the song progress row is on screen: playing an unerrored song
- * with known duration, and the per-room toggle on. Shared by the readout
- * itself and the QR badge (which lifts to clear it).
+ * with known duration and at least one readout element enabled. Shared
+ * by the readout itself and the QR badge (which lifts to clear it).
  */
 export function isProgressVisible (
   isPlaying: boolean,
   isErrored: boolean,
   durationS: number,
-  progressEnabled: boolean,
+  progress: IRoomPrefs['progress'] | undefined,
   hasQueueItem: boolean,
 ): boolean {
-  return isPlaying
-    && !isErrored
-    && hasQueueItem
-    && progressEnabled
-    && durationS > 0
+  if (!isPlaying || isErrored || !hasQueueItem || !(durationS > 0)) return false
+
+  const elements = progressElements(progress)
+
+  return elements.bar || elements.title || elements.singer || elements.time
 }

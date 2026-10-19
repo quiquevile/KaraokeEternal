@@ -266,7 +266,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         player.isPlaying,
         player.isErrored,
         player.duration,
-        roomPrefs?.progress?.isEnabled !== false,
+        roomPrefs?.progress,
         !!queueItem,
       ) && (() => {
         const song = queueItem ? songs[queueItem.songId] : undefined

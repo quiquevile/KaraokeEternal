@@ -25,10 +25,10 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
   const [alternate, setAlternate] = useState(false)
   const { isPlaying, isErrored, duration } = useAppSelector(state => state.player)
   const { roomId } = useAppSelector(state => state.user)
-  const progressEnabled = useAppSelector(state =>
+  const progress = useAppSelector(state =>
     (typeof state.user.roomId === 'number'
-      ? state.rooms.entities[state.user.roomId]?.prefs?.progress?.isEnabled
-      : undefined) !== false,
+      ? state.rooms.entities[state.user.roomId]?.prefs?.progress
+      : undefined),
   )
 
   const scheduleNextToggle = useCallback(() => {
@@ -120,7 +120,7 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
           styles.container,
           alternate && styles.alternate,
           // keep clear of the song progress row along the bottom edge
-          isProgressVisible(isPlaying, isErrored, duration, progressEnabled, !!queueItem) && styles.lifted,
+          isProgressVisible(isPlaying, isErrored, duration, progress, !!queueItem) && styles.lifted,
         )}
         ref={ref}
       >

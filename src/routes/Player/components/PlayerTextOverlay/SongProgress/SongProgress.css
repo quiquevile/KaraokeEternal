@@ -27,6 +27,12 @@
   white-space: nowrap;
 }
 
+/* with the bar hidden the title may use up to half the screen; the
+   empty barWrap keeps redistributing the remaining width */
+.noBar .title {
+  max-width: 50%;
+}
+
 .titleText {
   display: inline-block;
   overflow: hidden;

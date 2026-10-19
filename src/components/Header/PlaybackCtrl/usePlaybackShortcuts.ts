@@ -29,7 +29,7 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
 // global shortcuts for playback controllers (same actions as the header
 // buttons and Player Options): space toggles play/pause, +/- adjust pitch,
 // up/down adjust volume, arrows skip next / replay, Q toggles the room QR,
-// B toggles the song progress readout, F enters player fullscreen.
+// B toggles the progress bar, F enters player fullscreen.
 // Inert while typing, with modifiers, or without playback-control
 // permission.
 const usePlaybackShortcuts = () => {

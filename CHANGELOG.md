@@ -38,6 +38,7 @@
 - Equalizer settings persist per room when saved (Done button); unsaved tweaks stay live-only and are lost on player reload
 - Three custom EQ slots (P1-P3) stored per user; anyone with playback controls can recall and save their own
 - The QR code (player and display options) is only offered while the room is open; persisted options still apply to closed rooms
+- Song progress readout along the bottom of the player screen (bar, artist - title, current singer, remaining time): every element is shown or hidden independently per room (Player Options; B toggles the bar), and the title may use up to half the screen while the bar is hidden
 - ReplayGain leveling moved from a global setting to a per-room toggle in the display options (enabled by default)
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted

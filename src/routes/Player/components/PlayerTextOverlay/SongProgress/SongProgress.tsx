@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
+import clsx from 'clsx'
 import type { IRoomPrefs } from 'shared/types'
-import { formatPitch, formatRemaining } from '../../../lib/playerDisplay'
+import { formatPitch, formatRemaining, progressElements } from '../../../lib/playerDisplay'
 import styles from './SongProgress.css'
 
 interface SongProgressProps {
@@ -109,8 +110,10 @@ const TitleMarquee = ({ text }: { text: string }) => {
   )
 }
 
-// always-on song progress readout along the bottom edge: slim progress
-// bar plus remaining time, karaoke-machine style (display only, no seek)
+// song progress readout along the bottom edge: slim progress bar plus
+// artist-title, current singer and remaining time, karaoke-machine style
+// (display only, no seek); every element toggles on its own, so the bar
+// can be off while the text elements stay — they then get more room
 const SongProgress = ({ position, duration, artist, title, singer, pitchSemitones = 0, progress }: SongProgressProps) => {
   const remaining = formatRemaining(position, duration)
 
@@ -119,17 +122,19 @@ const SongProgress = ({ position, duration, artist, title, singer, pitchSemitone
   const pct = Math.min(100, Math.max(0, (position / duration) * 100))
   const songText = [artist, title].filter(Boolean).join(' - ')
     + (pitchSemitones !== 0 ? ` (${formatPitch(pitchSemitones)})` : '')
-  const showTitle = progress?.showTitle ?? true
-  const showSinger = progress?.showSinger ?? true
-  const showTime = progress?.showTime ?? true
+  const { bar: showBar, title: showTitle, singer: showSinger, time: showTime } = progressElements(progress)
 
   return (
-    <div className={styles.container} translate='no'>
+    <div className={clsx(styles.container, !showBar && styles.noBar)} translate='no'>
       {showTitle && songText && <TitleMarquee text={songText} />}
+      {/* the wrap doubles as the flexible spacer: with the bar hidden it
+          redistributes the freed width and keeps the singer centered */}
       <div className={styles.barWrap}>
-        <div className={styles.bar}>
-          <div className={styles.fill} style={{ width: `${pct}%` }} />
-        </div>
+        {showBar && (
+          <div className={styles.bar}>
+            <div className={styles.fill} style={{ width: `${pct}%` }} />
+          </div>
+        )}
         {showSinger && singer && <div className={styles.singer}>{singer}</div>}
       </div>
       {showTime && (

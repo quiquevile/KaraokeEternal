@@ -21,7 +21,9 @@ import {
   toggleArtistExpanded,
   setFilterFolder,
   toggleFilterFlawed,
+  toggleFilterMultiVersion,
   toggleFilterStarred,
+  setFilterPreferred,
 } from 'routes/Library/modules/library'
 import styles from './QueueItem.css'
 import { queueMessages } from '../../messages'
@@ -115,6 +117,8 @@ const QueueItem = ({
   const filterStarred = useAppSelector(state => state.library.filterStarred)
   const filterFlawed = useAppSelector(state => state.library.filterFlawed)
   const filterFolder = useAppSelector(state => state.library.filterFolder)
+  const filterMultiVersion = useAppSelector(state => state.library.filterMultiVersion)
+  const filterPreferred = useAppSelector(state => state.library.filterPreferred)
   const navigate = useNavigate()
   const locateXRef = useRef(0)
   const [locateX, setLocateX] = useState(0)
@@ -143,6 +147,14 @@ const QueueItem = ({
 
     if (filterFolder !== null) {
       dispatch(setFilterFolder(null))
+    }
+
+    if (filterMultiVersion) {
+      dispatch(toggleFilterMultiVersion())
+    }
+
+    if (filterPreferred !== null) {
+      dispatch(setFilterPreferred(null))
     }
 
     if (!expandedArtists.includes(artistId)) {

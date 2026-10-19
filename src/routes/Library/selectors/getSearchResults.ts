@@ -9,6 +9,8 @@ const getFilterStr = (state: RootState) => state.library.filterStr.trim().toLowe
 const getFilterStarred = (state: RootState) => state.library.filterStarred
 const getFilterFlawed = (state: RootState) => state.library.filterFlawed
 const getFilterFolder = (state: RootState) => state.library.filterFolder
+const getFilterMultiVersion = (state: RootState) => state.library.filterMultiVersion
+const getFilterPreferred = (state: RootState) => state.library.filterPreferred
 const getStarredSongs = (state: RootState) => ensureState(state.userStars).starredSongs
 const getFlawedSongs = (state: RootState) => ensureState(state.userFlaws).flawedSongs
 
@@ -36,11 +38,11 @@ export interface SearchTreeNode {
 
 // the search view is always an artist tree (never loose songs): an artist
 // is listed when its name matches or one of its songs matches (and passes
-// the flag/folder filters); a name-matching artist lists all its
+// the flag/folder/version filters); a name-matching artist lists all its
 // passing songs, otherwise only the title-matching ones
 const getSearchTree = createSelector(
-  [getArtists, getSongs, getArtistSearcher, getSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterFlawed, getFlawedSongs, getFilterFolder],
-  (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterFlawed, flawedSongs, filterFolder) => {
+  [getArtists, getSongs, getArtistSearcher, getSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterFlawed, getFlawedSongs, getFilterFolder, getFilterMultiVersion, getFilterPreferred],
+  (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterFlawed, flawedSongs, filterFolder, filterMultiVersion, filterPreferred) => {
     const hasText = str.length > 0
     const nameHits = new Set<number>(hasText
       ? artistSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
@@ -50,9 +52,14 @@ const getSearchTree = createSelector(
       : [])
 
     const flagOK = (songId: number): boolean => {
+      const song = songs.entities[songId]
+
       if (filterStarred && !starredSongs.includes(songId)) return false
       if (filterFlawed && !flawedSongs.includes(songId)) return false
-      if (filterFolder !== null && !songs.entities[songId]?.folders.includes(filterFolder)) return false
+      if (filterFolder !== null && !song?.folders.includes(filterFolder)) return false
+      if (filterMultiVersion && (song?.numMedia ?? 0) < 2) return false
+      if (filterPreferred === 'with' && !song?.isPreferred) return false
+      if (filterPreferred === 'without' && !!song?.isPreferred) return false
       return true
     }
 

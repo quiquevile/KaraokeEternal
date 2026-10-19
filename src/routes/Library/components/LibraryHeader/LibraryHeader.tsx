@@ -4,7 +4,7 @@ import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterFlawed, toggleFilterStarred } from '../../modules/library'
+import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterFlawed, toggleFilterStarred, toggleFilterMultiVersion, setFilterPreferred, nextPreferred } from '../../modules/library'
 import { setYoutubeQuery, searchYoutubeVideos } from 'store/modules/youtube'
 import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
@@ -21,7 +21,7 @@ const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const intl = useIntl()
-  const { filterStr, filterStarred, filterFlawed, filterFolder } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterFlawed, filterFolder, filterMultiVersion, filterPreferred } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
   const canDownload = hasPermission(user, 'youtubeDownload')
   const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
@@ -57,6 +57,17 @@ const LibraryHeader = () => {
 
     if (filterFolder === null) setFolderDialogOpen(true)
     else dispatch(setFilterFolder(null))
+  }
+
+  // the preferred filter cycles off → without → with → off instead of
+  // toggling: same guard as the other filters
+  const handlePreferredClick = () => {
+    if (ignoreMouseupRef.current) {
+      ignoreMouseupRef.current = false
+      return
+    }
+
+    dispatch(setFilterPreferred(nextPreferred(filterPreferred)))
   }
 
   const searchInput = useRef<HTMLInputElement>(null)
@@ -206,7 +217,7 @@ const LibraryHeader = () => {
       <div
         className={clsx(
           styles.filters,
-          !filtersExpanded && (filterFlawed || filterFolder !== null) && styles.filtersHint,
+          !filtersExpanded && (filterFlawed || filterFolder !== null || filterMultiVersion || filterPreferred !== null) && styles.filtersHint,
         )}
         {...filterSwipeHandlers}
         onMouseDown={handleFilterMousedown}
@@ -240,6 +251,28 @@ const LibraryHeader = () => {
               aria-pressed={filterFolder !== null}
             />
           )}
+          <Button
+            data-hide
+            className={clsx(styles.btnFilter, filterMultiVersion && styles.active)}
+            icon='NOTE_DUO'
+            onClick={() => handleFilterClick(toggleFilterMultiVersion())}
+            aria-label={intl.formatMessage(libraryMessages.multiVersionOnly)}
+            aria-pressed={filterMultiVersion}
+          />
+          <Button
+            data-hide
+            className={clsx(styles.btnFilter, filterPreferred !== null && styles.active)}
+            icon={filterPreferred === 'without' ? 'HEART_X' : filterPreferred === 'with' ? 'HEART_CHECK' : 'HEART'}
+            onClick={handlePreferredClick}
+            aria-label={intl.formatMessage(
+              filterPreferred === 'without'
+                ? libraryMessages.preferredWithout
+                : filterPreferred === 'with'
+                  ? libraryMessages.preferredWith
+                  : libraryMessages.preferredAny,
+            )}
+            aria-pressed={filterPreferred !== null}
+          />
         </Buttons>
       </div>
       {folderDialogOpen && (

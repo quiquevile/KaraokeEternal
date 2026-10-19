@@ -7,6 +7,8 @@ import getSearchTree from './getSearchResults'
 // Martika: 30 Tarzan y Jane
 // Mecano: 40 Me cole en una fiesta (star), 41 Barco super, 42 Voy a quedarme
 // Roxette: 50 Big love (star), 51 Super Crash, 52 Acme (star)
+// multi-version (numMedia >= 2): 10, 30, 40, 42, 51
+// preferred: 10, 20, 40, 50
 const state = {
   artists: {
     result: [1, 2, 3, 4, 5],
@@ -21,19 +23,19 @@ const state = {
   songs: {
     result: [10, 11, 20, 30, 40, 41, 42, 50, 51, 52],
     entities: {
-      10: { songId: 10, artistId: 1, title: 'Superestrella', folders: ['1:cds'] },
-      11: { songId: 11, artistId: 1, title: 'Vas a quedarte', folders: ['1:cds'] },
-      20: { songId: 20, artistId: 2, title: 'La casa por el tejado', folders: ['1:new'] },
-      30: { songId: 30, artistId: 3, title: 'Tarzan y Jane', folders: ['1:new'] },
-      40: { songId: 40, artistId: 4, title: 'Me cole en una fiesta', folders: ['1:cds', '1:new'] },
-      41: { songId: 41, artistId: 4, title: 'Barco super', folders: ['1:new'] },
-      42: { songId: 42, artistId: 4, title: 'Voy a quedarme', folders: ['1:cds'] },
-      50: { songId: 50, artistId: 5, title: 'Big love', folders: ['1:cds'] },
-      51: { songId: 51, artistId: 5, title: 'Super Crash', folders: ['1:new'] },
-      52: { songId: 52, artistId: 5, title: 'Acme', folders: ['1:new'] },
+      10: { songId: 10, artistId: 1, title: 'Superestrella', folders: ['1:cds'], numMedia: 2, isPreferred: true },
+      11: { songId: 11, artistId: 1, title: 'Vas a quedarte', folders: ['1:cds'], numMedia: 1, isPreferred: false },
+      20: { songId: 20, artistId: 2, title: 'La casa por el tejado', folders: ['1:new'], numMedia: 1, isPreferred: true },
+      30: { songId: 30, artistId: 3, title: 'Tarzan y Jane', folders: ['1:new'], numMedia: 3, isPreferred: false },
+      40: { songId: 40, artistId: 4, title: 'Me cole en una fiesta', folders: ['1:cds', '1:new'], numMedia: 2, isPreferred: true },
+      41: { songId: 41, artistId: 4, title: 'Barco super', folders: ['1:new'], numMedia: 1, isPreferred: false },
+      42: { songId: 42, artistId: 4, title: 'Voy a quedarme', folders: ['1:cds'], numMedia: 2, isPreferred: false },
+      50: { songId: 50, artistId: 5, title: 'Big love', folders: ['1:cds'], numMedia: 1, isPreferred: true },
+      51: { songId: 51, artistId: 5, title: 'Super Crash', folders: ['1:new'], numMedia: 2, isPreferred: false },
+      52: { songId: 52, artistId: 5, title: 'Acme', folders: ['1:new'], numMedia: 1, isPreferred: false },
     },
   },
-  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterFolder: null },
+  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterFolder: null, filterMultiVersion: false, filterPreferred: null },
   userStars: { starredArtists: [], starredSongs: [10, 20, 40, 50, 52] },
   userFlaws: { userId: null, flawedSongs: [30, 42, 52] },
 } as unknown as RootState
@@ -43,9 +45,11 @@ const search = (
   filterStarred = false,
   filterFlawed = false,
   filterFolder: string | null = null,
+  filterMultiVersion = false,
+  filterPreferred: 'without' | 'with' | null = null,
 ): RootState => ({
   ...state,
-  library: { filterStr, filterStarred, filterFlawed, filterFolder },
+  library: { filterStr, filterStarred, filterFlawed, filterFolder, filterMultiVersion, filterPreferred },
 } as unknown as RootState)
 
 describe('getSearchTree', () => {
@@ -127,6 +131,47 @@ describe('getSearchTree', () => {
 
   it('11. text "super" and folder', () => {
     expect(getSearchTree(search('super', false, false, '1:new'))).toEqual([
+      { artistId: 4, songIds: [41], autoExpanded: true },
+      { artistId: 5, songIds: [51], autoExpanded: true },
+    ])
+  })
+
+  it('12. multi-version: only songs with at least two media, artists expanded', () => {
+    expect(getSearchTree(search('', false, false, null, true))).toEqual([
+      { artistId: 1, songIds: [10], autoExpanded: true },
+      { artistId: 3, songIds: [30], autoExpanded: true },
+      { artistId: 4, songIds: [40, 42], autoExpanded: true },
+      { artistId: 5, songIds: [51], autoExpanded: true },
+    ])
+  })
+
+  it('13. preferred "with": only songs with a preferred version', () => {
+    expect(getSearchTree(search('', false, false, null, false, 'with'))).toEqual([
+      { artistId: 1, songIds: [10], autoExpanded: true },
+      { artistId: 2, songIds: [20], autoExpanded: true },
+      { artistId: 4, songIds: [40], autoExpanded: true },
+      { artistId: 5, songIds: [50], autoExpanded: true },
+    ])
+  })
+
+  it('14. preferred "without": only songs with no preferred version', () => {
+    expect(getSearchTree(search('', false, false, null, false, 'without'))).toEqual([
+      { artistId: 1, songIds: [11], autoExpanded: true },
+      { artistId: 3, songIds: [30], autoExpanded: true },
+      { artistId: 4, songIds: [41, 42], autoExpanded: true },
+      { artistId: 5, songIds: [51, 52], autoExpanded: true },
+    ])
+  })
+
+  it('15. multi-version and starred', () => {
+    expect(getSearchTree(search('', true, false, null, true))).toEqual([
+      { artistId: 1, songIds: [10], autoExpanded: true },
+      { artistId: 4, songIds: [40], autoExpanded: true },
+    ])
+  })
+
+  it('16. text "super" and preferred "without"', () => {
+    expect(getSearchTree(search('super', false, false, null, false, 'without'))).toEqual([
       { artistId: 4, songIds: [41], autoExpanded: true },
       { artistId: 5, songIds: [51], autoExpanded: true },
     ])

@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import reducer, {
   markLocateBlinked,
+  nextPreferred,
   resetFilterStr,
   setFilterFolder,
+  setFilterPreferred,
   setFilterStr,
   setLocateSongId,
   toggleArtistResultExpanded,
+  toggleFilterMultiVersion,
   toggleFilterStarred,
 } from './library'
 
@@ -52,6 +55,44 @@ describe('setFilterFolder', () => {
   })
 })
 
+describe('toggleFilterMultiVersion', () => {
+  it('toggles the multi-version filter', () => {
+    const on = reducer(undefined, toggleFilterMultiVersion())
+
+    expect(on.filterMultiVersion).toBe(true)
+
+    const off = reducer(on, toggleFilterMultiVersion())
+
+    expect(off.filterMultiVersion).toBe(false)
+  })
+})
+
+describe('setFilterPreferred', () => {
+  it('sets and clears the preferred filter', () => {
+    const filtered = reducer(undefined, setFilterPreferred('with'))
+
+    expect(filtered.filterPreferred).toBe('with')
+
+    const cleared = reducer(filtered, setFilterPreferred(null))
+
+    expect(cleared.filterPreferred).toBe(null)
+  })
+
+  it('cycles off → without → with → off via nextPreferred', () => {
+    expect(nextPreferred(null)).toBe('without')
+    expect(nextPreferred('without')).toBe('with')
+    expect(nextPreferred('with')).toBe(null)
+
+    // driving the reducer through the cycle ends where it started
+    let state = reducer(undefined, setFilterPreferred(nextPreferred(null)))
+    expect(state.filterPreferred).toBe('without')
+    state = reducer(state, setFilterPreferred(nextPreferred(state.filterPreferred)))
+    expect(state.filterPreferred).toBe('with')
+    state = reducer(state, setFilterPreferred(nextPreferred(state.filterPreferred)))
+    expect(state.filterPreferred).toBe(null)
+  })
+})
+
 describe('setLocateSongId', () => {
   it('sets and clears the located song', () => {
     const located = reducer(undefined, setLocateSongId(42))
@@ -70,6 +111,8 @@ describe('setLocateSongId', () => {
     expect(reducer(located, resetFilterStr()).locateSongId).toBe(null)
     expect(reducer(located, toggleFilterStarred()).locateSongId).toBe(null)
     expect(reducer(located, setFilterFolder('1:set1')).locateSongId).toBe(null)
+    expect(reducer(located, toggleFilterMultiVersion()).locateSongId).toBe(null)
+    expect(reducer(located, setFilterPreferred('without')).locateSongId).toBe(null)
   })
 
   it('re-arms the blink on every locate and disarms it after', () => {

@@ -11,11 +11,11 @@ import { libraryMessages } from '../messages'
 
 const LibraryView = () => {
   const { isAdmin } = useAppSelector(state => state.user)
-  const { isLoading, filterStr, filterStarred, filterFlawed, filterFolder } = useAppSelector(state => state.library)
+  const { isLoading, filterStr, filterStarred, filterFlawed, filterFolder, filterMultiVersion, filterPreferred } = useAppSelector(state => state.library)
   const songsResult = useAppSelector(state => state.songs.result)
   const ui = useAppSelector(state => state.ui)
 
-  const isSearching = !!filterStr.trim().length || filterStarred || filterFlawed || filterFolder !== null
+  const isSearching = !!filterStr.trim().length || filterStarred || filterFlawed || filterFolder !== null || filterMultiVersion || filterPreferred !== null
 
   // ArtistList virtualizes rows against ui.headerHeight (the header includes
   // LibraryHeader on this route, measured async via ResizeObserver). Mounting

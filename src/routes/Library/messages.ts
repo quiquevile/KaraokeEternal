@@ -9,6 +9,7 @@ export const libraryMessages: Record<string, MessageDescriptor> = {
   flawMark: { id: 'library.flaw.mark', defaultMessage: 'Mark as defective' },
   flawUnmark: { id: 'library.flaw.unmark', defaultMessage: 'Remove defective mark' },
   multiVersionOnly: { id: 'library.header.multiVersionOnly', defaultMessage: 'Show only songs with multiple versions' },
+  noMatches: { id: 'library.search.noMatches', defaultMessage: 'No Songs Match the Filters' },
   preferredAny: { id: 'library.header.preferredAny', defaultMessage: 'Show songs with or without a preferred version' },
   preferredWithout: { id: 'library.header.preferredWithout', defaultMessage: 'Show only songs without a preferred version' },
   preferredWith: { id: 'library.header.preferredWith', defaultMessage: 'Show only songs with a preferred version' },

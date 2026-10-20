@@ -1,17 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
+import { useNavigate } from 'react-router'
 import { ensureState } from 'redux-optimistic-ui'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Button from 'components/Button/Button'
+import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
 import { resetQueueFilterStr, setQueueFilterStr, setQueueFilterUser, toggleQueueFilterStarred } from 'store/modules/ui'
+import { prepareLibrarySearch } from '../../lib/librarySearch'
 import styles from './QueueHeader.css'
 import { commonMessages } from 'lib/messages'
 import { queueMessages } from '../../messages'
+import { libraryMessages } from '../../../Library/messages'
 
 const QueueHeader = () => {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const intl = useIntl()
   const { filterStr, filterStarred, filterUserId } = useAppSelector(state => state.ui)
   const queueEntities = useAppSelector(state => ensureState(state.queue).entities)
@@ -77,7 +82,26 @@ const QueueHeader = () => {
     searchInput.current?.focus()
   }
 
+  // only text in the box searches: the magnifier (or Enter) then hands the
+  // same text over to the library; without text it just refocuses the input
+  const handleMagnifierClick = () => {
+    const text = value.trim()
+
+    if (!text) {
+      searchInput.current?.focus()
+      return
+    }
+
+    prepareLibrarySearch(dispatch, text)
+    navigate('/library')
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleMagnifierClick()
+      return
+    }
+
     if (event.key !== 'Escape') return
 
     if (userMenuOpen) {
@@ -110,6 +134,14 @@ const QueueHeader = () => {
 
   return (
     <div className={styles.container}>
+      <Button
+        className={clsx(styles.btnMagnifier, value.trim() && styles.active)}
+        icon='MAGNIFIER'
+        onClick={handleMagnifierClick}
+        aria-label={intl.formatMessage(value.trim() ? libraryMessages.searchLibrary : queueMessages.search)}
+      >
+        {value.trim() && <Icon icon='NAV_LIBRARY' className={styles.libBadge} />}
+      </Button>
       <div className={styles.searchWrap} ref={searchWrap}>
         <input
           type='search'

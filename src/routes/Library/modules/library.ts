@@ -51,6 +51,13 @@ export const setFilterStr = createAction(LIBRARY_FILTER_STRING, (payload: string
   },
 }))
 
+// same target, no throttle meta: external callers (queue search, song
+// locate) need the value applied synchronously so a LibraryHeader remounted
+// by the route change seeds its input with the new text
+export const setFilterStrNow = createAction(LIBRARY_FILTER_STRING, (payload: string) => ({
+  payload,
+}))
+
 // ------------------------------------
 // Reducer
 // ------------------------------------

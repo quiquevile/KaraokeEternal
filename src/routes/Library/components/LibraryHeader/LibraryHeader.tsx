@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterFlawed, toggleFilterStarred, toggleFilterMultiVersion, setFilterPreferred, nextPreferred } from '../../modules/library'
-import { setYoutubeQuery, searchYoutubeVideos } from 'store/modules/youtube'
+import { openYoutubeSearch } from '../../lib/youtubeSearch'
 import { hasPermission } from 'store/modules/user'
 import Button from 'components/Button/Button'
 import Buttons from 'components/Buttons/Buttons'
@@ -158,14 +158,7 @@ const LibraryHeader = () => {
       return
     }
 
-    // an explicit search counts for both histories: it filters the library
-    // now and searches YouTube right after (each push honors its own limit)
-    pushRecentSearch('library', text)
-    pushRecentSearch('youtube', text)
-
-    // jump to the YouTube tab searching for the same text
-    dispatch(setYoutubeQuery(text))
-    void dispatch(searchYoutubeVideos(text))
+    openYoutubeSearch(dispatch, text)
     navigate('/youtube')
   }
 

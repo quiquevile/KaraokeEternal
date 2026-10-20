@@ -120,6 +120,7 @@
   "library.header.recentSearches": "Búsquedas recientes",
   "library.header.starredOnly": "Mostrar solo favoritas",
   "library.search.counts": "{artists, plural, one {# artista} other {# artistas}}, {songs, plural, one {# canción} other {# canciones}}",
+  "library.search.noMatches": "Ninguna canción coincide con los filtros",
   "library.empty.title": "Biblioteca vacía",
   "library.empty.admin": "<link>Añade carpetas multimedia</link> para empezar.",
   "songInfo.clearLevelConfirm": "¿Borrar el nivel? Se volverá a medir en el próximo escaneo.",

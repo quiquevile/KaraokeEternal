@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
@@ -51,7 +52,10 @@ const Modal = ({ buttons, className, children, visible = true, onClose, scrollab
 
   if (!visible) return null
 
-  return (
+  // portal to <body>: modals are often rendered inside collapsed accordion
+  // panels (hidden ancestors), where showModal() produces a zero-size
+  // invisible dialog whose backdrop still blocks every click on the page
+  return createPortal(
     <dialog
       ref={dialogRef}
       className={clsx(styles.container, className)}
@@ -70,7 +74,8 @@ const Modal = ({ buttons, className, children, visible = true, onClose, scrollab
       </div>
       <div className={clsx(styles.content, scrollable && styles.scrollable)}>{children}</div>
       {buttons && <div className={styles.buttons}>{buttons}</div>}
-    </dialog>
+    </dialog>,
+    document.body,
   )
 }
 

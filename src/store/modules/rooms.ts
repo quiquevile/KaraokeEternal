@@ -9,6 +9,7 @@ import {
   ROOM_FILTER_STATUS,
   ROOM_UPDATE,
   ROOM_CREATE,
+  ROOM_CLEANUP,
   ROOM_REMOVE,
   ROOM_PREFS_PUSH,
   ROOM_PREFS_PUSH_REQUEST,
@@ -76,6 +77,15 @@ export const updateRoom = createAsyncThunk(
 
     thunkAPI.dispatch(receiveRooms(response))
     thunkAPI.dispatch(closeRoomEditor())
+  },
+)
+
+export const cleanupRooms = createAsyncThunk(
+  ROOM_CLEANUP,
+  async (_, thunkAPI) => {
+    const response = await api.delete('/cleanup')
+
+    thunkAPI.dispatch(receiveRooms(response))
   },
 )
 

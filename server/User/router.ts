@@ -21,9 +21,9 @@ import {
   NAME_MAX_LENGTH,
   IMG_MAX_LENGTH,
 } from './User.js'
-import { parseIdParam } from '../lib/http.js'
+import { parseIdParam, requireAdmin, requireSameOrigin } from '../lib/http.js'
+import { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import { ctxLocale, t } from '../lib/locale.js'
-import { requireSameOrigin } from '../lib/http.js'
 import type { HttpContext } from '../lib/http.js'
 
 interface File {
@@ -396,6 +396,39 @@ router.delete('/user/:userId', async (ctx) => {
   ctx.status = 200
   ctx.body = {}
 })
+
+// delete every guest and ghost account (admin housekeeping); their queued
+// songs go with them via User.remove
+export async function handleUsersCleanup (ctx) {
+  requireAdmin(ctx)
+
+  // ghosts first: removing a guest also cascades its own ghosts, so any
+  // ghost already gone by then must not be removed a second time
+  const removedIds: number[] = []
+
+  for (const userId of User.getGuestAndGhostIds()) {
+    User.remove(userId)
+    removedIds.push(userId)
+  }
+
+  // disconnect their socket session(s)
+  const sockets = await ctx.io.fetchSockets()
+
+  for (const s of sockets) {
+    if (s?.user?.userId != null && removedIds.includes(s.user.userId)) {
+      s.disconnect()
+    }
+  }
+
+  // emit (potentially) updated queues to each room
+  pushQueues(ctx.io)
+
+  // success
+  ctx.status = 200
+  ctx.body = {}
+}
+
+router.delete('/users/cleanup', ctx => handleUsersCleanup(ctx))
 
 // update a user account
 router.put('/user/:userId', async (ctx) => {

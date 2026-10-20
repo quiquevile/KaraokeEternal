@@ -7,7 +7,7 @@ import { formatDateTime } from 'lib/dateTime'
 import Panel from 'components/Panel/Panel'
 import Button from 'components/Button/Button'
 import EditRoom from './EditRoom/EditRoom'
-import { closeRoomEditor, fetchRooms, filterByStatus, openRoomEditor } from 'store/modules/rooms'
+import { cleanupRooms, closeRoomEditor, fetchRooms, filterByStatus, openRoomEditor } from 'store/modules/rooms'
 import { filterByRoom } from '../../modules/users'
 import getRoomList from '../../selectors/getRoomList'
 import { accountMessages } from '../../messages'
@@ -36,6 +36,11 @@ const Rooms = () => {
   const handleSwitchRoom = (roomId: number) => {
     dispatch(switchRoom(roomId))
     navigate('/queue')
+  }
+  const handleCleanup = () => {
+    if (window.confirm(intl.formatMessage(accountMessages.roomsCleanupConfirm))) {
+      dispatch(cleanupRooms())
+    }
   }
 
   // once per mount
@@ -109,10 +114,14 @@ const Rooms = () => {
           </tbody>
         </table>
 
-        <br />
-        <Button onClick={handleOpen} variant='primary'>
-          <FormattedMessage {...commonMessages.createRoom} />
-        </Button>
+        <div className={styles.btnContainer}>
+          <Button onClick={handleCleanup} variant='default'>
+            <FormattedMessage {...accountMessages.roomsCleanup} />
+          </Button>
+          <Button onClick={handleOpen} variant='primary'>
+            <FormattedMessage {...commonMessages.createRoom} />
+          </Button>
+        </div>
 
         {isEditorOpen && <EditRoom onClose={handleClose} room={editorRoom} />}
       </>

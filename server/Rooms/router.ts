@@ -195,6 +195,36 @@ export async function handleUpdateRoom (ctx: RouterContext): Promise<void> {
 
 router.put('/:roomId', ctx => handleUpdateRoom(ctx as unknown as RouterContext))
 
+// remove every closed room and its queue (admin housekeeping)
+export function handleRoomsCleanup (ctx: RouterContext): void {
+  requireAdmin(ctx)
+
+  const closed = Rooms.get(null, { status: ['closed'] })
+
+  for (const roomId of closed.result) {
+    // remove room's queue first
+    const queueQuery = sql`
+      DELETE FROM queue
+      WHERE roomId = ${roomId}
+    `
+    db.run(String(queueQuery), queueQuery.parameters)
+
+    // remove room
+    const roomQuery = sql`
+      DELETE FROM rooms
+      WHERE roomId = ${roomId}
+    `
+    db.run(String(roomQuery), roomQuery.parameters)
+  }
+
+  log.verbose('%s deleted %s closed room(s)', ctx.user.name, closed.result.length)
+
+  // send updated room list
+  ctx.body = Rooms.get(null, { status: STATUSES })
+}
+
+router.delete('/cleanup', ctx => handleRoomsCleanup(ctx as unknown as RouterContext))
+
 // remove room
 router.delete('/:roomId', (ctx) => {
   requireAdmin(ctx)

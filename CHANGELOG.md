@@ -16,6 +16,11 @@
 - Admins can move a version's file (mp3+g sidecar included) to another media folder from Song Info, with name-clash protection
 - All changes are pushed live to every connected client
 
+### Account management (admin)
+
+- Admins get a "Clean up" button in the Users panel that removes every guest and ghost account (with their queued songs) in a single confirmed step
+- Admins get a "Clean up" button in the Rooms panel that removes every closed room together with its queue, in a single confirmed step
+
 ### Defective song marks
 
 - Users with the new "mark songs as defective" capability (or admins) can flag a song version from its row with a broken-star icon; marks are per user and pushed live to every connected client

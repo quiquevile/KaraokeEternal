@@ -21,6 +21,7 @@ vi.mock('./User.js', async importOriginal => ({
     validate: validateMock,
     getById: getByIdMock,
     countAdmins: countAdminsMock,
+    getGuestAndGhostIds: vi.fn(() => []),
     create: vi.fn(),
     remove: vi.fn(),
     removeGhostsByCreator: vi.fn(() => []),
@@ -48,7 +49,7 @@ vi.mock('../lib/Database.js', () => ({
   db: { run: vi.fn(() => ({ changes: 1 })), get: vi.fn(), all: vi.fn(() => []) },
 }))
 
-import { handleLogin, handleSwitchRoom, handleUsersNames } from './router.js'
+import { handleLogin, handleSwitchRoom, handleUsersCleanup, handleUsersNames } from './router.js'
 import router from './router.js'
 import { resetLoginRateLimits } from '../lib/loginRateLimit.js'
 import User from './User.js'
@@ -749,5 +750,44 @@ describe('ghost image access', () => {
     ctx.params = { userId: '3' }
 
     await expect(dispatch(ctx, () => {})).rejects.toMatchObject({ status: 403 })
+  })
+})
+
+describe('handleUsersCleanup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('rejects non-admins with 401', async () => {
+    const ctx = makeCtx({ isAdmin: false, userId: 5, username: 'tester' })
+
+    await expect(handleUsersCleanup(ctx as never)).rejects.toMatchObject({ status: 401 })
+  })
+
+  it('removes every guest and ghost, disconnects their sockets and answers with an empty object', async () => {
+    vi.mocked(User.getGuestAndGhostIds).mockReturnValue([10, 11, 12])
+
+    const disconnect = vi.fn()
+    const sockets = [
+      { user: { userId: 11, roomId: 1 }, disconnect },
+      { user: { userId: 99, roomId: 1 }, disconnect },
+    ]
+    const ctx = {
+      ...makeCtx({ isAdmin: true, userId: 1, username: 'admin', name: 'Admin' }),
+      io: { fetchSockets: async () => sockets },
+    }
+
+    await handleUsersCleanup(ctx as never)
+
+    expect(vi.mocked(User.getGuestAndGhostIds)).toHaveBeenCalledTimes(1)
+    expect(User.remove).toHaveBeenCalledTimes(3)
+    expect(User.remove).toHaveBeenNthCalledWith(1, 10)
+    expect(User.remove).toHaveBeenNthCalledWith(2, 11)
+    expect(User.remove).toHaveBeenNthCalledWith(3, 12)
+    // only the removed user's socket is dropped
+    expect(disconnect).toHaveBeenCalledTimes(1)
+    expect(disconnect).toHaveBeenCalledWith()
+    expect(ctx.body).toEqual({})
+    expect(ctx.status).toBe(200)
   })
 })

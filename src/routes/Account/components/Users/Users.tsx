@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { closeUserEditor, fetchUsers, filterByOnline, filterByRoom, openUserEditor, type UserWithRoomsAndRole } from '../../modules/users'
+import { cleanupUsers, closeUserEditor, fetchUsers, filterByOnline, filterByRoom, openUserEditor, type UserWithRoomsAndRole } from '../../modules/users'
 import { formatDateTime } from 'lib/dateTime'
 import Panel from 'components/Panel/Panel'
 import Button from 'components/Button/Button'
@@ -32,6 +32,12 @@ const Users = () => {
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
     setEditorUser(users.entities[parseInt(e.currentTarget.dataset.userId)])
     dispatch(openUserEditor())
+  }
+
+  const handleCleanup = () => {
+    if (window.confirm(intl.formatMessage(accountMessages.usersCleanupConfirm))) {
+      dispatch(cleanupUsers())
+    }
   }
 
   // once per mount
@@ -123,10 +129,16 @@ const Users = () => {
           </tbody>
         </table>
 
-        <br />
-        <Button onClick={handleOpen} variant='primary'>
-          <FormattedMessage {...commonMessages.createUser} />
-        </Button>
+        <div className={styles.btnContainer}>
+          {isAdmin && (
+            <Button onClick={handleCleanup} variant='default'>
+              <FormattedMessage {...accountMessages.usersCleanup} />
+            </Button>
+          )}
+          <Button onClick={handleOpen} variant='primary'>
+            <FormattedMessage {...commonMessages.createUser} />
+          </Button>
+        </div>
 
         {isEditorOpen && (
           <EditUser onClose={handleClose} user={editorUser} />

@@ -2,6 +2,7 @@ import { createAction, createAsyncThunk, createReducer } from '@reduxjs/toolkit'
 import HttpApi from 'lib/HttpApi'
 import { User } from 'shared/types'
 import {
+  USERS_CLEANUP,
   USERS_CREATE,
   USERS_EDITOR_CLOSE,
   USERS_EDITOR_OPEN,
@@ -51,6 +52,15 @@ export const updateUser = createAsyncThunk(
     await api.put(`user/${userId}`, {
       body: data,
     })
+
+    thunkAPI.dispatch(fetchUsers())
+  },
+)
+
+export const cleanupUsers = createAsyncThunk(
+  USERS_CLEANUP,
+  async (_, thunkAPI) => {
+    await api.delete('users/cleanup')
 
     thunkAPI.dispatch(fetchUsers())
   },

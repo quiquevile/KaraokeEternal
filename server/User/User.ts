@@ -292,6 +292,29 @@ class User {
   }
 
   /**
+   * Ids of every ghost and guest account, ghosts first so bulk removal can
+   * reuse remove() without tripping over its own ghost cascade
+   */
+  static getGuestAndGhostIds (): number[] {
+    const ghostQuery = sql`
+      SELECT userId
+      FROM users
+      WHERE roleId = (SELECT roleId FROM roles WHERE name = 'ghost')
+      ORDER BY userId
+    `
+    const guestQuery = sql`
+      SELECT userId
+      FROM users
+      WHERE roleId = (SELECT roleId FROM roles WHERE name = 'guest')
+      ORDER BY userId
+    `
+    const ghosts = db.all<{ userId: number }>(String(ghostQuery), ghostQuery.parameters).map(row => row.userId)
+    const guests = db.all<{ userId: number }>(String(guestQuery), guestQuery.parameters).map(row => row.userId)
+
+    return [...ghosts, ...guests]
+  }
+
+  /**
    * Remove a user
    */
   static remove (userId: number): void {

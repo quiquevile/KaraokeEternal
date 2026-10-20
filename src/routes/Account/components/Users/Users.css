@@ -50,3 +50,13 @@
   left: var(--space-m);
   position: absolute;
 }
+
+.btnContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-m);
+
+  button {
+    flex: 1;
+  }
+}

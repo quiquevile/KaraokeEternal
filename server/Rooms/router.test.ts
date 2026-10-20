@@ -19,7 +19,11 @@ vi.mock('./Rooms.js', async (importOriginal) => {
   }
 })
 
-import { handleCurrentRoom, handleCurrentRoomStatus, handleCurrentRoomUpdate, handleListRooms, handleUpdateRoom } from './router.js'
+vi.mock('../lib/Database.js', () => ({
+  db: { run: vi.fn(() => ({ changes: 1 })), get: vi.fn(), all: vi.fn(() => []) },
+}))
+
+import { handleCurrentRoom, handleCurrentRoomStatus, handleCurrentRoomUpdate, handleListRooms, handleRoomsCleanup, handleUpdateRoom } from './router.js'
 import type { RouterContext } from './router.js'
 
 function makeIo () {
@@ -340,5 +344,45 @@ describe('handleUpdateRoom', () => {
     })
 
     await expect(handleUpdateRoom(ctx)).rejects.toMatchObject({ status: 401 })
+  })
+})
+
+describe('handleRoomsCleanup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getMock.mockImplementation((roomId: number | null | undefined, opts?: { status?: string[] }) => {
+      if (roomId == null) {
+        if (opts?.status != null && !opts.status.includes('open')) {
+          return { result: [4, 5], entities: { 4: { roomId: 4 }, 5: { roomId: 5 } } }
+        }
+
+        return { result: [3], entities: { 3: { roomId: 3, status: 'open' } } }
+      }
+
+      return { result: [roomId], entities: { [roomId]: { roomId } } }
+    })
+  })
+
+  it('rejects non-admins with 401', () => {
+    const ctx = makeCtx()
+
+    expect(() => handleRoomsCleanup(ctx)).toThrow(expect.objectContaining({ status: 401 }))
+  })
+
+  it('removes queue and rows of every closed room and returns the remaining list', async () => {
+    const { db } = await import('../lib/Database.js')
+    const ctx = makeCtx({ user: { isAdmin: true, userId: 1, username: 'admin', name: 'Admin', roomId: 1 } })
+
+    handleRoomsCleanup(ctx)
+
+    expect(db.run).toHaveBeenCalledTimes(4)
+    // queue before room for each (FK order)
+    expect(String(vi.mocked(db.run).mock.calls[0][0])).toContain('DELETE FROM queue')
+    expect(String(vi.mocked(db.run).mock.calls[1][0])).toContain('DELETE FROM rooms')
+    expect(vi.mocked(db.run).mock.calls[0][1]).toEqual([4])
+    expect(String(vi.mocked(db.run).mock.calls[2][0])).toContain('DELETE FROM queue')
+    expect(vi.mocked(db.run).mock.calls[3][1]).toEqual([5])
+    // final response: remaining list, no closed rooms
+    expect(ctx.body).toMatchObject({ result: [3] })
   })
 })

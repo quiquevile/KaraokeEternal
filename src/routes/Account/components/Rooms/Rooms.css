@@ -38,3 +38,13 @@
   text-overflow: ellipsis;
   max-width: 0;
 }
+
+.btnContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-m);
+
+  button {
+    flex: 1;
+  }
+}

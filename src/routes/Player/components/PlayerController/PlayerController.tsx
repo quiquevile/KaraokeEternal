@@ -10,8 +10,15 @@ import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
 import { getPlayerDisplayPrefs, isNextUpVisible, isProgressVisible } from '../../lib/playerDisplay'
+import { evictMedia, mediaCacheKey, prefetchMedia, pruneExcept } from '../../lib/mediaCache'
 import { parseNumberArray } from 'lib/util'
 import type { QueueItem } from 'shared/types'
+
+const mediaKeysFor = (item: QueueItem): string[] => (
+  item.mediaType === 'cdg'
+    ? [mediaCacheKey(item.mediaId, 'cdg'), mediaCacheKey(item.mediaId, 'audio')]
+    : [mediaCacheKey(item.mediaId, 'video')]
+)
 
 interface PlayerControllerProps {
   width: number
@@ -112,6 +119,8 @@ const PlayerController = (props: PlayerControllerProps) => {
     // add current item to history (once)
     if (queueItem && history.lastIndexOf(queueItem.queueId) === -1) {
       history.push(queueItem.queueId)
+      // the song is done: free its cache slots for the upcoming ones
+      void evictMedia(queueItem.mediaId, queueItem.mediaType)
     }
 
     // queue exhausted?
@@ -142,6 +151,38 @@ const PlayerController = (props: PlayerControllerProps) => {
       _isPlayingNext: false,
     })
   }, [handleStatus, nextQueueItem, player.historyJSON, queueItem])
+
+  // keep upcoming songs cached so playback rides out connection hiccups:
+  // download the rest of the queue in order (bounded by the cache cap)
+  // and drop entries that left the queue or already played
+  useEffect(() => {
+    const controller = new AbortController()
+    const upcoming: QueueItem[] = []
+    const idx = queue.result.indexOf(player.queueId)
+
+    for (let i = idx + 1; i < queue.result.length; i++) {
+      const item = queue.entities[queue.result[i]]
+      // skip optimistic items (still resolving their media)
+      if (item?.mediaId) upcoming.push(item)
+    }
+
+    const protectKeys = queueItem ? mediaKeysFor(queueItem) : []
+
+    void (async () => {
+      await pruneExcept([...protectKeys, ...upcoming.flatMap(mediaKeysFor)])
+
+      for (const item of upcoming) {
+        if (controller.signal.aborted) return
+        const ok = await prefetchMedia(item.mediaId, item.mediaType, {
+          signal: controller.signal,
+          protectKeys,
+        })
+        if (!ok) break
+      }
+    })()
+
+    return () => controller.abort()
+  }, [player.queueId, queue.entities, queue.result, queueItem])
 
   // announce equalizer changes: options apply silently in the reducer,
   // so without this no controller mirror (preset highlight included)

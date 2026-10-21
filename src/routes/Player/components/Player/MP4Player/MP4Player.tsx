@@ -1,4 +1,5 @@
 import React from 'react'
+import { getPlayableUrl } from 'routes/Player/lib/mediaCache'
 import styles from './MP4Player.css'
 
 interface MP4PlayerProps {
@@ -63,9 +64,16 @@ class MP4Player extends React.Component<MP4PlayerProps> {
     )
   }
 
-  updateSources = () => {
+  updateSources = async () => {
+    const { mediaId } = this.props
     if (!this.video.current) return
-    this.video.current.src = `${document.baseURI}api/media/${this.props.mediaId}?type=video`
+
+    // cached media plays from a blob URL (rides out connection hiccups),
+    // misses fall back to streaming the URL directly
+    const url = await getPlayableUrl(mediaId, 'video')
+    // the item changed while the lookup was in flight?
+    if (!this.video.current || this.props.mediaId !== mediaId) return
+    this.video.current.src = url
     this.video.current.load()
   }
 

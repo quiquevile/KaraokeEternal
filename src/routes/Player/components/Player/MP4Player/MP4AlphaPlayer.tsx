@@ -1,5 +1,6 @@
 import React from 'react'
 import GLChroma from 'gl-chromakey'
+import { getPlayableUrl } from 'routes/Player/lib/mediaCache'
 import styles from './MP4Player.css'
 
 const BACKDROP_PADDING = 10 // px at 1:1 scale
@@ -144,9 +145,16 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
     })
   }
 
-  updateSources = () => {
+  updateSources = async () => {
+    const { mediaId } = this.props
     this.stopChroma()
-    this.video.src = `${document.baseURI}api/media/${this.props.mediaId}?type=video`
+
+    // cached media plays from a blob URL (rides out connection hiccups),
+    // misses fall back to streaming the URL directly
+    const url = await getPlayableUrl(mediaId, 'video')
+    // the item changed while the lookup was in flight?
+    if (this.props.mediaId !== mediaId) return
+    this.video.src = url
     this.video.load()
   }
 

@@ -1,9 +1,8 @@
 import React from 'react'
 import CDGraphics from 'cdgraphics'
-import HttpApi from 'lib/HttpApi'
+import { getCdgBuffer, getPlayableUrl } from 'routes/Player/lib/mediaCache'
 import styles from './CDGPlayer.css'
 
-const api = new HttpApi('media')
 const BACKDROP_PADDING = 10 // px at 1:1 scale
 const BORDER_RADIUS = parseInt(getComputedStyle(document.body).getPropertyValue('--border-radius'))
 
@@ -128,20 +127,19 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
   }
 
   updateSources = async () => {
+    const { mediaId } = this.props
     this.stopCDG()
 
-    // load .cdg file
+    // load .cdg file (from the media cache when available)
     try {
-      const response = await api.get(`/${this.props.mediaId}?type=cdg`)
-      if (!(response instanceof Response)) return
-      const buffer = await response.arrayBuffer()
-      // in case we've unmounted by this point
-      if (!this.audio.current) return
+      const buffer = await getCdgBuffer(mediaId)
+      // in case we've unmounted or switched items by this point
+      if (!this.audio.current || this.props.mediaId !== mediaId) return
 
       this.cdg = new CDGraphics(buffer)
-      this.audio.current.src = `${document.baseURI}api/media/${this.props.mediaId}?type=audio`
+      this.audio.current.src = await getPlayableUrl(mediaId, 'audio')
+      if (this.props.mediaId !== mediaId) return
       this.audio.current.load()
-      return
     } catch (err) {
       this.props.onError(err.message)
     }

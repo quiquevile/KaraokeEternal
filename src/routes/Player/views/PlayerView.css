@@ -3,4 +3,6 @@
   position: absolute;
   align-items: center;
   justify-content: center;
+  /* side-zone drags (volume/pitch) must not be intercepted as scrolling */
+  touch-action: none;
 }

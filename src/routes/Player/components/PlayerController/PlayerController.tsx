@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Player from '../Player/Player'
 import PlayerTextOverlay from '../PlayerTextOverlay/PlayerTextOverlay'
 import PitchToast from '../PlayerTextOverlay/PitchToast'
+import VolumeToast from '../PlayerTextOverlay/VolumeToast/VolumeToast'
 import SongProgress from '../PlayerTextOverlay/SongProgress/SongProgress'
 import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
@@ -257,6 +258,13 @@ const PlayerController = (props: PlayerControllerProps) => {
       />
       <PitchToast
         pitchSemitones={player.pitchSemitones}
+        displayMs={displayPrefs.pitchToastMs}
+        replayKey={player._lastReplayTime}
+        queueId={player.queueId}
+        mediaId={queueItem ? queueItem.mediaId : null}
+      />
+      <VolumeToast
+        volume={player.volume}
         displayMs={displayPrefs.pitchToastMs}
         replayKey={player._lastReplayTime}
         queueId={player.queueId}

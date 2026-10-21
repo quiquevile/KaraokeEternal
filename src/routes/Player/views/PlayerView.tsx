@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import screenfull from 'screenfull'
 import combinedReducer from 'store/reducers'
 import { useAppSelector, useAppDispatch } from 'store/hooks'
@@ -6,12 +6,18 @@ import playerReducer, { sliceInjectNoOp } from '../modules/player'
 import playerVisualizerReducer from '../modules/playerVisualizer'
 import PlayerController from '../components/PlayerController/PlayerController'
 import { fetchOwnRoom } from 'store/modules/rooms'
+import usePlayerGestures from '../hooks/usePlayerGestures'
 import styles from './PlayerView.css'
 
 const PlayerView = () => {
   const { innerWidth, innerHeight, headerHeight, footerHeight } = useAppSelector(state => state.ui)
   const viewportHeight = innerHeight - headerHeight - footerHeight
   const dispatch = useAppDispatch()
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // touch and mouse gestures on the player screen (volume, pitch, next,
+  // replay, double-tap play/pause)
+  usePlayerGestures(containerRef)
 
   // @todo: find better place for this?
   if (!useAppSelector(state => state.player)) {
@@ -35,6 +41,7 @@ const PlayerView = () => {
     <div style={{ overflow: 'hidden' }}>
       <div
         id='player-fs-container'
+        ref={containerRef}
         className={styles.container}
         style={{
           top: screenfull.isFullscreen ? 0 : headerHeight,

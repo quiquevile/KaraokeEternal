@@ -44,11 +44,20 @@ const getSearchTree = createSelector(
   [getArtists, getSongs, getArtistSearcher, getSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterFlawed, getFlawedSongs, getFilterFolder, getFilterMultiVersion, getFilterPreferred],
   (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterFlawed, flawedSongs, filterFolder, filterMultiVersion, filterPreferred) => {
     const hasText = str.length > 0
+    // fast-fuzzy ignores symbols by default, so a query with no letters
+    // or digits at all ("&", "!!!") normalizes to an empty string and
+    // matches nothing — fall back to a literal substring match, same
+    // semantics as the queue text filter
+    const literalOnly = hasText && !/[a-z0-9]/.test(str)
     const nameHits = new Set<number>(hasText
-      ? artistSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
+      ? literalOnly
+        ? artists.result.filter(artistId => artists.entities[artistId]?.name.toLowerCase().includes(str))
+        : artistSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
       : [])
     const titleHits = new Set<number>(hasText
-      ? songSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
+      ? literalOnly
+        ? songs.result.filter(songId => songs.entities[songId]?.title.toLowerCase().includes(str))
+        : songSearcher.search(str, { returnMatchData: true }).map(match => match.item as unknown as number)
       : [])
 
     const flagOK = (songId: number): boolean => {

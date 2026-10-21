@@ -74,6 +74,7 @@
 - The queue search gains a magnifier (Enter works too): with text in the box it lights up with a library badge and hands the same text over to the library search
 - A "No Songs Match the Filters" message replaces the queue list when every song is filtered out
 - The same "No Songs Match the Filters" message now appears in the library as well; both views link onward with the typed text — to the library from the queue, or to the YouTube search from the library (when permitted)
+- Library searches made only of symbols (e.g. "&" or "!!!") now match literally, so artists like "Simon & Garfunkel" can be found by typing "&"; the fuzzy search used to drop every symbol and find nothing, while regular text searches are unchanged
 
 ### Other
 

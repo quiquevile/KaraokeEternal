@@ -176,4 +176,68 @@ describe('getSearchTree', () => {
       { artistId: 5, songIds: [51], autoExpanded: true },
     ])
   })
+
+  it('17. text "&": no letters, matches nothing in the main fixture', () => {
+    expect(getSearchTree(search('&'))).toEqual([])
+  })
+})
+
+// symbol fixture: fast-fuzzy drops symbols from queries and keys, so
+// symbol-only queries ("&") need the literal fallback; mixed queries
+// keep going through the fuzzy searchers
+// Simon & Garfunkel: 10 Bridge Over Troubled Water
+// AC/DC: 20 You Shook Me All Night Long
+const symbolState = {
+  artists: {
+    result: [1, 2],
+    entities: {
+      1: { artistId: 1, name: 'Simon & Garfunkel', songIds: [10] },
+      2: { artistId: 2, name: 'AC/DC', songIds: [20] },
+    },
+  },
+  songs: {
+    result: [10, 20],
+    entities: {
+      10: { songId: 10, artistId: 1, title: 'Bridge Over Troubled Water', folders: ['1:new'], numMedia: 1, isPreferred: false },
+      20: { songId: 20, artistId: 2, title: 'You Shook Me All Night Long', folders: ['1:new'], numMedia: 1, isPreferred: false },
+    },
+  },
+  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterFolder: null, filterMultiVersion: false, filterPreferred: null },
+  userStars: { starredArtists: [], starredSongs: [] },
+  userFlaws: { userId: null, flawedSongs: [] },
+} as unknown as RootState
+
+const searchSymbols = (filterStr: string): RootState => ({
+  ...symbolState,
+  library: { ...symbolState.library, filterStr },
+} as unknown as RootState)
+
+describe('getSearchTree symbol-only queries', () => {
+  it('18. text "&": literal fallback matches the artist name', () => {
+    expect(getSearchTree(searchSymbols('&'))).toEqual([
+      { artistId: 1, songIds: [10], autoExpanded: false },
+    ])
+  })
+
+  it('19. text "/": literal fallback matches AC/DC', () => {
+    expect(getSearchTree(searchSymbols('/'))).toEqual([
+      { artistId: 2, songIds: [20], autoExpanded: false },
+    ])
+  })
+
+  it('20. text "!!!": no literal match, empty tree', () => {
+    expect(getSearchTree(searchSymbols('!!!'))).toEqual([])
+  })
+
+  it('21. text "shook": fuzzy path still works', () => {
+    expect(getSearchTree(searchSymbols('shook'))).toEqual([
+      { artistId: 2, songIds: [20], autoExpanded: true },
+    ])
+  })
+
+  it('22. text "simon &": mixed query still matches via fuzzy path', () => {
+    expect(getSearchTree(searchSymbols('simon &'))).toEqual([
+      { artistId: 1, songIds: [10], autoExpanded: false },
+    ])
+  })
 })

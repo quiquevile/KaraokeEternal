@@ -11,6 +11,7 @@ import {
 import { hasPermission } from 'store/modules/user'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
 import { clampPitchSemitones } from 'routes/Player/lib/pitchShift'
+import { nextProgressState } from 'routes/Player/lib/playerDisplay'
 import screenfull from 'screenfull'
 
 const VOLUME_STEP = 0.05
@@ -115,14 +116,21 @@ const usePlaybackShortcuts = () => {
           }))
           break
         case 'b':
-        case 'B':
+        case 'B': {
           e.preventDefault()
+          const next = nextProgressState(roomPrefs?.progress)
           dispatch(updateCurrentRoomOptions({
             prefs: {
-              progress: { ...roomPrefs?.progress, isEnabled: roomPrefs?.progress?.isEnabled === false },
+              progress: {
+                isEnabled: next.bar,
+                showTime: next.time,
+                showTitle: next.title,
+                showSinger: next.singer,
+              },
             },
           }))
           break
+        }
         case 'f':
         case 'F': {
           if (onControl) return

@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   PLAYER_DISPLAY_DEFAULTS,
+  PROGRESS_CYCLE,
   formatPitch,
   formatRemaining,
   getPlayerDisplayPrefs,
   isNextUpVisible,
   isProgressVisible,
+  nextProgressState,
+  progressElements,
 } from './playerDisplay'
 
 describe('playerDisplay', () => {
@@ -79,5 +82,42 @@ describe('playerDisplay', () => {
     expect(formatPitch(0)).toBe('0 st')
     expect(formatPitch(2)).toBe('+2 st')
     expect(formatPitch(-2)).toBe('-2 st')
+  })
+
+  it('cycles through the five canonical progress states', () => {
+    // default prefs (all on) → wraps to start of cycle
+    expect(nextProgressState(undefined)).toEqual(PROGRESS_CYCLE[0])
+    expect(nextProgressState({})).toEqual(PROGRESS_CYCLE[0])
+    // bar-only (prefs shape) → +time
+    expect(nextProgressState({ showTime: false, showTitle: false, showSinger: false }))
+      .toEqual(PROGRESS_CYCLE[2])
+    // step through the ring from the start (input in prefs shape)
+    expect(nextProgressState({ isEnabled: false, showTime: false, showTitle: false, showSinger: false }))
+      .toEqual(PROGRESS_CYCLE[1])
+    expect(nextProgressState({ showTime: false, showTitle: false, showSinger: false }))
+      .toEqual(PROGRESS_CYCLE[2])
+    expect(nextProgressState({ showTitle: false, showSinger: false }))
+      .toEqual(PROGRESS_CYCLE[3])
+    expect(nextProgressState({ showSinger: false }))
+      .toEqual(PROGRESS_CYCLE[4])
+    expect(nextProgressState({})).toEqual(PROGRESS_CYCLE[0])
+  })
+
+  it('resets to the start of the cycle for a non-canonical combination', () => {
+    // singer-only (hand-tuned in Player Options) is not in the ring
+    expect(nextProgressState({ isEnabled: false, showSinger: true, showTime: false, showTitle: false }))
+      .toEqual(PROGRESS_CYCLE[0])
+    // bar + title but no time is also non-canonical
+    expect(nextProgressState({ showTime: false, showTitle: true, showSinger: false }))
+      .toEqual(PROGRESS_CYCLE[0])
+  })
+
+  it('maps progress prefs to elements consistently', () => {
+    expect(progressElements({ showTime: false, showTitle: false, showSinger: false })).toEqual({
+      bar: true, time: false, title: false, singer: false,
+    })
+    expect(progressElements({})).toEqual({
+      bar: true, time: true, title: true, singer: true,
+    })
   })
 })

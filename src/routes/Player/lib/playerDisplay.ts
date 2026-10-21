@@ -82,6 +82,39 @@ export function progressElements (progress?: IRoomPrefs['progress']): {
 }
 
 /**
+ * The five canonical progress readout states cycled by the B shortcut:
+ * nothing, bar only, + remaining time, + title, + singer. `nextProgressState`
+ * advances one step through the ring; a non-canonical combination (hand-tuned
+ * in Player Options) falls back to the start of the cycle.
+ */
+export const PROGRESS_CYCLE = [
+  { bar: false, time: false, title: false, singer: false },
+  { bar: true, time: false, title: false, singer: false },
+  { bar: true, time: true, title: false, singer: false },
+  { bar: true, time: true, title: true, singer: false },
+  { bar: true, time: true, title: true, singer: true },
+] as const
+
+export type ProgressElements = {
+  bar: boolean
+  time: boolean
+  title: boolean
+  singer: boolean
+}
+
+export function nextProgressState (progress?: IRoomPrefs['progress']): ProgressElements {
+  const current = progressElements(progress)
+  const index = PROGRESS_CYCLE.findIndex(state =>
+    state.bar === current.bar
+    && state.time === current.time
+    && state.title === current.title
+    && state.singer === current.singer,
+  )
+
+  return PROGRESS_CYCLE[index === -1 ? 0 : (index + 1) % PROGRESS_CYCLE.length]
+}
+
+/**
  * Whether the song progress row is on screen: playing an unerrored song
  * with known duration and at least one readout element enabled. Shared
  * by the readout itself and the QR badge (which lifts to clear it).

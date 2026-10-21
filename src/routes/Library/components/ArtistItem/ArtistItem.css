@@ -1,10 +1,21 @@
 .container {
   --artist-item-height: 48px;
+  --artist-item-btn-size: 48px;
 
   display: flex;
   height: var(--artist-item-height);
   align-items: center;
   overflow: hidden;
+}
+
+.primary {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .name {
@@ -59,4 +70,20 @@
 .isChildUpcoming {
   color: var(--queued-item-color);
   text-shadow: var(--queued-item-text-shadow);
+}
+
+/* swipe-revealed actions (admin only) */
+.btn {
+  position: relative;
+
+  svg {
+    display: block;
+    width: var(--artist-item-btn-size);
+    height: var(--artist-item-btn-size);
+  }
+}
+
+.edit {
+  color: var(--song-item-btn-active-bg-color);
+  filter: var(--song-item-btn-active-filter);
 }

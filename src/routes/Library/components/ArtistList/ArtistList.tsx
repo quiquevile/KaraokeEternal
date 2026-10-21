@@ -3,6 +3,7 @@ import { ensureState } from 'redux-optimistic-ui'
 import { RootState } from 'store/store'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { scrollArtists, toggleArtistExpanded } from '../../modules/library'
+import { showArtistEditor } from 'store/modules/artistInfo'
 import getAlphaPickerMap from '../../selectors/getAlphaPickerMap'
 import getSongsStatus from '../../selectors/getSongsStatus'
 import PaddedList from 'components/PaddedList/PaddedList'
@@ -34,6 +35,7 @@ const RowComponent = ({
   const starredArtistCounts = useAppSelector(state => state.starCounts.artists)
   const { starredSongs } = useAppSelector(state => ensureState(state.userStars))
   const { upcoming, current } = useAppSelector(getSongsStatus)
+  const isAdmin = useAppSelector(state => state.user.isAdmin)
 
   const artist = artists.entities[artists.result[index]]
   if (current) upcoming.push(current)
@@ -42,10 +44,12 @@ const RowComponent = ({
     <ArtistItem
       artistSongIds={artist.songIds} // "children"
       isExpanded={expandedArtists.includes(artist.artistId)}
+      isAdmin={isAdmin}
       key={artist.artistId}
       name={artist.name}
       numStars={starredArtistCounts[artist.artistId] || 0}
       onArtistClick={() => dispatch(toggleArtistExpanded(artist.artistId))}
+      onEditArtist={() => dispatch(showArtistEditor(artist.artistId))}
       upcomingSongs={upcoming}
       starredSongs={starredSongs}
       style={style}

@@ -7,7 +7,8 @@ import { sharedMessages } from '../messages'
 
 interface MetadataFieldsProps {
   artist: CaseField
-  title: CaseField
+  // optional: the artist editor only retags the artist
+  title?: CaseField
 }
 
 const ClearableInput = ({ field, label, clearLabel }: {
@@ -51,6 +52,8 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
   const intl = useIntl()
 
   const handleSwap = () => {
+    if (!title) return
+
     const prevArtist = artist.value
     artist.set(title.value)
     title.set(prevArtist)
@@ -81,34 +84,38 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
         />
       </label>
 
-      <Button
-        icon='SWAP_HORIZONTAL'
-        size={24}
-        variant='default'
-        className={styles.swap}
-        onClick={handleSwap}
-        aria-label={intl.formatMessage(sharedMessages.swap)}
-      />
-
-      <label className={styles.field}>
-        <span className={styles.labelRow}>
-          <span className={styles.label}>{titleLabel}</span>
+      {title && (
+        <>
           <Button
-            className={styles.caseBtn}
-            onClick={title.cycleCase}
-            aria-label={intl.formatMessage(sharedMessages.titleCase)}
-          >
-            {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
-            Aa
-            {/* eslint-enable formatjs/no-literal-string-in-jsx */}
-          </Button>
-        </span>
-        <ClearableInput
-          field={title}
-          label={titleLabel}
-          clearLabel={intl.formatMessage(sharedMessages.clearTitle)}
-        />
-      </label>
+            icon='SWAP_HORIZONTAL'
+            size={24}
+            variant='default'
+            className={styles.swap}
+            onClick={handleSwap}
+            aria-label={intl.formatMessage(sharedMessages.swap)}
+          />
+
+          <label className={styles.field}>
+            <span className={styles.labelRow}>
+              <span className={styles.label}>{titleLabel}</span>
+              <Button
+                className={styles.caseBtn}
+                onClick={title.cycleCase}
+                aria-label={intl.formatMessage(sharedMessages.titleCase)}
+              >
+                {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
+                Aa
+                {/* eslint-enable formatjs/no-literal-string-in-jsx */}
+              </Button>
+            </span>
+            <ClearableInput
+              field={title}
+              label={titleLabel}
+              clearLabel={intl.formatMessage(sharedMessages.clearTitle)}
+            />
+          </label>
+        </>
+      )}
     </div>
   )
 }

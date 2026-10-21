@@ -136,6 +136,11 @@ export const SONG_INFO_FETCH_MEDIA = 'songInfo/FETCH_MEDIA'
 export const SONG_INFO_DELETE_MEDIA = 'songInfo/DELETE_MEDIA'
 export const SONG_INFO_SET_MEDIA_GAIN = 'songInfo/SET_MEDIA_GAIN'
 
+// Artist editor
+export const ARTIST_INFO_SHOW_EDITOR = 'artistInfo/SHOW_EDITOR'
+export const ARTIST_INFO_CLOSE_EDITOR = 'artistInfo/CLOSE_EDITOR'
+export const ARTIST_INFO_UPDATE = 'artistInfo/UPDATE'
+
 // IPC Messages
 export const REQUEST_SCAN = 'scannerWorker/REQUEST_SCAN'
 export const REQUEST_SCAN_STOP = 'scannerWorker/REQUEST_SCAN_STOP'

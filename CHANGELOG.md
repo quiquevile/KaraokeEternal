@@ -11,6 +11,7 @@
 ### Library management (admin)
 
 - Songs can be retagged from the library or the queue, with media files renamed automatically to match
+- Artists can be renamed by admins with a swipe on their row; the name is updated everywhere and every matching media file is renamed automatically, and name clashes are rejected without changing anything
 - Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
 - Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
 - Admins can move a version's file (mp3+g sidecar included) to another media folder from Song Info, with name-clash protection

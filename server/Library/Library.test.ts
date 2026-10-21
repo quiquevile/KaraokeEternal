@@ -394,3 +394,146 @@ describe('Library song flaws', () => {
     expect(Library.getUserFlaws(1)).toEqual({ flawedSongs: [] })
   })
 })
+
+describe('Library.updateArtist', () => {
+  let artistId: number
+  let songOneId: number
+  let songTwoId: number
+
+  beforeAll(() => {
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['Oldname', 'Oldname'])
+    artistId = Number(db.get<{ artistId: number }>(
+      'SELECT artistId FROM artists WHERE name = ?', ['Oldname'],
+    )?.artistId)
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?), (?, ?, ?)',
+      [artistId, 'Song One', 'Song One', artistId, 'Song Two', 'Song Two'])
+    songOneId = Number(db.get<{ songId: number }>(
+      'SELECT songId FROM songs WHERE title = ?', ['Song One'],
+    )?.songId)
+    songTwoId = Number(db.get<{ songId: number }>(
+      'SELECT songId FROM songs WHERE title = ?', ['Song Two'],
+    )?.songId)
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+      [songOneId, 1, ['set1', 'Oldname - Song One.mp3'].join(sep), 200,
+        songTwoId, 1, ['set2', 'Oldname - Song Two.mp4'].join(sep), 210])
+    db.run('INSERT INTO artistStars (userId, artistId) VALUES (?, ?)', [1, artistId])
+
+    writeFileSync(abs('set1', 'Oldname - Song One.mp3'), 'audio')
+    writeFileSync(abs('set1', 'Oldname - Song One.cdg'), 'graphics')
+    writeFileSync(abs('set2', 'Oldname - Song Two.mp4'), 'video')
+  })
+
+  afterAll(() => {
+    db.run('DELETE FROM media WHERE songId IN (?, ?)', [songOneId, songTwoId])
+    db.run('DELETE FROM songs WHERE artistId = ?', [artistId])
+    db.run('DELETE FROM artistStars WHERE artistId = ?', [artistId])
+    db.run('DELETE FROM artists WHERE artistId = ?', [artistId])
+    Library.cache.version = null
+  })
+
+  it('renames the row and every media file, keeping ids and stars', () => {
+    Library.cache.version = 123
+    Library.updateArtist(artistId, 'Newname')
+
+    const row = db.get<{ name: string, nameNorm: string }>(
+      'SELECT name, nameNorm FROM artists WHERE artistId = ?', [artistId],
+    )
+    expect(row?.name).toBe('Newname')
+    expect(row?.nameNorm).toBe(deriveNorms('Newname', 'Song One').artistNorm)
+
+    // songs and stars stay with the same artistId
+    expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [songOneId])?.artistId)
+      .toBe(artistId)
+    expect(db.get('SELECT * FROM artistStars WHERE artistId = ?', [artistId])).not.toBeUndefined()
+    expect(db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM artists WHERE name = ?', ['Oldname'],
+    )?.count).toBe(0)
+
+    // files renamed in their subfolders, mp3+g sidecar included
+    expect(existsSync(abs('set1', 'Oldname - Song One.mp3'))).toBe(false)
+    expect(existsSync(abs('set1', 'Oldname - Song One.cdg'))).toBe(false)
+    expect(existsSync(abs('set2', 'Oldname - Song Two.mp4'))).toBe(false)
+    expect(existsSync(abs('set1', 'Newname - Song One.mp3'))).toBe(true)
+    expect(existsSync(abs('set1', 'Newname - Song One.cdg'))).toBe(true)
+    expect(existsSync(abs('set2', 'Newname - Song Two.mp4'))).toBe(true)
+    expect(relPaths(songOneId).map(p => p.split(sep).join('/'))).toEqual([
+      'set1/Newname - Song One.mp3',
+    ])
+    expect(relPaths(songTwoId).map(p => p.split(sep).join('/'))).toEqual([
+      'set2/Newname - Song Two.mp4',
+    ])
+    expect(Library.cache.version).toBeNull()
+  })
+
+  it('allows a case-only rename (its own nameNorm must not collide)', () => {
+    Library.updateArtist(artistId, 'NEWNAME')
+
+    expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
+      .toBe('NEWNAME')
+    expect(existsSync(abs('set1', 'Newname - Song One.mp3'))).toBe(false)
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.cdg'))).toBe(true)
+    expect(existsSync(abs('set2', 'NEWNAME - Song Two.mp4'))).toBe(true)
+  })
+
+  it('throws ConflictError when another artist has that name (any case or accents), changing nothing', () => {
+    // 'Queen' and 'Roxette' exist from the shared fixture; nameNorm
+    // matching is case- and accent-insensitive
+    expect(() => Library.updateArtist(artistId, 'queen')).toThrowError(ConflictError)
+    expect(() => Library.updateArtist(artistId, 'Quéen')).toThrowError(ConflictError)
+    expect(() => Library.updateArtist(artistId, 'RÓXETTE')).toThrowError(ConflictError)
+
+    expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
+      .toBe('NEWNAME')
+    expect(relPaths(songOneId).map(p => p.split(sep).join('/'))).toEqual([
+      'set1/NEWNAME - Song One.mp3',
+    ])
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+    expect(existsSync(abs('set2', 'NEWNAME - Song Two.mp4'))).toBe(true)
+  })
+
+  it('throws ConflictError when a destination file exists, changing nothing', () => {
+    writeFileSync(abs('set1', 'Blocker - Song One.mp3'), 'blocking file')
+
+    expect(() => Library.updateArtist(artistId, 'Blocker')).toThrowError(ConflictError)
+
+    expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
+      .toBe('NEWNAME')
+    expect(relPaths(songOneId).map(p => p.split(sep).join('/'))).toEqual([
+      'set1/NEWNAME - Song One.mp3',
+    ])
+    expect(existsSync(abs('set1', 'Blocker - Song One.mp3'))).toBe(true)
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+    expect(existsSync(abs('set2', 'NEWNAME - Song Two.mp4'))).toBe(true)
+
+    rmSync(abs('set1', 'Blocker - Song One.mp3'))
+  })
+
+  it('fails without renaming anything when a media file is missing', () => {
+    rmSync(abs('set2', 'NEWNAME - Song Two.mp4'))
+
+    expect(() => Library.updateArtist(artistId, 'Missing'))
+      .toThrowError(/media file not found/)
+
+    expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
+      .toBe('NEWNAME')
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.cdg'))).toBe(true)
+    expect(relPaths(songTwoId).map(p => p.split(sep).join('/'))).toEqual([
+      'set2/NEWNAME - Song Two.mp4',
+    ])
+
+    writeFileSync(abs('set2', 'NEWNAME - Song Two.mp4'), 'video')
+  })
+
+  it('validates its arguments and leaves an unchanged name alone', () => {
+    expect(() => Library.updateArtist(Number.NaN, 'Newname')).toThrowError(ValidationError)
+    expect(() => Library.updateArtist(999999, 'Newname')).toThrowError(NotFoundError)
+    expect(() => Library.updateArtist(artistId, '')).toThrowError(ValidationError)
+    expect(() => Library.updateArtist(artistId, '   ')).toThrowError(ValidationError)
+
+    // same name: no-op, files untouched
+    expect(() => Library.updateArtist(artistId, 'NEWNAME')).not.toThrow()
+    expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+  })
+})

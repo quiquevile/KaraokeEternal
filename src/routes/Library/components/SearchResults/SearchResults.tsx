@@ -4,6 +4,7 @@ import { ensureState } from 'redux-optimistic-ui'
 import { RootState } from 'store/store'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { toggleArtistResultExpanded } from '../../modules/library'
+import { showArtistEditor } from 'store/modules/artistInfo'
 import getSearchTree, { SearchTreeNode } from '../../selectors/getSearchResults'
 import getSongsStatus from '../../selectors/getSongsStatus'
 import PaddedList from 'components/PaddedList/PaddedList'
@@ -54,6 +55,7 @@ const RowComponent = ({
 }: RowComponentProps<CustomRowProps>) => {
   const { starredSongs } = useAppSelector(state => ensureState(state.userStars))
   const { upcoming } = useAppSelector(getSongsStatus)
+  const isAdmin = useAppSelector(state => state.user.isAdmin)
 
   // tree heading
   if (index === 0) {
@@ -80,10 +82,12 @@ const RowComponent = ({
       artistSongIds={node.songIds}
       filterKeywords={filterKeywords}
       isExpanded={isExpanded}
+      isAdmin={isAdmin}
       key={artistId}
       name={artist.name}
       numStars={0}
       onArtistClick={() => dispatch(toggleArtistResultExpanded({ artistId, isExpanded }))}
+      onEditArtist={() => dispatch(showArtistEditor(artistId))}
       upcomingSongs={upcoming}
       starredSongs={starredSongs}
       style={style}

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('./Library.js', () => ({
   default: {
     updateSong: vi.fn(),
+    updateArtist: vi.fn(),
     deleteSong: vi.fn(),
     getSong: vi.fn((songId: number) => ({ [songId]: { songId, title: 'New Title' } })),
   },
@@ -25,7 +26,7 @@ vi.mock('../Youtube/metadata.js', () => ({
   })),
 }))
 
-import { handleUpdateSong, handleDeleteSong } from './router.js'
+import { handleUpdateSong, handleUpdateArtist, handleDeleteSong } from './router.js'
 import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
@@ -120,6 +121,69 @@ describe('handleUpdateSong', () => {
     const { ctx } = makeCtx({ isAdmin: true }, { songId: '1' }, { artist: 'A', title: 'T' })
 
     await expect(handleUpdateSong(ctx)).rejects.toMatchObject({ status: 404 })
+  })
+})
+
+describe('handleUpdateArtist', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renames the artist and pushes full library + queues (admin)', async () => {
+    const { ctx, emitted } = makeCtx(
+      { isAdmin: true },
+      { artistId: '1' },
+      { artist: 'New Name' },
+    )
+
+    await handleUpdateArtist(ctx)
+
+    expect(Library.updateArtist).toHaveBeenCalledWith(1, 'New Name', 'en')
+    expect(ctx.status).toBe(200)
+    expect(ctx.body).toEqual({ artistId: 1 })
+    expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
+    expect(emitted).toEqual([])
+  })
+
+  it('rejects non-admins with 401 without touching the library', async () => {
+    const { ctx } = makeCtx({ isAdmin: false }, { artistId: '1' }, { artist: 'New Name' })
+
+    await expect(handleUpdateArtist(ctx)).rejects.toMatchObject({ status: 401 })
+    expect(Library.updateArtist).not.toHaveBeenCalled()
+  })
+
+  it('rejects an invalid artistId with 422', async () => {
+    const { ctx } = makeCtx({ isAdmin: true }, { artistId: 'abc' }, { artist: 'New Name' })
+
+    await expect(handleUpdateArtist(ctx)).rejects.toMatchObject({ status: 422 })
+    expect(Library.updateArtist).not.toHaveBeenCalled()
+  })
+
+  it('maps ValidationError to 422', async () => {
+    vi.mocked(Library.updateArtist).mockImplementationOnce(() => {
+      throw new ValidationError('Artist is required')
+    })
+    const { ctx } = makeCtx({ isAdmin: true }, { artistId: '1' }, { artist: '' })
+
+    await expect(handleUpdateArtist(ctx)).rejects.toMatchObject({ status: 422 })
+  })
+
+  it('maps ConflictError to 409', async () => {
+    vi.mocked(Library.updateArtist).mockImplementationOnce(() => {
+      throw new ConflictError('Another artist already has that name')
+    })
+    const { ctx } = makeCtx({ isAdmin: true }, { artistId: '1' }, { artist: 'A' })
+
+    await expect(handleUpdateArtist(ctx)).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('maps NotFoundError to 404', async () => {
+    vi.mocked(Library.updateArtist).mockImplementationOnce(() => {
+      throw new NotFoundError('artistId 1 not found')
+    })
+    const { ctx } = makeCtx({ isAdmin: true }, { artistId: '1' }, { artist: 'A' })
+
+    await expect(handleUpdateArtist(ctx)).rejects.toMatchObject({ status: 404 })
   })
 })
 

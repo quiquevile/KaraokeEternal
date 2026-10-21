@@ -5,12 +5,12 @@ import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import getCdgName from '../lib/getCdgName.js'
 import { assertNoRenameClash, atomicRenameAll } from '../lib/fsUtils.js'
-import { ConflictError, DUPLICATE_SONG_MESSAGE, NotFoundError, ValidationError } from '../lib/Errors.js'
+import { ConflictError, DUPLICATE_ARTIST_MESSAGE, DUPLICATE_SONG_MESSAGE, NotFoundError, ValidationError } from '../lib/Errors.js'
 import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
-import { toFilename } from '../Youtube/metadata.js'
+import { deriveNorms, toFilename } from '../Youtube/metadata.js'
 
 const log = getLogger('Library')
 
@@ -388,6 +388,130 @@ class Library {
     Library.cache.version = null
 
     log.debug('updated song %s: %s - %s', songId, artist, title)
+  }
+
+  /**
+  * Renames an artist (admin only): updates its name and renames every
+  * media file of each of its songs to match (`Artist - Title.ext`, same
+  * format as downloads). Throws ConflictError if another artist already
+  * has the resulting name (nameNorm match: case and accents included)
+  * or if any destination file already exists (nothing is changed in
+  * that case). The artistId is kept, so stars, queue items and songs
+  * are untouched.
+  */
+  static updateArtist (
+    artistId: number,
+    artist: string,
+    locale: LocaleCode = DEFAULT_LOCALE,
+  ): void {
+    if (!Number.isInteger(artistId)) {
+      throw new ValidationError(t(locale, 'server.library.invalidArtistId', 'Invalid artistId'))
+    }
+
+    const name = artist?.trim()
+
+    if (!name) {
+      throw new ValidationError(t(locale, 'server.library.artistRequired', 'Artist is required'))
+    }
+
+    const existingQuery = sql`SELECT name FROM artists WHERE artistId = ${artistId}`
+    const existing = db.get<{ name: string }>(String(existingQuery), existingQuery.parameters)
+
+    if (!existing) {
+      throw new NotFoundError(t(locale, 'server.library.artistNotFound', 'artistId {artistId} not found', { artistId }))
+    }
+
+    if (existing.name === name) return
+
+    // derive the norm through the same parser path songs use when they
+    // create the artist, feeding it a title the artist already has
+    const titleQuery = sql`SELECT title FROM songs WHERE artistId = ${artistId} LIMIT 1`
+    const song = db.get<{ title: string }>(String(titleQuery), titleQuery.parameters)
+    const artistNorm = deriveNorms(name, song?.title ?? '').artistNorm
+
+    // another artist with the same norm (nameNorm is case- and
+    // accent-insensitive): refuse without changing anything (no merge)
+    const clashQuery = sql`
+      SELECT artistId FROM artists
+      WHERE nameNorm = ${artistNorm} AND artistId != ${artistId}
+    `
+    const clash = db.get<{ artistId: number }>(String(clashQuery), clashQuery.parameters)
+
+    if (clash) {
+      throw new ConflictError(t(locale, 'server.common.duplicateArtist', DUPLICATE_ARTIST_MESSAGE))
+    }
+
+    // resolve media files and their new names for every song
+    const renames: Array<{ mediaId: number, from: string, to: string, newRelPath: string }> = []
+    const songsQuery = sql`SELECT songId, title FROM songs WHERE artistId = ${artistId}`
+    const songs = db.all<{ songId: number, title: string }>(String(songsQuery), songsQuery.parameters)
+
+    for (const { songId, title } of songs) {
+      const { result, entities } = Media.search({ songId })
+
+      for (const mediaId of result) {
+        const media = entities[mediaId]
+        const from = path.join(media.path, ...media.relPath.split('/'))
+        const dir = path.posix.dirname(media.relPath)
+        const newRelPath = (dir === '.' ? '' : `${dir}/`)
+          + toFilename(name, title)
+          + path.posix.extname(media.relPath)
+        const to = path.join(media.path, ...newRelPath.split('/'))
+
+        if (!fs.existsSync(from)) {
+          throw new Error(t(locale, 'server.library.mediaFileNotFound', 'media file not found: {path}', { path: from }))
+        }
+
+        renames.push({ mediaId, from, to, newRelPath })
+
+        // mp3+g sidecar travels with its audio file
+        const cdg = getCdgName(from)
+
+        if (cdg) {
+          const cdgTo = to.substring(0, to.lastIndexOf('.') + 1) + cdg.substring(cdg.lastIndexOf('.') + 1)
+          renames.push({ mediaId, from: cdg, to: cdgTo, newRelPath: '' })
+        }
+      }
+    }
+
+    // rename files (asserted clash-free above, rolls back on failure)
+    assertNoRenameClash(renames)
+    atomicRenameAll(renames)
+
+    const rollbackFiles = () => {
+      atomicRenameAll(renames.map(({ from, to }) => ({ from: to, to: from })))
+    }
+
+    // update db in a single transaction
+    try {
+      db.transaction(() => {
+        const updateArtistQuery = sql`
+          UPDATE artists
+          SET name = ${name}, nameNorm = ${artistNorm}
+          WHERE artistId = ${artistId}
+        `
+        db.run(String(updateArtistQuery), updateArtistQuery.parameters)
+
+        for (const { mediaId, newRelPath } of renames) {
+          if (!newRelPath) continue // sidecar: no db row
+
+          const mediaQuery = sql`
+            UPDATE media
+            SET relPath = ${newRelPath}
+            WHERE mediaId = ${mediaId}
+          `
+          db.run(String(mediaQuery), mediaQuery.parameters)
+        }
+      })
+    } catch (err) {
+      rollbackFiles()
+      throw err
+    }
+
+    // library cache holds song/artist entities: force a rebuild
+    Library.cache.version = null
+
+    log.debug('updated artist %s: %s', artistId, name)
   }
 
   /**

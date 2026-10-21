@@ -13,6 +13,7 @@ import Navigation from 'components/Navigation/Navigation'
 import Modal from 'components/Modal/Modal'
 import SongInfo from 'components/SongInfo/SongInfo'
 import EditSongDialog from 'components/EditSongDialog/EditSongDialog'
+import EditArtistDialog from 'components/EditArtistDialog/EditArtistDialog'
 import DeleteSongDialog from 'components/DeleteSongDialog/DeleteSongDialog'
 import Routes from '../Routes/Routes'
 import { clearErrorMessage, setFooterHeight, setHeaderHeight } from 'store/modules/ui'
@@ -48,6 +49,8 @@ const CoreLayout = () => {
       <SongInfo />
 
       <EditSongDialog />
+
+      <EditArtistDialog />
 
       <DeleteSongDialog />
 

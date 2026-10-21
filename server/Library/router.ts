@@ -47,6 +47,30 @@ export async function handleUpdateSong (ctx) {
 
 router.put('/song/:songId', handleUpdateSong)
 
+// rename an artist, its media files included (admin only)
+export async function handleUpdateArtist (ctx) {
+  requireAdmin(ctx)
+
+  const artistId = parseIdParam(ctx, 'artistId')
+
+  const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
+
+  try {
+    Library.updateArtist(artistId, artist, ctxLocale(ctx))
+  } catch (err) {
+    mapDomainError(ctx, err)
+  }
+
+  ctx.status = 200
+  ctx.body = { artistId }
+
+  // push the full library (the name and nameNorm-based ordering may
+  // have changed) and queues to every client
+  pushQueuesAndLibrary(ctx.io)
+}
+
+router.put('/artist/:artistId', handleUpdateArtist)
+
 // delete a song's files, queue items, and rows (admin only)
 export async function handleDeleteSong (ctx) {
   requireAdmin(ctx)

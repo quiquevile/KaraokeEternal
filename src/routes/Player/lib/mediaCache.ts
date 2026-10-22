@@ -36,6 +36,7 @@ export interface MediaCache {
   getPlayableUrl(mediaId: number, type: MediaPartType): Promise<string>
   getCdgBuffer(mediaId: number): Promise<ArrayBuffer>
   prefetchMedia(mediaId: number, type: MediaType, options?: PrefetchOptions): Promise<boolean>
+  areKeysCached(mediaId: number, type: MediaType): Promise<boolean>
   evictMedia(mediaId: number, type: MediaType): Promise<void>
   pruneExcept(keepKeys: string[]): Promise<void>
   getUsage(): number
@@ -277,6 +278,28 @@ export const createMediaCache = (getStore: () => Promise<MediaCacheStore | null>
     return true
   }
 
+  // true when every media part of the song is fully stored: the offline
+  // advance logic only skips to songs that can play without a network
+  const areKeysCached = async (mediaId: number, type: MediaType): Promise<boolean> => {
+    await ensureInit()
+    if (!store) return false
+
+    for (const partType of partTypes(type)) {
+      const key = mediaCacheKey(mediaId, partType)
+      const meta = entries.get(key)
+      if (!meta) return false
+
+      // confirm the blob is readable: a failed put can leave a stale meta
+      const blob = await store.get(key)
+      if (!blob) {
+        entries.delete(key)
+        return false
+      }
+    }
+
+    return true
+  }
+
   const evictMedia = async (mediaId: number, type: MediaType) => {
     await ensureInit()
     for (const partType of partTypes(type)) {
@@ -295,6 +318,7 @@ export const createMediaCache = (getStore: () => Promise<MediaCacheStore | null>
     getPlayableUrl,
     getCdgBuffer,
     prefetchMedia,
+    areKeysCached,
     evictMedia,
     pruneExcept,
     getUsage,
@@ -314,6 +338,9 @@ export const getCdgBuffer = (mediaId: number): Promise<ArrayBuffer> =>
 
 export const prefetchMedia = (mediaId: number, type: MediaType, options?: PrefetchOptions): Promise<boolean> =>
   defaultCache.prefetchMedia(mediaId, type, options)
+
+export const areKeysCached = (mediaId: number, type: MediaType): Promise<boolean> =>
+  defaultCache.areKeysCached(mediaId, type)
 
 export const evictMedia = (mediaId: number, type: MediaType): Promise<void> =>
   defaultCache.evictMedia(mediaId, type)

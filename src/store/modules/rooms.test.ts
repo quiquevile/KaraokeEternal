@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
+import socket from 'lib/socket'
 import reducer, {
   createRoom,
   fetchOwnRoom,
@@ -19,7 +20,11 @@ const qrPrefs = (overrides: object = {}): IRoomPrefs => ({
 })
 
 const makeStore = () => configureStore({
-  reducer: { rooms: reducer },
+  reducer: {
+    rooms: reducer,
+    // the thunks read the own room id from the user slice
+    user: (state = { roomId: 1 }) => state,
+  },
   preloadedState: {
     rooms: {
       result: [1],
@@ -80,6 +85,25 @@ describe('updateCurrentRoomOptions', () => {
     expect(entity.prefs).toEqual(prefs)
     expect(entity.hasPassword).toBe(true)
     expect(entity.qrPassword).toBe('c2VjcmV0')
+  })
+
+  it('offline: applies display toggles locally without a server round-trip', async () => {
+    ;(socket as { connected: boolean }).connected = false
+    vi.stubGlobal('navigator', { onLine: true })
+    const store = makeStore()
+
+    await store.dispatch(updateCurrentRoomOptions({
+      prefs: { progress: { isEnabled: true, showTime: true, showTitle: true, showSinger: true } },
+    }))
+
+    const entity = store.getState().rooms.entities[1]
+    expect(entity.prefs.progress).toEqual({ isEnabled: true, showTime: true, showTitle: true, showSinger: true })
+    // sibling prefs survive the partial update, and no error is recorded
+    expect(entity.prefs.qr).toEqual(qrPrefs().qr)
+    expect(store.getState().rooms.error).toBeNull()
+
+    vi.unstubAllGlobals()
+    ;(socket as { connected: boolean }).connected = true
   })
 })
 

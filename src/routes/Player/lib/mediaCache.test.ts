@@ -166,5 +166,42 @@ describe('mediaCache', () => {
     expect(await noStore.prefetchMedia(1, 'mp4', { minHeadroom: 0 })).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
     expect(noStore.getUsage()).toBe(0)
+    expect(await noStore.areKeysCached(1, 'mp4')).toBe(false)
+  })
+
+  it('13. areKeysCached is false until every part is stored', async () => {
+    expect(await cache.areKeysCached(1, 'mp4')).toBe(false)
+
+    respondWith(10)
+    await cache.prefetchMedia(1, 'mp4', { minHeadroom: 0 })
+
+    expect(await cache.areKeysCached(1, 'mp4')).toBe(true)
+    expect(await cache.areKeysCached(1, 'cdg')).toBe(false)
+  })
+
+  it('14. areKeysCached requires both parts of a cdg song', async () => {
+    respondWith(10)
+    await cache.prefetchMedia(2, 'cdg', { minHeadroom: 0 })
+
+    expect(await cache.areKeysCached(2, 'cdg')).toBe(true)
+
+    await cache.evictMedia(2, 'cdg')
+    await store.put(mediaCacheKey(2, 'audio'), new Blob([new Uint8Array(10)]), {
+      key: mediaCacheKey(2, 'audio'),
+      size: 10,
+      lastAccess: Date.now(),
+    })
+    // re-init the in-memory entries from the modified store
+    const partial = createMediaCache(async () => store)
+
+    expect(await partial.areKeysCached(2, 'cdg')).toBe(false)
+  })
+
+  it('15. areKeysCached drops stale metas whose blob is gone', async () => {
+    respondWith(10)
+    await cache.prefetchMedia(1, 'mp4', { minHeadroom: 0 })
+    await store.delete(mediaCacheKey(1, 'video'))
+
+    expect(await cache.areKeysCached(1, 'mp4')).toBe(false)
   })
 })

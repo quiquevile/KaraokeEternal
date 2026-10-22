@@ -1,10 +1,18 @@
 import { createAction, createReducer } from '@reduxjs/toolkit'
 import { type PlayerVisualizerState } from 'routes/Player/modules/playerVisualizer'
+import socket from 'lib/socket'
+import type { AppThunk, RootState } from 'store/store'
 import {
+  PLAYER_CMD_NEXT,
+  PLAYER_CMD_OPTIONS,
+  PLAYER_CMD_PAUSE,
+  PLAYER_CMD_PLAY,
+  PLAYER_CMD_REPLAY,
+  PLAYER_CMD_VOLUME,
   PLAYER_REQ_NEXT,
   PLAYER_REQ_OPTIONS,
-  PLAYER_REQ_PLAY,
   PLAYER_REQ_PAUSE,
+  PLAYER_REQ_PLAY,
   PLAYER_REQ_REPLAY,
   PLAYER_REQ_VOLUME,
   PLAYER_STATUS,
@@ -16,9 +24,6 @@ import { ROOM_SWITCHED } from 'shared/actionTypes'
 // ------------------------------------
 // Actions
 // ------------------------------------
-export const requestPlay = createAction(PLAYER_REQ_PLAY)
-export const requestPause = createAction(PLAYER_REQ_PAUSE)
-export const requestPlayNext = createAction(PLAYER_REQ_NEXT)
 const playerStatus = createAction<object>(PLAYER_STATUS)
 const playerLeave = createAction(PLAYER_LEAVE)
 
@@ -26,29 +31,59 @@ const playerLeave = createAction(PLAYER_LEAVE)
 // fresh status if the new room has a player
 export const roomSwitched = createAction(ROOM_SWITCHED)
 
-export const requestReplay = createAction(PLAYER_REQ_REPLAY, (queueId: number) => ({
-  payload: { queueId },
-}))
+// Playback commands normally round-trip through the server (REQ → CMD
+// relayed to the room). While the connection is down the round-trip never
+// comes back, so the player window applies the CMD locally instead; the
+// REQ is skipped entirely (buffered REQs would replay on reconnect and
+// e.g. skip songs). Controllers in other windows can't reach an absent
+// player either way, so their behavior is unchanged.
+const isPlayerOffline = (state: RootState): boolean =>
+  state.player !== undefined && (!socket.connected || !navigator.onLine)
 
-export const requestVolume = createAction(PLAYER_REQ_VOLUME, (vol: number) => ({
-  payload: vol,
-  meta: {
-    throttle: {
-      wait: 200,
-      leading: false,
-    },
-  },
-}))
+export const requestPlay = (): AppThunk => (dispatch, getState) => {
+  dispatch({ type: isPlayerOffline(getState()) ? PLAYER_CMD_PLAY : PLAYER_REQ_PLAY })
+}
 
-export const requestOptions = createAction(PLAYER_REQ_OPTIONS, (opts: PlaybackOptions) => ({
-  payload: opts,
-  meta: {
-    throttle: {
-      wait: 200,
-      leading: true,
+export const requestPause = (): AppThunk => (dispatch, getState) => {
+  dispatch({ type: isPlayerOffline(getState()) ? PLAYER_CMD_PAUSE : PLAYER_REQ_PAUSE })
+}
+
+export const requestPlayNext = (): AppThunk => (dispatch, getState) => {
+  dispatch({ type: isPlayerOffline(getState()) ? PLAYER_CMD_NEXT : PLAYER_REQ_NEXT })
+}
+
+export const requestReplay = (queueId: number): AppThunk => (dispatch, getState) => {
+  dispatch({
+    type: isPlayerOffline(getState()) ? PLAYER_CMD_REPLAY : PLAYER_REQ_REPLAY,
+    payload: { queueId },
+  })
+}
+
+export const requestVolume = (vol: number): AppThunk => (dispatch, getState) => {
+  dispatch({
+    type: isPlayerOffline(getState()) ? PLAYER_CMD_VOLUME : PLAYER_REQ_VOLUME,
+    payload: vol,
+    meta: {
+      throttle: {
+        wait: 200,
+        leading: false,
+      },
     },
-  },
-}))
+  })
+}
+
+export const requestOptions = (opts: PlaybackOptions): AppThunk => (dispatch, getState) => {
+  dispatch({
+    type: isPlayerOffline(getState()) ? PLAYER_CMD_OPTIONS : PLAYER_REQ_OPTIONS,
+    payload: opts,
+    meta: {
+      throttle: {
+        wait: 200,
+        leading: true,
+      },
+    },
+  })
+}
 
 // ------------------------------------
 // Reducer

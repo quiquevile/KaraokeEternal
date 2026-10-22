@@ -18,6 +18,7 @@ import {
 } from 'shared/actionTypes'
 
 import HttpApi from 'lib/HttpApi'
+import socket from 'lib/socket'
 const api = new HttpApi('rooms')
 
 // ------------------------------------
@@ -110,9 +111,32 @@ export interface RoomOptionsUpdate {
 // user's own room so playback controllers can use it without admin rights
 export const updateCurrentRoomOptions = createAsyncThunk(
   'rooms/updateCurrentRoomOptions',
-  async (data: { prefs: Partial<IRoomPrefs> }) => await api.put('/current', {
-    body: data,
-  }) as { room: RoomOptionsUpdate },
+  async (data: { prefs: Partial<IRoomPrefs> }, thunkAPI) => {
+    const state = thunkAPI.getState() as RootState
+
+    // offline: apply the display toggles locally (progress bar, QR…) so
+    // the keys keep working in any window; the change isn't persisted
+    // until some later update goes through with a connection
+    if (!socket.connected || !navigator.onLine) {
+      const roomId = state.user.roomId
+
+      if (typeof roomId === 'number' && state.rooms.entities[roomId]) {
+        thunkAPI.dispatch({
+          type: ROOM_PREFS_PUSH,
+          payload: {
+            roomId,
+            prefs: { ...state.rooms.entities[roomId].prefs, ...data.prefs },
+          },
+        })
+      }
+
+      return
+    }
+
+    return await api.put('/current', {
+      body: data,
+    }) as { room: RoomOptionsUpdate }
+  },
 )
 
 // display-only slice of a prefs update: RoomOptions must never send the

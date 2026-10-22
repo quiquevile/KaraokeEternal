@@ -2,6 +2,7 @@ import { createAction, createReducer } from '@reduxjs/toolkit'
 import { AppThunk } from 'store/store'
 import { CANCEL } from 'redux-throttle'
 import getWebGLSupport from 'lib/getWebGLSupport'
+import socket from 'lib/socket'
 import { EQ_FREQUENCIES, EQ_PRESETS, clampEqGain } from '../lib/equalizer'
 import { roomSwitched } from 'store/modules/status'
 import {
@@ -16,6 +17,7 @@ import {
   PLAYER_ERROR,
   PLAYER_LOAD,
   PLAYER_PLAY,
+  PLAYER_STATUS,
   PLAYER_UPDATE,
   REDUX_SLICE_INJECT_NOOP,
 } from 'shared/actionTypes'
@@ -63,12 +65,23 @@ export function playerStatus (status: Partial<PlayerState> = {}, deferEmit = fal
       }).filter(([key]) => !key.startsWith('_')),
     )
 
+    const payload = {
+      ...emitStatus,
+      visualizer: playerVisualizer,
+    }
+
+    // offline: keep this window's own status mirror fresh (the server
+    // echo never arrives, and the header controls read the mirror), and
+    // skip the emit entirely — replaying buffered status on reconnect
+    // would briefly rewind every controller
+    if (!socket.connected || !navigator.onLine) {
+      dispatch({ type: PLAYER_STATUS, payload })
+      return
+    }
+
     dispatch({
       type: PLAYER_EMIT_STATUS,
-      payload: {
-        ...emitStatus,
-        visualizer: playerVisualizer,
-      },
+      payload,
       meta: {
         throttle: {
           wait: 1000,

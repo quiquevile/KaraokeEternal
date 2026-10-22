@@ -66,6 +66,10 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
     io = new SocketIO(server, {
       path: urlPath + 'socket.io',
       serveClient: false,
+      // offline playback mode reacts to disconnects: notice dead peers
+      // in seconds instead of the 45s default
+      pingInterval: 10000,
+      pingTimeout: 5000,
     })
 
     // attach socket.io handlers

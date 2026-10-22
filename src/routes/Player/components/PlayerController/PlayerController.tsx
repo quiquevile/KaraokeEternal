@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Player from '../Player/Player'
 import PlayerTextOverlay from '../PlayerTextOverlay/PlayerTextOverlay'
@@ -10,8 +10,9 @@ import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
 import { getPlayerDisplayPrefs, isNextUpVisible, isProgressVisible } from '../../lib/playerDisplay'
-import { evictMedia, mediaCacheKey, prefetchMedia, pruneExcept } from '../../lib/mediaCache'
+import { areKeysCached, evictMedia, mediaCacheKey, prefetchMedia, pruneExcept } from '../../lib/mediaCache'
 import { parseNumberArray } from 'lib/util'
+import socket from 'lib/socket'
 import type { QueueItem } from 'shared/types'
 
 const mediaKeysFor = (item: QueueItem): string[] => (
@@ -19,6 +20,30 @@ const mediaKeysFor = (item: QueueItem): string[] => (
     ? [mediaCacheKey(item.mediaId, 'cdg'), mediaCacheKey(item.mediaId, 'audio')]
     : [mediaCacheKey(item.mediaId, 'video')]
 )
+
+// playback needs the server for commands and status relays: treat both
+// OS-level network loss and a dead server connection as offline
+const isOfflineNow = (): boolean => !socket.connected || !navigator.onLine
+
+// socket.io may still believe it's connected right after the server died
+// (pings run on an interval): settle it with a quick probe
+const serverUnreachable = async (): Promise<boolean> => {
+  try {
+    await fetch(document.baseURI, {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3000),
+    })
+    return false
+  } catch {
+    return true
+  }
+}
+
+// how long a frozen playback position is tolerated while offline before
+// the song is treated as ended (a dead connection can stall playback
+// without ever firing an error or ended event)
+const STALL_WATCHDOG_MS = 10_000
 
 interface PlayerControllerProps {
   width: number
@@ -60,13 +85,11 @@ const PlayerController = (props: PlayerControllerProps) => {
   )
 
   const dispatch = useAppDispatch()
+  // bumped on reconnect to restart the prefetch loop after a failure
+  const [prefetchNonce, setPrefetchNonce] = useState(0)
   const handleStatus = useCallback((status?: Partial<PlayerState>) => dispatch(playerStatus(status)), [dispatch])
   const handleLoad = () => dispatch(playerLoad())
   const handlePlay = () => dispatch(playerPlay())
-  const handleError = (msg: string) => {
-    dispatch(playerError(msg))
-    handleStatus()
-  }
 
   const handleReplay = useCallback((queueId: number) => {
     const nextItem = queue.entities[queueId]
@@ -113,18 +136,23 @@ const PlayerController = (props: PlayerControllerProps) => {
     }
   }, [handleStatus, persistedEq])
 
-  const handleLoadNext = useCallback(() => {
+  // advance to a specific upcoming item (or stop at queue end, also the
+  // offline stop when nothing ahead is playable): the current item and
+  // any passed-over ones are marked played
+  const advanceTo = useCallback((target: QueueItem | null, skipped: QueueItem[]) => {
     const history = parseNumberArray(player.historyJSON)
-
-    // add current item to history (once)
-    if (queueItem && history.lastIndexOf(queueItem.queueId) === -1) {
-      history.push(queueItem.queueId)
+    const markPlayed = (item: QueueItem) => {
+      if (history.lastIndexOf(item.queueId) !== -1) return
+      history.push(item.queueId)
       // the song is done: free its cache slots for the upcoming ones
-      void evictMedia(queueItem.mediaId, queueItem.mediaType)
+      void evictMedia(item.mediaId, item.mediaType)
     }
 
-    // queue exhausted?
-    if (!nextQueueItem) {
+    if (queueItem) markPlayed(queueItem)
+    for (const item of skipped) markPlayed(item)
+
+    // queue exhausted (or nothing left playable offline)?
+    if (!target) {
       // playback fully stops: transport shows Play, the progress readout
       // hides and later queueings wait for a manual start
       handleStatus({
@@ -139,21 +167,73 @@ const PlayerController = (props: PlayerControllerProps) => {
       return
     }
 
-    // play next
+    // play target
     handleStatus({
       historyJSON: JSON.stringify(history),
       isAtQueueEnd: false,
       isPlaying: true,
-      isVideoKeyingEnabled: nextQueueItem.isVideoKeyingEnabled,
-      mediaType: nextQueueItem.mediaType,
+      isVideoKeyingEnabled: target.isVideoKeyingEnabled,
+      mediaType: target.mediaType,
       pitchSemitones: 0,
       position: 0,
       duration: 0,
-      queueId: nextQueueItem.queueId,
+      queueId: target.queueId,
       nextUserId: null,
       _isPlayingNext: false,
     })
-  }, [handleStatus, nextQueueItem, player.historyJSON, queueItem])
+  }, [handleStatus, player.historyJSON, queueItem])
+
+  // offline: the show only moves through fully cached songs; upcoming
+  // ones that aren't cached are skipped (still marked played, so they
+  // can be replayed later) instead of erroring on their direct URLs
+  const advanceToNextCached = useCallback(async () => {
+    const idx = queue.result.indexOf(player.queueId)
+    let target: QueueItem | null = null
+    const skipped: QueueItem[] = []
+
+    for (let i = idx + 1; i < queue.result.length; i++) {
+      const item = queue.entities[queue.result[i]]
+      // skip optimistic items (still resolving their media)
+      if (!item?.mediaId) continue
+
+      if (target) break
+
+      if (await areKeysCached(item.mediaId, item.mediaType)) {
+        target = item
+      } else {
+        skipped.push(item)
+      }
+    }
+
+    advanceTo(target, skipped)
+  }, [advanceTo, player.queueId, queue.entities, queue.result])
+
+  const handleLoadNext = useCallback(() => {
+    // offline: only cached songs can start; everything else is skipped
+    // (or playback stops at queue end when nothing ahead is playable)
+    if (isOfflineNow()) {
+      void advanceToNextCached()
+      return
+    }
+
+    advanceTo(nextQueueItem, [])
+  }, [advanceTo, advanceToNextCached, nextQueueItem])
+
+  const handleError = (msg: string) => {
+    void (async () => {
+      // a media failure while the server is unreachable isn't fatal: the
+      // show continues with the next cached song (skipping the uncached
+      // ones) or stops at queue end — probe first, the socket may still
+      // believe it's connected moments after the server died
+      if (queueItem && (isOfflineNow() || await serverUnreachable())) {
+        advanceToNextCached()
+        return
+      }
+
+      dispatch(playerError(msg))
+      handleStatus()
+    })()
+  }
 
   // keep upcoming songs cached so playback rides out connection hiccups:
   // download the rest of the queue in order (bounded by the cache cap)
@@ -180,12 +260,81 @@ const PlayerController = (props: PlayerControllerProps) => {
           signal: controller.signal,
           protectKeys,
         })
-        if (!ok) break
+        // a transient failure skips this item (playback would stream it
+        // directly); keep going — later songs may still cache, and the
+        // effect re-runs on queue changes and reconnects
+        if (!ok && controller.signal.aborted) return
       }
     })()
 
     return () => controller.abort()
-  }, [player.queueId, queue.entities, queue.result, queueItem])
+  }, [player.queueId, prefetchNonce, queue.entities, queue.result, queueItem])
+
+  // offline stall watchdog: a dead connection can freeze playback
+  // without ever firing an error or ended event (packets just vanish);
+  // once the position has been frozen for a while, treat the song as
+  // ended so the show moves on to the next cached one
+  const stallRef = useRef({ position: 0, lastChange: 0 })
+
+  // baseline when playback starts (impure call, effect only)
+  useEffect(() => {
+    stallRef.current = { position: player.position, lastChange: Date.now() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (player.position !== stallRef.current.position) {
+      stallRef.current = { position: player.position, lastChange: Date.now() }
+    }
+  }, [player.position])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stalled = Date.now() - stallRef.current.lastChange >= STALL_WATCHDOG_MS
+
+      if (isOfflineNow() && player.isPlaying && !player.isErrored && !player._isFetching && stalled) {
+        stallRef.current.lastChange = Date.now()
+        handleLoadNext()
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [handleLoadNext, player._isFetching, player.isErrored, player.isPlaying])
+
+  // connection lifecycle: status mirrors (in every window) only update
+  // through the server, and an outage may only be noticed tens of
+  // seconds after it started — resync on reconnect, and recover from
+  // errors that were really caused by a late-detected outage
+  useEffect(() => {
+    const handleConnect = () => {
+      // re-broadcast local truth: controllers may have gone stale offline
+      handleStatus({})
+      // a failed prefetch aborts its whole loop and the queue didn't
+      // change: restart it now that the network is back
+      setPrefetchNonce(n => n + 1)
+      // an error raised during the outage would otherwise stick: retry
+      // by remounting the player (the retry effect keeps it paused)
+      if (player.isErrored) {
+        handleStatus({ isErrored: false })
+      }
+    }
+
+    const handleDisconnect = () => {
+      // socket.io may only notice a dead server long after the media
+      // error was shown "online": run the offline recovery now
+      if (player.isErrored && queueItem) {
+        void advanceToNextCached()
+      }
+    }
+
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
+
+    return () => {
+      socket.off('connect', handleConnect)
+      socket.off('disconnect', handleDisconnect)
+    }
+  }, [advanceToNextCached, handleStatus, player.isErrored, queueItem])
 
   // announce equalizer changes: options apply silently in the reducer,
   // so without this no controller mirror (preset highlight included)

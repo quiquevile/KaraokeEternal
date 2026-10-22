@@ -49,6 +49,7 @@
 - Song progress readout along the bottom of the player screen (bar, artist - title, current singer, remaining time): every element is shown or hidden independently per room (Player Options; B cycles through five preset states), and the title may use up to half the screen while the bar is hidden
 - Touch and mouse gestures on the player screen: vertical drags on the side zones control volume (right, with an on-screen percentage toast) and pitch (left), horizontal drags skip to the next song (left) or replay (right), and a double-tap toggles play/pause
 - The player pre-caches upcoming queue songs in the browser (up to 500 MB, least-recently-used eviction, finished songs freed as they leave playback) so playback keeps going through network hiccups: cached songs play locally, and anything not cached streams exactly as before
+- Playback now fully stops when the queue is exhausted: transport controls read Play, the progress readout hides, and songs queued afterwards wait for a manual start instead of auto-playing
 - ReplayGain leveling moved from a global setting to a per-room toggle in the display options (enabled by default)
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted

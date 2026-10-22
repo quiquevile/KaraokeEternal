@@ -125,9 +125,12 @@ const PlayerController = (props: PlayerControllerProps) => {
 
     // queue exhausted?
     if (!nextQueueItem) {
+      // playback fully stops: transport shows Play, the progress readout
+      // hides and later queueings wait for a manual start
       handleStatus({
         historyJSON: JSON.stringify(history),
         isAtQueueEnd: true,
+        isPlaying: false,
         mediaType: null,
         pitchSemitones: 0,
         _isPlayingNext: false,

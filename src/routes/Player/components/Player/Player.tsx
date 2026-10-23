@@ -2,7 +2,7 @@ import React from 'react'
 import CDGPlayer from './CDGPlayer/CDGPlayer'
 import MP4Player from './MP4Player/MP4Player'
 import MP4AlphaPlayer from './MP4Player/MP4AlphaPlayer'
-import { clampPitchSemitones, createPitchNode, isPitchShiftSupported, setPitchNodeSemitones } from '../../lib/pitchShift'
+import { clampPitchSemitones, createPitchNode, isPitchShiftSupported, setPitchNodeSemitones, warmPitchEngine } from '../../lib/pitchShift'
 import { createEqualizer, setEqualizerGains } from '../../lib/equalizer'
 import type { SoundTouchNode } from '@soundtouchjs/audio-worklet'
 import { type PlayerState } from '../../modules/player'
@@ -65,6 +65,9 @@ class Player extends React.Component<PlayerProps> {
     }
 
     this.updateVolume()
+    // register the pitch worklet now (bundle ships its source): later pitch
+    // changes apply instantly and keep working after the network drops
+    void warmPitchEngine(this.audioCtx)
     void this.refreshPitchGraph()
   }
 

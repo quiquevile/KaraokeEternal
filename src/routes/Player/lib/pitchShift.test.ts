@@ -1,11 +1,30 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   PITCH_SEMITONE_MAX,
   PITCH_SEMITONE_MIN,
   clampPitchSemitones,
+  createPitchNode,
   isPitchShiftSupported,
   retryAsync,
+  warmPitchEngine,
 } from './pitchShift'
+
+const mocks = vi.hoisted(() => ({
+  register: vi.fn(),
+}))
+
+vi.mock('@soundtouchjs/audio-worklet', () => ({
+  SoundTouchNode: class {
+    static register = mocks.register
+    pitch = { value: 1 }
+    pitchSemitones = { value: 0 }
+    playbackRate = { value: 1 }
+  },
+}))
+
+vi.mock('@soundtouchjs/audio-worklet/processor', () => ({
+  default: '// fake processor source',
+}))
 
 describe('pitchShift', () => {
   it('clamps semitones to the supported karaoke range', () => {
@@ -104,5 +123,79 @@ describe('pitchShift', () => {
 
     expect(result).toBe('fast')
     expect(slept).toBe(false)
+  })
+
+  describe('worklet registration', () => {
+    beforeEach(() => {
+      mocks.register.mockReset()
+    })
+
+    const fakeContext = () => ({ audioWorklet: {} }) as unknown as AudioContext
+
+    const withPitchSupport = () => {
+      const globalWindow = globalThis as { window?: unknown }
+      const previousWindow = globalWindow.window
+      const FakeAudioContext = function () {}
+      FakeAudioContext.prototype = { audioWorklet: {} }
+      globalWindow.window = { AudioContext: FakeAudioContext }
+
+      return () => {
+        if (typeof previousWindow === 'undefined') {
+          delete globalWindow.window
+        } else {
+          globalWindow.window = previousWindow
+        }
+      }
+    }
+
+    it('registers the processor only once per AudioContext', async () => {
+      const restore = withPitchSupport()
+
+      try {
+        const context = fakeContext()
+
+        expect(await warmPitchEngine(context)).toBe(true)
+        expect(await warmPitchEngine(context)).toBe(true)
+        expect(mocks.register).toHaveBeenCalledTimes(1)
+
+        // createPitchNode reuses the registered context
+        const node = await createPitchNode(context)
+        expect(node).not.toBeNull()
+        expect(mocks.register).toHaveBeenCalledTimes(1)
+      } finally {
+        restore()
+      }
+    })
+
+    it('registers again for a fresh AudioContext', async () => {
+      const restore = withPitchSupport()
+
+      try {
+        expect(await warmPitchEngine(fakeContext())).toBe(true)
+        expect(await warmPitchEngine(fakeContext())).toBe(true)
+        expect(mocks.register).toHaveBeenCalledTimes(2)
+      } finally {
+        restore()
+      }
+    })
+
+    it('retries a transient registration failure', async () => {
+      const restore = withPitchSupport()
+      mocks.register.mockRejectedValueOnce(new Error('busy compiling'))
+
+      try {
+        // first attempt fails; retryAsync waits PITCH_SETUP_RETRY_DELAYS_MS
+        expect(await warmPitchEngine(fakeContext())).toBe(true)
+        expect(mocks.register).toHaveBeenCalledTimes(2)
+      } finally {
+        restore()
+      }
+    })
+
+    it('reports unavailable without attempting registration', async () => {
+      expect(await warmPitchEngine(fakeContext())).toBe(false)
+      expect(await createPitchNode(fakeContext())).toBeNull()
+      expect(mocks.register).not.toHaveBeenCalled()
+    })
   })
 })

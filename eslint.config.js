@@ -80,7 +80,13 @@ export default defineConfig(
         ecmaVersion: 2022,
         projectService: {
           // plain JS tooling without a tsconfig
-          allowDefaultProject: ['*.js', 'config/*.js', 'config/vitest.config.ts'],
+          allowDefaultProject: [
+            '*.js',
+            'config/*.js',
+            'config/vitest.config.ts',
+            'config/test-setup-client.ts',
+            'config/test-stubs/*.ts',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },

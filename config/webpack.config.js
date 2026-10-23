@@ -130,11 +130,10 @@ config.module.rules.push({
 // Files
 config.module.rules.push(
   {
+    // inline the audio worklet source as a string: it is registered from a
+    // Blob URL, so pitch never needs a network round-trip (works offline)
     test: /soundtouch-processor\.js$/,
-    type: 'asset/resource',
-    generator: {
-      filename: __DEV__ ? '[name].js' : '[name].[contenthash].js',
-    },
+    type: 'asset/source',
   },
   {
     test: /\.woff2(\?.*)?$/,

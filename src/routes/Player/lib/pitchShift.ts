@@ -1,10 +1,11 @@
-import type { SoundTouchNode } from '@soundtouchjs/audio-worklet'
+import { SoundTouchNode } from '@soundtouchjs/audio-worklet'
+import processorSource from '@soundtouchjs/audio-worklet/processor'
 
 export const PITCH_SEMITONE_MIN = -6
 export const PITCH_SEMITONE_MAX = 6
 
 // setup attempts before giving up: slow devices (e.g. Raspberry Pi)
-// can fail transiently while importing/compiling the worklet
+// can fail transiently while compiling the worklet
 export const PITCH_SETUP_ATTEMPTS = 3
 export const PITCH_SETUP_RETRY_DELAYS_MS = [500, 2000]
 
@@ -27,8 +28,6 @@ export function isPitchShiftSupported (): boolean {
   }
 }
 
-let processorRegistration: Promise<boolean> | null = null
-
 /**
  * Runs fn until it succeeds, waiting between attempts. Throws the last
  * error when attempts run out. The sleep function is injectable for tests.
@@ -50,34 +49,61 @@ export async function retryAsync<T> (
   }
 }
 
-async function registerPitchProcessor (context: AudioContext): Promise<boolean> {
-  if (!isPitchShiftSupported()) return false
+// the processor source ships inside the bundle and is registered from a
+// Blob URL, so pitch works without any network access (offline players)
+let processorUrl: string | null = null
 
-  if (!processorRegistration) {
-    processorRegistration = (async () => {
-      const { SoundTouchNode } = await import('@soundtouchjs/audio-worklet')
-      const processorUrl = new URL('@soundtouchjs/audio-worklet/processor', import.meta.url).href
-
-      await retryAsync(
-        () => SoundTouchNode.register(context, processorUrl),
-        PITCH_SETUP_ATTEMPTS,
-        [...PITCH_SETUP_RETRY_DELAYS_MS],
-      )
-      return true
-    })().catch((err) => {
-      console.error('[pitch] worklet registration failed', err)
-      processorRegistration = null
-      return false
-    })
+function getProcessorUrl (): string {
+  if (!processorUrl) {
+    processorUrl = URL.createObjectURL(
+      new Blob([processorSource], { type: 'text/javascript' }),
+    )
   }
 
-  return processorRegistration
+  return processorUrl
+}
+
+// worklet modules are registered per AudioContext: a remounted Player
+// gets a fresh context that still needs its own addModule()
+const registeredContexts = new WeakSet<BaseAudioContext>()
+let inFlight: { context: BaseAudioContext, promise: Promise<boolean> } | null = null
+
+async function registerPitchProcessor (context: BaseAudioContext): Promise<boolean> {
+  if (!isPitchShiftSupported()) return false
+
+  if (registeredContexts.has(context)) return true
+  if (inFlight?.context === context) return inFlight.promise
+
+  const promise: Promise<boolean> = retryAsync(
+    () => SoundTouchNode.register(context, getProcessorUrl()),
+    PITCH_SETUP_ATTEMPTS,
+    [...PITCH_SETUP_RETRY_DELAYS_MS],
+  ).then(() => {
+    registeredContexts.add(context)
+    return true
+  }).catch((err) => {
+    console.error('[pitch] worklet registration failed', err)
+    return false
+  }).finally(() => {
+    if (inFlight?.context === context) inFlight = null
+  })
+
+  inFlight = { context, promise }
+  return promise
+}
+
+/**
+ * Pre-registers the worklet processor on the given context. Call it while
+ * the app shell was freshly loaded (network still up or assets cached) so
+ * later pitch changes — even offline — only need a local Blob URL.
+ */
+export function warmPitchEngine (context: BaseAudioContext): Promise<boolean> {
+  return registerPitchProcessor(context)
 }
 
 export async function createPitchNode (context: AudioContext): Promise<SoundTouchNode | null> {
   if (!(await registerPitchProcessor(context))) return null
 
-  const { SoundTouchNode } = await import('@soundtouchjs/audio-worklet')
   const pitchNode = new SoundTouchNode({ context })
 
   pitchNode.playbackRate.value = 1

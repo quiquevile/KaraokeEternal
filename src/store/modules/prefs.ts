@@ -16,6 +16,7 @@ import {
 } from 'shared/actionTypes'
 
 import HttpApi from 'lib/HttpApi'
+import socket from 'lib/socket'
 const api = new HttpApi('prefs')
 
 // ------------------------------------
@@ -101,6 +102,11 @@ export type EqPresetSlot = 'P1' | 'P2' | 'P3'
 export const fetchEqPresets = createAsyncThunk(
   'prefs/fetchEqPresets',
   async (_, thunkAPI) => {
+    // the EQ dialog fetches its slots on open: while disconnected a
+    // rejected thunk would raise the global error modal for no reason,
+    // so keep whatever slots are already loaded instead
+    if (!socket.connected || !navigator.onLine) return {}
+
     const response = await api.get('/eq-presets') as Partial<Record<EqPresetSlot, number[]>>
 
     thunkAPI.dispatch(receivePrefs({ eqPresets: response }))

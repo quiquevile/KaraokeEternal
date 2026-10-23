@@ -3,12 +3,17 @@ import { configureStore } from '@reduxjs/toolkit'
 import { LOGOUT, PREFS_PUSH } from 'shared/actionTypes.js'
 import reducer, { fetchEqPresets, fetchGainStatus, saveEqPreset } from './prefs'
 
+const socketState = vi.hoisted(() => ({ connected: true }))
+vi.mock('lib/socket', () => ({ default: socketState }))
+
 const gains = [5, 4, 3, 2, 1, 0, 0, 1, 2, 3]
 
 const makeStore = () => configureStore({ reducer: { prefs: reducer } })
 
 beforeEach(() => {
   vi.stubGlobal('document', { baseURI: 'http://localhost/' })
+  vi.stubGlobal('navigator', { onLine: true })
+  socketState.connected = true
 })
 
 afterEach(() => {
@@ -85,6 +90,19 @@ describe('prefs eq presets', () => {
       expect.objectContaining({ method: 'GET' }),
     )
     expect(store.getState().prefs.eqPresets).toEqual({ P2: gains })
+  })
+
+  it('skips the fetch while disconnected instead of failing', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    socketState.connected = false
+    const store = makeStore()
+
+    const action = await store.dispatch(fetchEqPresets())
+
+    expect(fetchEqPresets.fulfilled.match(action)).toBe(true)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(store.getState().prefs.eqPresets).toBeUndefined()
   })
 
   it('persists a slot through the thunk', async () => {

@@ -203,3 +203,20 @@
     background-position: var(--queue-item-tile-size) 0;
   }
 }
+
+/* requeue-for-user picker: portalled to document.body so the row's
+   overflow:hidden can't clip it; zero height so the dropdown anchors at top */
+.pickerPortal {
+  position: fixed;
+  height: 0;
+  overflow: visible;
+  z-index: 50;
+}
+
+/* no room below the row: anchor at the row top and grow upward
+   (child is RecentSearches' .container, whose top:100% is overridden;
+   bottom:100% of a zero-height parent sits at the parent's top edge) */
+.pickerPortalFlip > div {
+  top: auto;
+  bottom: 100%;
+}

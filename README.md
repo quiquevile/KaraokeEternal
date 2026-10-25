@@ -42,6 +42,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 ### Queue
 - Move songs around, and delete played or currently-playing songs from the queue.
 - Queue for others: users with the capability (or admins) long-press a library song to queue it for another user currently in the room.
+- Requeue for others: the "+" button on a played song lets users with the capability (or admins) pick which room user to queue it for.
 - Queue header filters: search by title or artist, show only starred songs, and show only the songs queued by one user; a message appears when every song is filtered out.
 
 ### Search history

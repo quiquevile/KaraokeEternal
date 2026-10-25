@@ -1,14 +1,18 @@
-import React, { useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useLongPress } from 'use-long-press'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
+import { hasPermission } from 'store/modules/user'
+import { fetchQueueUsers } from 'store/modules/youtube'
 import Icon from 'components/Icon/Icon'
 import Button from 'components/Button/Button'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
+import RecentSearches from 'components/RecentSearches/RecentSearches'
 import UserImage from 'components/UserImage/UserImage'
 import { requestPlayNext, requestReplay } from 'store/modules/status'
 import { toggleSongStarred } from 'store/modules/userStars'
@@ -25,12 +29,19 @@ import {
   toggleFilterStarred,
   setFilterPreferred,
 } from 'routes/Library/modules/library'
+import { buildQueueTargets } from '../../selectors/buildQueueTargets'
 import styles from './QueueItem.css'
 import { queueMessages } from '../../messages'
+import { libraryMessages } from 'routes/Library/messages'
 
 const LONG_PRESS_THRESHOLD_MS = 700
 // right-drag distance that triggers locate-in-library
 const LOCATE_THRESHOLD_PX = 120
+
+// keep the requeue-for-user picker fully on screen: when there is no
+// room below the row, anchor it above instead
+const PICKER_FIT_MARGIN = 8
+const PICKER_MIN_ABOVE_PX = 160
 
 interface QueueItemProps {
   artist: string
@@ -87,9 +98,17 @@ const QueueItem = ({
   wait,
 }: QueueItemProps) => {
   const [isExpanded, setExpanded] = useState(false)
+  const [queuePickerOpen, setQueuePickerOpen] = useState(false)
+  const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number, flip: boolean } | null>(null)
   const longPressActiveRef = useRef(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
   const intl = useIntl()
+  const user = useAppSelector(state => state.user)
+  const queueUsers = useAppSelector(state => state.youtube.queueUsers)
+
+  const canQueueForOthers = hasPermission(user, 'queueForOthers')
 
   const handleErrorInfoClick = () => dispatch(showErrorMessage(errorMessage))
   const handleMoveClick = () => {
@@ -101,7 +120,47 @@ const QueueItem = ({
     setExpanded(false)
   }
   const handleRequeueClick = () => {
-    dispatch(queueSong(songId))
+    // without the capability the song simply comes back for the caller
+    if (!canQueueForOthers) {
+      dispatch(queueSong(songId))
+      setExpanded(false)
+      return
+    }
+
+    void (async () => {
+      const targets = await dispatch(fetchQueueUsers(user.roomId)).unwrap()
+
+      // nobody else to pick (just the caller; an empty list means the
+      // fetch failed) — come back for the caller like before
+      if (targets.length <= 1) {
+        dispatch(queueSong(songId))
+        setExpanded(false)
+        return
+      }
+
+      // pick who gets the song instead: anchor the picker under the row
+      // (it portals to document.body, the row's overflow:hidden would
+      // clip an inline dropdown)
+      const rect = rowRef.current?.getBoundingClientRect()
+
+      if (rect) {
+        const spaceBelow = window.innerHeight - rect.bottom - PICKER_FIT_MARGIN
+        const flip = spaceBelow < PICKER_MIN_ABOVE_PX && rect.top - PICKER_FIT_MARGIN > spaceBelow
+
+        setPickerPos({
+          top: flip ? rect.top : rect.bottom,
+          left: rect.left,
+          right: window.innerWidth - rect.right,
+          flip,
+        })
+      }
+
+      setQueuePickerOpen(true)
+    })()
+  }
+  const handleQueueTargetSelect = (targetUserId: string) => {
+    dispatch(queueSong(songId, parseInt(targetUserId, 10)))
+    setQueuePickerOpen(false)
     setExpanded(false)
   }
   const handleSkipClick = () => {
@@ -110,6 +169,38 @@ const QueueItem = ({
   }
   const handleRemoveClick = () => dispatch(removeItem({ queueId }))
   const handleStarClick = () => dispatch(toggleSongStarred(songId))
+
+  // tapping outside the picker (including on the row itself, so another
+  // tap collapses it; or scrolling away, or Escape) closes the picker
+  useEffect(() => {
+    if (!queuePickerOpen) return
+
+    const inside = (target: Node | null) => (
+      pickerRef.current && pickerRef.current.contains(target)
+    )
+
+    const onPointerDown = (event: Event) => {
+      if (!inside(event.target as Node)) setQueuePickerOpen(false)
+    }
+
+    const onScroll = (event: Event) => {
+      if (!inside(event.target as Node)) setQueuePickerOpen(false)
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setQueuePickerOpen(false)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('scroll', onScroll, true)
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('scroll', onScroll, true)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [queuePickerOpen])
 
   const songs = useAppSelector(state => state.songs.entities)
   const artistIds = useAppSelector(state => state.artists.result)
@@ -201,6 +292,18 @@ const QueueItem = ({
     trackMouse: true,
   })
 
+  // react-swipeable passes its ref callback through the handlers object;
+  // handing the row a plain ref={rowRef} would overwrite it and the
+  // touch listeners would never attach (mouse swipes still work, which
+  // makes this very hard to spot), so forward to both
+  const setRowRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      rowRef.current = el
+      swipeHandlers.ref(el)
+    },
+    [swipeHandlers],
+  )
+
   const bindRemovePressHandlers = useLongPress(() => {
     const confirmText = isOwner ? 'Remove all your upcoming songs?' : `Remove all upcoming songs for "${userDisplayName}"?`
     longPressActiveRef.current = true
@@ -225,6 +328,7 @@ const QueueItem = ({
   return (
     <div
       {...swipeHandlers}
+      ref={setRowRef}
       className={clsx(
         styles.container,
         isCurrent && styles.current,
@@ -358,6 +462,22 @@ const QueueItem = ({
           )}
         </Buttons>
       </div>
+      {queuePickerOpen && pickerPos && createPortal(
+        <div
+          ref={pickerRef}
+          className={clsx(styles.pickerPortal, pickerPos.flip && styles.pickerPortalFlip)}
+          style={{ top: pickerPos.top, left: pickerPos.left, right: pickerPos.right }}
+        >
+          <RecentSearches
+            items={buildQueueTargets(queueUsers, user.userId)}
+            label={intl.formatMessage(libraryMessages.queueForUser)}
+            icon='PERSON'
+            highlight={user.userId !== null ? String(user.userId) : undefined}
+            onSelect={handleQueueTargetSelect}
+          />
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }

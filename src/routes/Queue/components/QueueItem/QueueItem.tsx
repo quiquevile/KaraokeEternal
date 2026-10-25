@@ -259,7 +259,7 @@ const QueueItem = ({
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
-      setExpanded(isErrored || isMovable || isRemovable || isSkippable || isReplayable)
+      setExpanded(isErrored || isPlayed || isMovable || isRemovable || isSkippable || isReplayable)
     },
     onSwipedRight: () => {
       if (!isExpanded && locateXRef.current >= LOCATE_THRESHOLD_PX) {

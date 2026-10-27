@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd'
@@ -24,6 +24,13 @@ const PathPrefs = () => {
   const [isChoosing, setChoosing] = useState(false)
   const [editingPath, setEditingPath] = useState<Path | null>(null)
   const [priority, setPriority] = useState(paths.result)
+  const [prevPaths, setPrevPaths] = useState(paths)
+
+  if (paths !== prevPaths) {
+    setPrevPaths(paths)
+    setPriority(paths.result)
+  }
+
   const intl = useIntl()
 
   const handleCloseChooser = () => setChoosing(false)
@@ -31,11 +38,6 @@ const PathPrefs = () => {
   const handleCloseInfo = () => setEditingPath(null)
 
   const dispatch = useAppDispatch()
-
-  useEffect(() => {
-    // local state for immediate UI updates
-    setPriority(paths.result)
-  }, [paths])
 
   const handleDragEnd = (dnd: DropResult) => {
     // dropped outside the list?

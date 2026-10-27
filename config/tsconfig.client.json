@@ -13,6 +13,9 @@
     "moduleResolution": "Bundler",
     "module": "esnext",
     "jsx": "react",
+    "types": [
+      "node"
+    ],
     "plugins": [
       {
         "name": "typescript-plugin-css-modules",

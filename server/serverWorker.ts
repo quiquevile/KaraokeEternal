@@ -53,7 +53,7 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
     server.on('error', function (err) {
       log.error(err.message)
 
-      process.emit('serverWorker', {
+      ;(process as NodeJS.EventEmitter).emit('serverWorker', {
         type: SERVER_WORKER_ERROR,
         error: err.message,
       })
@@ -86,7 +86,7 @@ async function serverWorker ({ env, startScanner, stopScanner, isScannerActive, 
       const url = `http://${getIPAddress()}${port === 80 ? '' : ':' + port}${urlPath}`
       log.info(`Web server running at ${url}`)
 
-      process.emit('serverWorker', {
+      ;(process as NodeJS.EventEmitter).emit('serverWorker', {
         type: SERVER_WORKER_STATUS,
         payload: { url },
       })

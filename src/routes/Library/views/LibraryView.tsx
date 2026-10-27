@@ -43,7 +43,6 @@ const LibraryView = () => {
     if (isReady) return
 
     if (ui.headerHeight !== initialHeaderHeight.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsReady(true)
       return
     }

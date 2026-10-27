@@ -47,6 +47,7 @@ const YtDlpChooser = ({ onChoose, onCancel }: YtDlpChooserProps) => {
 
   // get initial list on first mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     ls(pathInfo.current ?? '.')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

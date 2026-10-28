@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import stylistic from '@stylistic/eslint-plugin'
 import pluginReact from 'eslint-plugin-react'
 import pluginReactHooks from 'eslint-plugin-react-hooks'
-import pluginRefresh from 'eslint-plugin-react-refresh'
+import { reactRefresh } from 'eslint-plugin-react-refresh'
 import pluginPromise from 'eslint-plugin-promise'
 import pluginFormatjs from 'eslint-plugin-formatjs'
 import pluginNode from 'eslint-plugin-n'
@@ -40,7 +40,7 @@ export default defineConfig(
       'react': pluginReact,
       // @ts-expect-error - eslint-plugin-react-hooks types are incomplete
       'react-hooks': pluginReactHooks,
-      'react-refresh': pluginRefresh,
+      'react-refresh': reactRefresh.plugin,
       'formatjs': pluginFormatjs,
     },
     rules: {
@@ -72,6 +72,9 @@ export default defineConfig(
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
+      'n/no-unsupported-features/node-builtins': ['error', {
+        ignores: ['crypto.argon2'], // experimental in Node 24 but intentionally used
+      }],
     },
     languageOptions: {
       globals: globals.node,

@@ -8,7 +8,6 @@ import { moveItem, removeUpcomingItems } from '../../modules/queue'
 import { hasPermission } from 'store/modules/user'
 import getPlayerHistory from '../../selectors/getPlayerHistory'
 import getMoveAnchor from '../../selectors/getMoveAnchor'
-import getRoundRobinQueue from '../../selectors/getRoundRobinQueue'
 import getVisibleQueue from '../../selectors/getVisibleQueue'
 import getWaits from '../../selectors/getWaits'
 
@@ -17,9 +16,10 @@ const QueueList = () => {
   const { errorMessage, isAtQueueEnd, isErrored, isPlaying, position, queueId } = useAppSelector(state => state.status)
 
   const playerHistory = useAppSelector(getPlayerHistory)
-  // movement works on the raw queue so hidden songs can't shift anchors;
-  // only what's on screen renders
-  const rawQueue = useAppSelector(getRoundRobinQueue)
+  // movement is computed on the raw chain (not the round-robin view) so
+  // the anchor is the user's first upcoming item; only what's on screen
+  // renders
+  const chain = useAppSelector(state => ensureState(state.queue))
   const queue = useAppSelector(getVisibleQueue)
   const songs = useAppSelector(state => state.songs)
   const starredSongs = useAppSelector(state => ensureState(state.userStars).starredSongs)
@@ -30,12 +30,12 @@ const QueueList = () => {
   // actions
   const dispatch = useAppDispatch()
   const handleMoveClick = (qId: number) => {
-    // reference user's last-played item as the new prevQueueId; the status
-    // anchor may be stale with no player open, so validate it first
-    const userId = rawQueue.entities[qId].userId
-    const lastPlayed = getMoveAnchor(rawQueue, queueId, userId)
+    // link right before the user's first upcoming item so the song takes
+    // their next turn; already-first yields its own predecessor and the
+    // server no-ops
+    const prevQueueId = getMoveAnchor(chain, playerHistory, queueId, qId)
 
-    dispatch(moveItem({ queueId: qId, prevQueueId: lastPlayed }))
+    dispatch(moveItem({ queueId: qId, prevQueueId }))
   }
 
   const handleRemoveUpcoming = (userId: number) => {

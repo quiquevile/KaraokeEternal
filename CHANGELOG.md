@@ -66,6 +66,7 @@
 ### Queue and rooms
 
 - Songs can be moved around, and played or currently-playing songs deleted from the queue
+- Moving a song up now reliably puts it at the top of its singer's next turn: the anchor is the first upcoming song of the same user in the raw queue chain, instead of the possibly stale current song, so a move no longer drops the song to the bottom of the singer's block
 - Room admins with playback and queue controls
 - Users with the new "queue songs for others" capability (or admins) can long-press a library song to queue it for another user in the room
 - Requeueing a played song from the queue: users with the "queue songs for others" capability (or admins) pick the target from a list of the room's users (and their own ghost accounts), everyone else requeues for themselves as before

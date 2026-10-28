@@ -1,33 +1,63 @@
 import type { QueueItem, OptimisticQueueItem } from 'shared/types'
 
-interface QueueView {
+export interface QueueView {
   result: number[]
   entities: Record<number, QueueItem | OptimisticQueueItem>
 }
 
 /**
- * Finds the queueId after which a moved item should be linked: the user's
- * last-played item at or before the player's current position.
+ * Finds the queueId after which a moved item should be linked so it
+ * becomes the user's first upcoming song in the raw chain (the screen
+ * interleaves users round-robin, but each user's own order follows the
+ * chain — the anchor must be computed there, not on the display view).
  *
- * The player's current queueId comes from the room's last PLAYER_STATUS,
- * which may be stale (no player open, item since removed) — an anchor
- * outside the visible queue falls back to -1 (head), mirroring a fresh
- * status instead of sending a dangling id the server would reject.
+ * The anchor is the chain predecessor of the user's first upcoming item:
+ * - the moved item is already first → its current predecessor (the
+ *   server detects the match and no-ops)
+ * - head of chain (or nothing found) → -1
+ *
+ * Upcoming = not in the player's history and not the current song, so a
+ * stale status anchor or removed played songs can't shift the result.
+ * Optimistic rows (fake ids the server doesn't know) and dangling ids
+ * are skipped, as is the moved item itself.
  */
-export function getMoveAnchor (queue: QueueView, statusQueueId: number, userId: number): number {
-  const anchor = queue.result.includes(statusQueueId) ? statusQueueId : -1
-  let lastPlayed = anchor
+export function getMoveAnchor (
+  queue: QueueView,
+  history: number[],
+  statusQueueId: number,
+  movedQueueId: number,
+): number {
+  const moved = queue.entities[movedQueueId]
+  if (!moved || !('userId' in moved)) return -1
 
-  for (let i = queue.result.indexOf(anchor); i >= 0; i--) {
-    const item = queue.entities[queue.result[i]]
-    // optimistic items carry no userId; dangling ids are skipped
-    if (item && 'userId' in item && item.userId === userId) {
-      lastPlayed = queue.result[i]
+  const isUpcoming = (queueId: number): boolean => {
+    const item = queue.entities[queueId]
+    // optimistic rows have no userId and are excluded by the narrowing
+    if (!item || !('userId' in item)) return false
+    if (item.userId !== moved.userId) return false
+    return queueId !== statusQueueId && !history.includes(queueId)
+  }
+
+  let first = -1
+  for (const queueId of queue.result) {
+    if (isUpcoming(queueId)) {
+      first = queueId
       break
     }
   }
+  if (first === -1) return -1
 
-  return lastPlayed
+  // link right before the user's first upcoming item: the nearest
+  // predecessor the server knows (and never the moved item itself,
+  // which would be rejected as an invalid prevQueueId)
+  const firstIdx = queue.result.indexOf(first)
+  for (let i = firstIdx - 1; i >= 0; i--) {
+    const id = queue.result[i]
+    const item = queue.entities[id]
+    if (id !== movedQueueId && item && item.isOptimistic !== true) return id
+  }
+
+  return -1
 }
 
 export default getMoveAnchor

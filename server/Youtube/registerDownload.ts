@@ -5,6 +5,8 @@ import Library from '../Library/Library.js'
 import Media from '../Media/Media.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
+import User from '../User/User.js'
+import { can } from '../lib/permissions.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import getLogger from '../lib/Log.js'
 import { measureLoudness, readTagGain } from '../lib/loudness.js'
@@ -133,14 +135,26 @@ export default async function registerDownload (options: { job: DownloadJob, io:
 
   log.info('registered download: %s (%s)', relPath, job.id)
 
-  // auto-queue on request, but only while the target user is still
-  // auto-queue on request: the room must still be open and the target
-  // user still in it; failures only mark the job, never the registration
+  // auto-queue on request: the room must still be open and a regular
+  // target must still be in it (ghosts are never in a room — only their
+  // creator with the ghostUsers capability may queue for them); failures
+  // only mark the job, never the registration
   if (job.queueUserId != null && job.queueRoomId != null && io) {
     try {
       await Rooms.validate(job.queueRoomId, null, { validatePassword: false })
 
-      if (Rooms.isUserPresent(io, job.queueRoomId, job.queueUserId)) {
+      const target = User.getById(job.queueUserId)
+
+      if (target && target.role === 'ghost') {
+        const requester = User.getById(job.userId)
+
+        if (target.createdBy === job.userId && requester && can(requester, 'ghostUsers')) {
+          Queue.add({ roomId: job.queueRoomId, songId: match.songId, userId: job.queueUserId })
+        } else {
+          job.error = 'Cannot queue songs for this ghost user'
+          log.info('skipping auto-queue: user %s may not queue for ghost %s', job.userId, job.queueUserId)
+        }
+      } else if (Rooms.isUserPresent(io, job.queueRoomId, job.queueUserId)) {
         Queue.add({ roomId: job.queueRoomId, songId: match.songId, userId: job.queueUserId })
       } else {
         job.error = 'User not in room'

@@ -189,7 +189,15 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
       ctx.throw(403, t(ctxLocale(ctx), 'server.youtube.othersForbidden', 'cannot queue downloads for other users'))
     }
 
-    if (!User.getById(queueUserId)) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.queueUserNotFound', 'queue user not found'))
+    const targetUser = User.getById(queueUserId)
+
+    if (!targetUser) ctx.throw(422, t(ctxLocale(ctx), 'server.youtube.queueUserNotFound', 'queue user not found'))
+
+    // ghosts are never in a room; only their creator may queue for them
+    // (not even other admins), mirroring the queue-for-others rule
+    if (targetUser.role === 'ghost' && (targetUser.createdBy !== userId || !can(ctx.user, 'ghostUsers'))) {
+      ctx.throw(403, t(ctxLocale(ctx), 'server.queue.queueGhost', 'Cannot queue songs for this ghost user'))
+    }
 
     queueRoomId = typeof ctx.user?.roomId === 'number' ? ctx.user.roomId : null
 

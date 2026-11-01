@@ -91,11 +91,13 @@ export const downloadVideo = createAsyncThunk<DownloadJob, {
   },
 )
 
-export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string }>, number | null | undefined>(
+// download targeting list (admins, downloadForOthers holders); ?ghosts=1
+// also appends the requester's own ghosts (ghost managers only)
+export const fetchDownloadUsers = createAsyncThunk<Array<{ userId: number, username: string, name: string, isGhost?: boolean }>, number | null | undefined>(
   'youtube/fetchDownloadUsers',
   async (roomId) => {
     try {
-      return await rootApi.get(roomId == null ? 'users/names?for=download' : `users/names?roomId=${roomId}&for=download`)
+      return await rootApi.get(roomId == null ? 'users/names?for=download&ghosts=1' : `users/names?roomId=${roomId}&for=download&ghosts=1`)
     } catch {
       // the select falls back to the current user alone
       return []
@@ -195,7 +197,7 @@ export const updateYtdl = createAsyncThunk<YtdlUpdateResult, void>(
 // ------------------------------------
 export interface YouTubeState {
   downloads: DownloadReport | null
-  downloadUsers: Array<{ userId: number, username: string, name: string }>
+  downloadUsers: Array<{ userId: number, username: string, name: string, isGhost?: boolean }>
   queueUsers: Array<{ userId: number, username: string, name: string, isGhost?: boolean }>
   error: string | null
   hasSearched: boolean

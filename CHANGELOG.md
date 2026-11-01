@@ -5,6 +5,7 @@
 - Added a dedicated search tab with direct video-URL support and automatic artist/title identification
 - Downloaded tracks land in a subfolder named after the downloader, and each user only sees their own download notifications (admins see them all)
 - Users with the download-for-others capability can queue downloads for another user in an open room, with presence checks at enqueue and completion time
+- The download target picker also lists the requester's own ghosts (for admins or users with the ghost-users capability), which accept the download without being in the room
 - Downloads are refused when the song or the file already exists, without downloading anything
 - yt-dlp is fully self-contained: it downloads and updates itself in the configured folder, picking the right build per environment and healing itself when broken; features stay disabled until a folder is selected
 

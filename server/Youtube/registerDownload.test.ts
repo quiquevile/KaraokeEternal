@@ -33,6 +33,12 @@ vi.mock('../Rooms/Rooms.js', () => ({
   },
 }))
 
+vi.mock('../User/User.js', () => ({
+  default: {
+    getById: vi.fn(() => false),
+  },
+}))
+
 vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
   default: vi.fn(),
 }))
@@ -54,6 +60,7 @@ import type { Server } from 'socket.io'
 const mockIo = {} as unknown as Server
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
+import User from '../User/User.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import registerDownload, { findDownloadedFile } from './registerDownload.js'
 import type { DownloadJob } from './downloadManager.js'
@@ -209,6 +216,46 @@ describe('registerDownload', () => {
 
     expect(Rooms.isUserPresent).toHaveBeenCalledWith(io, 3, 7)
     expect(Queue.add).toHaveBeenCalledWith({ roomId: 3, songId: 1, userId: 7 })
+  })
+
+  it('queues for the requester\'s own ghost without presence', async () => {
+    vi.mocked(User.getById)
+      .mockReturnValueOnce({ userId: 9, role: 'ghost', createdBy: 5 } as never)
+      .mockReturnValueOnce({ userId: 5, permissions: { ghostUsers: true }, role: 'standard' } as never)
+
+    await registerDownload({
+      job: { ...job, userId: 5, destDir: dir, pathRoot: dir, queueUserId: 9, queueRoomId: 3 },
+      io: mockIo,
+    })
+
+    expect(Rooms.isUserPresent).not.toHaveBeenCalled()
+    expect(Queue.add).toHaveBeenCalledWith({ roomId: 3, songId: 1, userId: 9 })
+  })
+
+  it('skips the queue for a ghost the requester does not own', async () => {
+    vi.mocked(User.getById)
+      .mockReturnValueOnce({ userId: 9, role: 'ghost', createdBy: 6 } as never)
+      .mockReturnValueOnce({ userId: 5, permissions: { ghostUsers: true }, role: 'standard' } as never)
+
+    const downloading = { ...job, userId: 5, destDir: dir, pathRoot: dir, queueUserId: 9, queueRoomId: 3 }
+    await registerDownload({ job: downloading, io: mockIo })
+
+    expect(Media.add).toHaveBeenCalled()
+    expect(Queue.add).not.toHaveBeenCalled()
+    expect(downloading.error).toBe('Cannot queue songs for this ghost user')
+  })
+
+  it('skips the queue for own ghost without the ghostUsers capability', async () => {
+    vi.mocked(User.getById)
+      .mockReturnValueOnce({ userId: 9, role: 'ghost', createdBy: 5 } as never)
+      .mockReturnValueOnce({ userId: 5, permissions: {}, role: 'standard' } as never)
+
+    const downloading = { ...job, userId: 5, destDir: dir, pathRoot: dir, queueUserId: 9, queueRoomId: 3 }
+    await registerDownload({ job: downloading, io: mockIo })
+
+    expect(Media.add).toHaveBeenCalled()
+    expect(Queue.add).not.toHaveBeenCalled()
+    expect(downloading.error).toBe('Cannot queue songs for this ghost user')
   })
 
   it('skips the queue when the user left the room', async () => {

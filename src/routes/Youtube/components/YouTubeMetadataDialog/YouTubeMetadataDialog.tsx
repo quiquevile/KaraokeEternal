@@ -113,13 +113,19 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
               .filter(u => u.userId !== user.userId)
               .map(u => (
                 <option key={u.userId} value={u.userId}>
-                  {u.name}
-                  {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
-                  {' '}
-                  (
-                  {u.username}
-                  )
-                  {/* eslint-enable formatjs/no-literal-string-in-jsx */}
+                  {u.isGhost
+                    ? u.name
+                    : (
+                        <>
+                          {u.name}
+                          {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around data, not prose */}
+                          {' '}
+                          (
+                          {u.username}
+                          )
+                          {/* eslint-enable formatjs/no-literal-string-in-jsx */}
+                        </>
+                      )}
                 </option>
               ))}
           </select>

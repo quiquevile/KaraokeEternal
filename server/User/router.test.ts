@@ -504,7 +504,7 @@ describe('handleUsersNames ghosts', () => {
     ])
   })
 
-  it('ignores ?ghosts=1 for the download intent', async () => {
+  it('appends own ghosts for the download intent with ?ghosts=1', async () => {
     vi.mocked(User.get).mockReturnValueOnce(ghostEntities as never)
     const sockets = [{ userId: 1, roomId: 1 }]
     const ctx = makeCtx(
@@ -517,6 +517,7 @@ describe('handleUsersNames ghosts', () => {
 
     expect(ctx.body).toEqual([
       { userId: 1, username: 'admin', name: 'Admin' },
+      { userId: 3, username: 'ghost-aaa11', name: 'Ana', isGhost: true },
     ])
   })
 })

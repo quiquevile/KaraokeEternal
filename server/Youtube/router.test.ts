@@ -474,6 +474,50 @@ describe('router', () => {
       }))
     })
 
+    it('allows queueing a download for the requester\'s own ghost', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+      vi.mocked(User.getById).mockReturnValueOnce({
+        userId: 9, username: 'ghost-aaa11', name: 'Ana', role: 'ghost', createdBy: 7,
+      } as never)
+
+      const ctx = makeCtx({
+        user: { isAdmin: false, permissions: { youtubeDownload: true, downloadForOthers: true, ghostUsers: true }, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 9 } },
+      })
+      await handleDownload(ctx)
+
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+        queueUserId: 9,
+        queueRoomId: 5,
+      }))
+    })
+
+    it('rejects 403 queueing for a ghost the requester does not own', async () => {
+      vi.mocked(User.getById).mockReturnValueOnce({
+        userId: 9, username: 'ghost-bbb22', name: 'Beto', role: 'ghost', createdBy: 42,
+      } as never)
+
+      const ctx = makeCtx({
+        user: { isAdmin: true, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 9 } },
+      })
+      await expect(handleDownload(ctx)).rejects.toMatchObject({ status: 403 })
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('rejects 403 queueing for own ghost without the ghostUsers capability', async () => {
+      vi.mocked(User.getById).mockReturnValueOnce({
+        userId: 9, username: 'ghost-aaa11', name: 'Ana', role: 'ghost', createdBy: 7,
+      } as never)
+
+      const ctx = makeCtx({
+        user: { isAdmin: false, permissions: { youtubeDownload: true, downloadForOthers: true }, userId: 7, username: 'pepe', roomId: 5 },
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen', queueUserId: 9 } },
+      })
+      await expect(handleDownload(ctx)).rejects.toMatchObject({ status: 403 })
+      expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
     it('rejects 422 for unknown queue users', async () => {
       vi.mocked(User.getById).mockReturnValueOnce(false)
 

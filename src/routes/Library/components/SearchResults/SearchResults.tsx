@@ -1,5 +1,4 @@
 import React, { useRef } from 'react'
-import { FormattedMessage } from 'react-intl'
 import { ensureState } from 'redux-optimistic-ui'
 import { RootState } from 'store/store'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
@@ -7,13 +6,12 @@ import { toggleArtistResultExpanded } from '../../modules/library'
 import { showArtistEditor } from 'store/modules/artistInfo'
 import getSearchTree, { SearchTreeNode } from '../../selectors/getSearchResults'
 import getSongsStatus from '../../selectors/getSongsStatus'
+import { ROW_HEIGHT_HEADING } from '../../lib/locate'
 import PaddedList from 'components/PaddedList/PaddedList'
 import ArtistItem from '../ArtistItem/ArtistItem'
+import CountsHeading from '../CountsHeading/CountsHeading'
 import type { ListImperativeAPI, RowComponentProps } from 'react-window'
-import styles from './SearchResults.css'
-import { libraryMessages } from '../../messages'
 
-const ROW_HEIGHT_RESULT_HEADING = 24
 const ROW_HEIGHT_ARTIST = 48
 const ROW_HEIGHT_SONG = 56 // 52px + 4px margin
 
@@ -62,12 +60,12 @@ const RowComponent = ({
     const songCount = tree.reduce((sum, node) => sum + node.songIds.length, 0)
 
     return (
-      <div key='treeHeading' style={style} className={styles.artistsHeading}>
-        <FormattedMessage
-          {...libraryMessages.counts}
-          values={{ artists: tree.length, songs: songCount }}
-        />
-      </div>
+      <CountsHeading
+        key='treeHeading'
+        style={style}
+        artists={tree.length}
+        songs={songCount}
+      />
     )
   }
 
@@ -108,7 +106,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
 
   const rowHeight = (index: number) => {
     // tree heading
-    if (index === 0) return ROW_HEIGHT_RESULT_HEADING
+    if (index === 0) return ROW_HEIGHT_HEADING
 
     // artist results
     const node = tree[index - 1]

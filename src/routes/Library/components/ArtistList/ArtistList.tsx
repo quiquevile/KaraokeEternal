@@ -9,7 +9,8 @@ import getSongsStatus from '../../selectors/getSongsStatus'
 import PaddedList from 'components/PaddedList/PaddedList'
 import AlphaPicker from '../AlphaPicker/AlphaPicker'
 import ArtistItem from '../ArtistItem/ArtistItem'
-import { ROW_HEIGHT_ARTIST, ROW_HEIGHT_SONG, locateSongOffset } from '../../lib/locate'
+import CountsHeading from '../CountsHeading/CountsHeading'
+import { ROW_HEIGHT_ARTIST, ROW_HEIGHT_SONG, ROW_HEIGHT_HEADING, locateSongOffset } from '../../lib/locate'
 import type { ListImperativeAPI, RowComponentProps } from 'react-window'
 
 interface ArtistListProps {
@@ -37,7 +38,21 @@ const RowComponent = ({
   const { upcoming, current } = useAppSelector(getSongsStatus)
   const isAdmin = useAppSelector(state => state.user.isAdmin)
 
-  const artist = artists.entities[artists.result[index]]
+  // counts heading (always visible, like the filtered view)
+  if (index === 0) {
+    const songCount = artists.result.reduce((sum, id) => sum + (artists.entities[id]?.songIds.length ?? 0), 0)
+
+    return (
+      <CountsHeading
+        key='heading'
+        style={style}
+        artists={artists.result.length}
+        songs={songCount}
+      />
+    )
+  }
+
+  const artist = artists.entities[artists.result[index - 1]]
   if (current) upcoming.push(current)
 
   return (
@@ -91,7 +106,10 @@ const ArtistList = ({
   }, [dispatch])
 
   const rowHeight = (index: number) => {
-    const artistId = artists.result[index]
+    // counts heading
+    if (index === 0) return ROW_HEIGHT_HEADING
+
+    const artistId = artists.result[index - 1]
     let height = ROW_HEIGHT_ARTIST
 
     if (expandedArtists.includes(artistId)) {
@@ -190,17 +208,17 @@ const ArtistList = ({
       && handledLocate.current.footerHeight === ui.footerHeight
       && handledLocate.current.scrollHeight === el.scrollHeight) return
 
-    const artistHeights = artists.result.map((id) => {
+    const artistHeights = [ROW_HEIGHT_HEADING, ...artists.result.map((id) => {
       const songsCount = expandedArtists.includes(id)
         ? (artists.entities[id]?.songIds.length ?? 0)
         : 0
 
       return ROW_HEIGHT_ARTIST + songsCount * ROW_HEIGHT_SONG
-    })
+    })]
     const target = locateSongOffset(
       ui.headerHeight,
       artistHeights,
-      artistIdx,
+      artistIdx + 1, // +1 for the counts heading row
       songPos,
       el.clientHeight,
     )
@@ -219,7 +237,8 @@ const ArtistList = ({
 
     if (Math.abs(el.scrollTop - Math.min(target, maxScroll)) > 2) {
       // pixel scroll missed (unlaid-out list): center the artist row
-      list.current?.scrollToRow({ index: artistIdx + 1, align: 'center' })
+      // (+1 for the counts heading row)
+      list.current?.scrollToRow({ index: artistIdx + 2, align: 'center' })
     }
 
     handledLocate.current = { songId: locateSongId, headerHeight: ui.headerHeight, footerHeight: ui.footerHeight, scrollHeight: el.scrollHeight, expandedArtists }
@@ -251,7 +270,8 @@ const ArtistList = ({
     const row = alphaPickerMap[char]
 
     if (typeof row !== 'undefined' && list.current) {
-      list.current.scrollToRow({ index: row > 0 ? row - 1 : row, align: 'start' })
+      // artist rows sit one index below the counts heading
+      list.current.scrollToRow({ index: (row > 0 ? row - 1 : row) + 1, align: 'start' })
     }
   }
 
@@ -278,7 +298,7 @@ const ArtistList = ({
         rowComponent={RowComponent}
         rowProps={{ dispatch, artists, expandedArtists }}
         rowHeight={rowHeight}
-        numRows={artists.result.length}
+        numRows={artists.result.length + 1}
         onRowsRendered={handleRowsRendered}
         onRef={handleRef}
         paddingTop={ui.headerHeight}

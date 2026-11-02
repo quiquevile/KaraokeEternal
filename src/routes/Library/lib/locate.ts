@@ -1,5 +1,6 @@
 export const ROW_HEIGHT_ARTIST = 48
 export const ROW_HEIGHT_SONG = 56
+export const ROW_HEIGHT_HEADING = 24
 
 /**
  * Scroll offset (px) that places a song inside an expanded artist at

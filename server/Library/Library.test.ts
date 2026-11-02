@@ -114,7 +114,9 @@ describe('Library.updateSong', () => {
     expect(row?.title).toBe('Dancing Queen (Live)')
   })
 
-  it('throws ConflictError when another song already has that artist and title, changing nothing', () => {
+  it('throws ConflictError when another song in the same folder has that artist and title, changing nothing', () => {
+    // song 2 lives in set1, which song 1 also uses: the renamed files
+    // would collide there
     expect(() => Library.updateSong(1, norms('Queen', 'Bohemian Rhapsody')))
       .toThrowError(ConflictError)
 
@@ -153,7 +155,7 @@ describe('Library.updateSong', () => {
 
   it('invalidates the library cache and getSong reflects the change', () => {
     Library.cache.version = 123
-    Library.updateSong(1, norms('Roxette', 'Sleeping In My Car'))
+    expect(Library.updateSong(1, norms('Roxette', 'Sleeping In My Car'))).toBe(1)
 
     expect(Library.cache.version).toBeNull()
     expect(Library.getSong(1)[1]?.title).toBe('Sleeping In My Car')
@@ -535,5 +537,110 @@ describe('Library.updateArtist', () => {
     // same name: no-op, files untouched
     expect(() => Library.updateArtist(artistId, 'NEWNAME')).not.toThrow()
     expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+  })
+})
+
+describe('Library.updateSong merging a retag onto an existing song', () => {
+  let sourceArtistId: number
+  let targetArtistId: number
+  let sourceSongId: number
+  let targetSongId: number
+  let secondUserId: number
+
+  beforeAll(() => {
+    db.run('INSERT INTO users (username, password, name, roleId) VALUES (?, ?, ?, ?)',
+      ['merger', 'x', 'Merger', 3])
+    secondUserId = Number(db.get<{ userId: number }>(
+      'SELECT userId FROM users WHERE username = ?', ['merger'],
+    )?.userId)
+
+    // two songs with the same artist+title living in different folders
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?), (?, ?)',
+      ['Merge Src', 'Merge Src', 'Merge Tgt', 'Merge Tgt'])
+    sourceArtistId = Number(db.get<{ artistId: number }>(
+      'SELECT artistId FROM artists WHERE name = ?', ['Merge Src'],
+    )?.artistId)
+    targetArtistId = Number(db.get<{ artistId: number }>(
+      'SELECT artistId FROM artists WHERE name = ?', ['Merge Tgt'],
+    )?.artistId)
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?), (?, ?, ?)',
+      [sourceArtistId, 'Shared Song', 'Shared Song', targetArtistId, 'Shared Song', 'Shared Song'])
+    sourceSongId = Number(db.get<{ songId: number }>(
+      'SELECT songId FROM songs WHERE artistId = ?', [sourceArtistId],
+    )?.songId)
+    targetSongId = Number(db.get<{ songId: number }>(
+      'SELECT songId FROM songs WHERE artistId = ?', [targetArtistId],
+    )?.songId)
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+      [sourceSongId, 1, ['set1', 'Merge Src - Shared Song.mp3'].join(sep), 200,
+        targetSongId, 1, ['set2', 'Merge Tgt - Shared Song.mp4'].join(sep), 210])
+    writeFileSync(abs('set1', 'Merge Src - Shared Song.mp3'), 'audio')
+    writeFileSync(abs('set1', 'Merge Src - Shared Song.cdg'), 'graphics')
+    writeFileSync(abs('set2', 'Merge Tgt - Shared Song.mp4'), 'video')
+
+    // stars/flaws on both songs (user 1 has both, so the unique
+    // indexes must survive the merge) and a queued source song
+    db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?), (?, ?), (?, ?)',
+      [1, sourceSongId, 1, targetSongId, secondUserId, sourceSongId])
+    db.run('INSERT INTO songFlaws (userId, songId) VALUES (?, ?)', [secondUserId, sourceSongId])
+    db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)',
+      [1, sourceSongId, 1, null])
+    db.run('INSERT INTO artistStars (userId, artistId) VALUES (?, ?)', [1, sourceArtistId])
+  })
+
+  afterAll(() => {
+    db.run('DELETE FROM queue WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM songStars WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM songFlaws WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM media WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM songs WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM artistStars WHERE artistId IN (?, ?)', [sourceArtistId, targetArtistId])
+    db.run('DELETE FROM artists WHERE artistId IN (?, ?)', [sourceArtistId, targetArtistId])
+    db.run('DELETE FROM users WHERE userId = ?', [secondUserId])
+    Library.cache.version = null
+  })
+
+  it('merges both songs when they live in different folders, returning the surviving songId', () => {
+    Library.cache.version = 123
+    const effectiveId = Library.updateSong(sourceSongId, norms('Merge Tgt', 'Shared Song'))
+
+    expect(effectiveId).toBe(targetSongId)
+
+    // source song and its artist are gone, the target keeps its identity
+    expect(db.get('SELECT songId FROM songs WHERE songId = ?', [sourceSongId])).toBeUndefined()
+    expect(db.get<{ artistId: number }>(
+      'SELECT artistId FROM songs WHERE songId = ?', [targetSongId],
+    )?.artistId).toBe(targetArtistId)
+    expect(db.get('SELECT artistId FROM artists WHERE artistId = ?', [sourceArtistId])).toBeUndefined()
+    expect(Library.getSong(targetSongId)[targetSongId]?.title).toBe('Shared Song')
+
+    // every version hangs from the target, source files renamed to the target name
+    expect(relPaths(targetSongId).map(p => p.split(sep).join('/')).sort()).toEqual([
+      'set1/Merge Tgt - Shared Song.mp3',
+      'set2/Merge Tgt - Shared Song.mp4',
+    ])
+    expect(existsSync(abs('set1', 'Merge Tgt - Shared Song.mp3'))).toBe(true)
+    expect(existsSync(abs('set1', 'Merge Tgt - Shared Song.cdg'))).toBe(true)
+    expect(existsSync(abs('set1', 'Merge Src - Shared Song.mp3'))).toBe(false)
+    expect(existsSync(abs('set2', 'Merge Tgt - Shared Song.mp4'))).toBe(true)
+
+    // stars/flaws/queue move over; user 1 keeps the target's star only
+    expect(db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM songStars WHERE songId = ?', [targetSongId],
+    )?.count).toBe(2)
+    expect(db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM songStars WHERE songId = ?', [sourceSongId],
+    )?.count).toBe(0)
+    expect(db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM songFlaws WHERE songId = ?', [targetSongId],
+    )?.count).toBe(1)
+    expect(db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM queue WHERE songId = ?', [targetSongId],
+    )?.count).toBe(1)
+
+    // the orphaned source artist loses its stars with the artist row
+    expect(db.get('SELECT * FROM artistStars WHERE artistId = ?', [sourceArtistId])).toBeUndefined()
+
+    expect(Library.cache.version).toBeNull()
   })
 })

@@ -213,11 +213,7 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
   const norms = deriveNorms(artist, title)
   const baseName = toFilename(artist, title)
 
-  // same duplicate rules as song retagging: refuse before downloading anything
-  if (Library.findSong(norms.artistNorm, norms.titleNorm) !== null) {
-    ctx.throw(409, t(ctxLocale(ctx), 'server.common.duplicateSong', DUPLICATE_SONG_MESSAGE))
-  }
-
+  // a file with the target name in the destination folder always blocks
   const existingFile = await findDownloadedFile(destDir, baseName)
 
   if (existingFile) {
@@ -226,6 +222,15 @@ export async function handleDownload (ctx: RouterContext): Promise<void> {
       'File already exists: {file}',
       { file: existingFile },
     ))
+  }
+
+  // the same song living in another folder is fine (the download lands
+  // on it as another version); only a version already in this folder
+  // would collide with the file about to be downloaded
+  const clash = Library.findSong(norms.artistNorm, norms.titleNorm)
+
+  if (clash !== null && Library.songFolders(clash).includes(pathLib.resolve(destDir))) {
+    ctx.throw(409, t(ctxLocale(ctx), 'server.common.duplicateSong', DUPLICATE_SONG_MESSAGE))
   }
 
   let extraArgs: string[]

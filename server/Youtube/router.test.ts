@@ -44,6 +44,7 @@ vi.mock('../Library/Library.js', () => ({
   default: {
     findSong: vi.fn(() => null),
     getSong: vi.fn(),
+    songFolders: vi.fn(() => []),
   },
 }))
 
@@ -561,8 +562,9 @@ describe('router', () => {
       expect(downloadManager.enqueue).not.toHaveBeenCalled()
     })
 
-    it('rejects 409 when the song already exists without enqueueing', async () => {
+    it('rejects 409 when the song already exists in the destination folder without enqueueing', async () => {
       vi.mocked(Library.findSong).mockReturnValueOnce(7)
+      vi.mocked(Library.songFolders).mockReturnValueOnce(['/media/musica/tester'])
 
       const ctx = makeCtx({
         request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
@@ -572,6 +574,22 @@ describe('router', () => {
       expect(err).toMatchObject({ status: 409 })
       expect(String((err as Error)?.message)).toContain('already has that artist and title')
       expect(downloadManager.enqueue).not.toHaveBeenCalled()
+    })
+
+    it('enqueues when the song already exists in another folder', async () => {
+      vi.mocked(downloadManager.enqueue).mockReturnValue({ id: 'abc' } as DownloadJob)
+      vi.mocked(Library.findSong).mockReturnValueOnce(7)
+      vi.mocked(Library.songFolders).mockReturnValueOnce(['/media/musica/other-user'])
+
+      const ctx = makeCtx({
+        request: { body: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', artist: 'ABBA', title: 'Dancing Queen' } },
+      })
+      await handleDownload(ctx)
+
+      expect(downloadManager.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+        artist: 'ABBA',
+        title: 'Dancing Queen',
+      }))
     })
 
     it('rejects 409 when the destination file exists without enqueueing', async () => {

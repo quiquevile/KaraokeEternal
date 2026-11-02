@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('./Library.js', () => ({
   default: {
-    updateSong: vi.fn(),
+    updateSong: vi.fn((songId: number) => songId),
     updateArtist: vi.fn(),
     deleteSong: vi.fn(),
+    findSong: vi.fn(() => null),
     getSong: vi.fn((songId: number) => ({ [songId]: { songId, title: 'New Title' } })),
   },
 }))
@@ -26,7 +27,7 @@ vi.mock('../Youtube/metadata.js', () => ({
   })),
 }))
 
-import { handleUpdateSong, handleUpdateArtist, handleDeleteSong } from './router.js'
+import { handleUpdateSong, handleUpdateArtist, handleDeleteSong, handleFindSong } from './router.js'
 import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
@@ -121,6 +122,44 @@ describe('handleUpdateSong', () => {
     const { ctx } = makeCtx({ isAdmin: true }, { songId: '1' }, { artist: 'A', title: 'T' })
 
     await expect(handleUpdateSong(ctx)).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('returns the surviving song when the retag merged into another one', async () => {
+    vi.mocked(Library.updateSong).mockReturnValueOnce(42)
+    const { ctx } = makeCtx(
+      { isAdmin: true },
+      { songId: '1' },
+      { artist: 'ABBA', title: 'New Title' },
+    )
+
+    await handleUpdateSong(ctx)
+
+    expect(Library.getSong).toHaveBeenCalledWith(42)
+    expect(ctx.body).toEqual({ 42: { songId: 42, title: 'New Title' } })
+  })
+})
+
+describe('handleFindSong', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns the existing songId for a known artist/title', async () => {
+    vi.mocked(Library.findSong).mockReturnValueOnce(5)
+    const { ctx } = makeCtx({}, {}, { artist: 'ABBA', title: 'Dancing Queen' })
+
+    await handleFindSong(ctx)
+
+    expect(Library.findSong).toHaveBeenCalledWith('ABBA', 'Dancing Queen')
+    expect(ctx.body).toEqual({ songId: 5 })
+  })
+
+  it('returns null when no song matches', async () => {
+    const { ctx } = makeCtx({}, {}, { artist: 'Nobody', title: 'Nothing' })
+
+    await handleFindSong(ctx)
+
+    expect(ctx.body).toEqual({ songId: null })
   })
 })
 

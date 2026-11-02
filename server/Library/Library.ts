@@ -277,18 +277,60 @@ class Library {
   }
 
   /**
+  * Absolute directories (resolved) that hold a song's media files.
+  */
+  static songFolders (songId: number): string[] {
+    const { result, entities } = Media.search({ songId })
+    const dirs = new Set<string>()
+
+    for (const mediaId of result) {
+      const row = entities[mediaId]
+      dirs.add(path.resolve(path.dirname(path.join(row.path, ...row.relPath.split('/')))))
+    }
+
+    return [...dirs]
+  }
+
+  /**
+  * Moves a song's media, queue items, stars and flaws onto another
+  * song and removes it (its artist is dropped when left orphaned).
+  * Used when a retag lands on an existing song living in other folders.
+  * Runs inside the caller's transaction.
+  */
+  static mergeSong (fromSongId: number, toSongId: number, fromArtistId: number): void {
+    db.run('UPDATE media SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
+    db.run('UPDATE queue SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
+
+    // a user who had both songs keeps the target's rows (OR IGNORE
+    // skips the rows the unique indexes would reject, the DELETE
+    // below drops whatever is left of the source song's)
+    db.run('UPDATE OR IGNORE songStars SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
+    db.run('DELETE FROM songStars WHERE songId = ?', [fromSongId])
+    db.run('UPDATE OR IGNORE songFlaws SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
+    db.run('DELETE FROM songFlaws WHERE songId = ?', [fromSongId])
+
+    db.run('DELETE FROM songs WHERE songId = ?', [fromSongId])
+
+    Library.dropOrphanArtist(fromArtistId)
+  }
+
+  /**
   * Retags a song (admin only): updates its artist/title, matching or
   * creating the artist as needed, and renames its media files to match
-  * (`Artist - Title.ext`, same format as downloads). Throws ConflictError
-  * if another song already has the resulting artist + title, or if any
-  * destination file already exists (nothing is changed in that case).
-  * Artists left without songs are removed (their stars are lost with them).
+  * (`Artist - Title.ext`, same format as downloads). When another song
+  * already has the resulting artist + title, the retag merges both
+  * songs into that one (media, queue items, stars and flaws move over)
+  * as long as they live in different folders; sharing a folder throws
+  * ConflictError (the renamed files would collide there), as does any
+  * destination file that already exists (nothing is changed in those
+  * cases). Artists left without songs are removed (their stars are lost
+  * with them). Returns the surviving songId.
   */
   static updateSong (
     songId: number,
     parsed: { artist: string, artistNorm: string, title: string, titleNorm: string },
     locale: LocaleCode = DEFAULT_LOCALE,
-  ): void {
+  ): number {
     if (!Number.isInteger(songId)) {
       throw new ValidationError(t(locale, 'server.library.invalidSongId', 'Invalid songId'))
     }
@@ -311,14 +353,28 @@ class Library {
     // conflict doesn't leave an orphaned artist row behind
     const clash = Library.findSong(parsed.artistNorm, parsed.titleNorm)
 
+    // media rows are needed for the folder conflict check below, which
+    // must run before matchArtist creates anything
+    const { result, entities } = Media.search({ songId })
+
+    // another song with the same name only blocks the retag when it
+    // lives in one of our folders (the renamed files would collide
+    // there); otherwise both songs merge into one with extra versions
     if (clash !== null && clash !== songId) {
-      throw new ConflictError(t(locale, 'server.common.duplicateSong', DUPLICATE_SONG_MESSAGE))
+      const ownDirs = new Set(result.map((mediaId) => {
+        const row = entities[mediaId]
+        return path.resolve(path.dirname(path.join(row.path, ...row.relPath.split('/'))))
+      }))
+
+      if (Library.songFolders(clash).some(dir => ownDirs.has(dir))) {
+        throw new ConflictError(t(locale, 'server.common.duplicateSong', DUPLICATE_SONG_MESSAGE))
+      }
     }
 
+    const mergeInto = clash !== null && clash !== songId ? clash : null
     const resolved = Library.matchArtist({ artist, artistNorm: parsed.artistNorm })
 
     // resolve media files and their new names
-    const { result, entities } = Media.search({ songId })
     const renames: Array<{ mediaId: number, from: string, to: string, newRelPath: string }> = []
 
     for (const mediaId of result) {
@@ -356,13 +412,6 @@ class Library {
     // update db in a single transaction
     try {
       db.transaction(() => {
-        const query = sql`
-          UPDATE songs
-          SET artistId = ${resolved.artistId}, title = ${title}, titleNorm = ${parsed.titleNorm}
-          WHERE songId = ${songId}
-        `
-        db.run(String(query), query.parameters)
-
         for (const { mediaId, newRelPath } of renames) {
           if (!newRelPath) continue // sidecar: no db row
 
@@ -374,9 +423,20 @@ class Library {
           db.run(String(mediaQuery), mediaQuery.parameters)
         }
 
-        // drop the previous artist if it has no songs left (its stars go with it)
-        if (song.oldArtistId !== resolved.artistId) {
-          Library.dropOrphanArtist(song.oldArtistId)
+        if (mergeInto !== null) {
+          Library.mergeSong(songId, mergeInto, song.oldArtistId)
+        } else {
+          const query = sql`
+            UPDATE songs
+            SET artistId = ${resolved.artistId}, title = ${title}, titleNorm = ${parsed.titleNorm}
+            WHERE songId = ${songId}
+          `
+          db.run(String(query), query.parameters)
+
+          // drop the previous artist if it has no songs left (its stars go with it)
+          if (song.oldArtistId !== resolved.artistId) {
+            Library.dropOrphanArtist(song.oldArtistId)
+          }
         }
       })
     } catch (err) {
@@ -387,7 +447,13 @@ class Library {
     // library cache holds song/artist entities: force a rebuild
     Library.cache.version = null
 
+    if (mergeInto !== null) {
+      log.debug('merged song %s into %s: %s - %s', songId, mergeInto, artist, title)
+      return mergeInto
+    }
+
     log.debug('updated song %s: %s - %s', songId, artist, title)
+    return songId
   }
 
   /**

@@ -31,14 +31,16 @@ export async function handleUpdateSong (ctx) {
   const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
   const title = typeof ctx.request.body?.title === 'string' ? ctx.request.body.title : ''
 
+  let effectiveId = songId
+
   try {
-    Library.updateSong(songId, { artist, title, ...deriveNorms(artist, title) }, ctxLocale(ctx))
+    effectiveId = Library.updateSong(songId, { artist, title, ...deriveNorms(artist, title) }, ctxLocale(ctx))
   } catch (err) {
     mapDomainError(ctx, err)
   }
 
   ctx.status = 200
-  ctx.body = Library.getSong(songId)
+  ctx.body = Library.getSong(effectiveId)
 
   // push the full library (artists, ordering and songIds per artist may
   // all have changed) and queues to every client
@@ -46,6 +48,20 @@ export async function handleUpdateSong (ctx) {
 }
 
 router.put('/song/:songId', handleUpdateSong)
+
+// whether a song with this artist/title already exists: lets the
+// download and retag dialogs warn about an existing version without
+// blocking (the action's own checks stay authoritative)
+export async function handleFindSong (ctx) {
+  const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
+  const title = typeof ctx.request.body?.title === 'string' ? ctx.request.body.title : ''
+
+  const { artistNorm, titleNorm } = deriveNorms(artist, title)
+
+  ctx.body = { songId: Library.findSong(artistNorm, titleNorm) }
+}
+
+router.post('/song/find', handleFindSong)
 
 // rename an artist, its media files included (admin only)
 export async function handleUpdateArtist (ctx) {

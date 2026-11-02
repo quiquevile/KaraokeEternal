@@ -20,6 +20,7 @@ const AccountView = () => {
 
   return (
     <div
+      id='account-view'
       className={styles.container}
       style={{
         paddingTop: ui.headerHeight,

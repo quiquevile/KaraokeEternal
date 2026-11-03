@@ -6,6 +6,7 @@ import Modal from 'components/Modal/Modal'
 import MetadataFields from 'components/MetadataFields/MetadataFields'
 import { useCaseField } from 'components/MetadataFields/useCaseField'
 import { closeSongEditor, updateSong } from 'store/modules/songInfo'
+import useExistingSong from 'lib/useExistingSong'
 import styles from './EditSongDialog.css'
 import { commonMessages } from '../../lib/messages'
 import { sharedMessages } from '../messages'
@@ -22,6 +23,7 @@ const EditSongForm = ({
   const artist = useCaseField(initialArtist)
   const title = useCaseField(initialTitle)
   const error = useAppSelector(state => state.songInfo.error)
+  const existingSongId = useExistingSong(artist.value, title.value, songId)
   const dispatch = useAppDispatch()
 
   const handleClose = () => dispatch(closeSongEditor())
@@ -43,6 +45,13 @@ const EditSongForm = ({
       </p>
 
       <MetadataFields artist={artist} title={title} />
+
+      {existingSongId !== null
+        && (
+          <p className={styles.warning}>
+            <FormattedMessage {...commonMessages.songExists} />
+          </p>
+        )}
 
       {error
         && <p className={styles.error}>{error}</p>}

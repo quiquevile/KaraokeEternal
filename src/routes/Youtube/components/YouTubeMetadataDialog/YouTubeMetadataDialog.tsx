@@ -8,6 +8,7 @@ import { useCaseField } from 'components/MetadataFields/useCaseField'
 import { closeYoutubeDialog, downloadVideo, fetchDownloadUsers, identifyVideo } from 'store/modules/youtube'
 import { fetchCurrentRoomStatus, fetchOwnRoom, fetchRooms } from 'store/modules/rooms'
 import { hasPermission } from 'store/modules/user'
+import useExistingSong from 'lib/useExistingSong'
 import type { ConvertedMetadata, YouTubeResult } from 'store/modules/youtube'
 import styles from './YouTubeMetadataDialog.css'
 import { commonMessages } from '../../../../lib/messages'
@@ -19,9 +20,11 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
   const [savedMetadata, setSavedMetadata] = useState<ConvertedMetadata | null>(metadata)
   const user = useAppSelector(state => state.user)
   const downloadUsers = useAppSelector(state => state.youtube.downloadUsers)
+  const error = useAppSelector(state => state.youtube.error)
   const currentRoomStatus = useAppSelector(state => state.rooms.currentStatus)
   const [queueChecked, setQueueChecked] = useState(false)
   const [queueUserId, setQueueUserId] = useState<number | null>(null)
+  const existingSongId = useExistingSong(artist.value, title.value)
   const dispatch = useAppDispatch()
 
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'downloadForOthers')
@@ -79,6 +82,17 @@ const MetadataForm = ({ selected, metadata }: { selected: YouTubeResult, metadat
       </p>
 
       <MetadataFields artist={artist} title={title} />
+
+      {existingSongId !== null
+        && (
+          <p className={styles.warning}>
+            <FormattedMessage {...commonMessages.songExists} />
+          </p>
+        )}
+
+      {/* enqueue/download failures (same folder, file exists, ...) */}
+      {error
+        && <p className={styles.error}>{error}</p>}
 
       {!roomClosed && (
         <label className={styles.queueRow}>

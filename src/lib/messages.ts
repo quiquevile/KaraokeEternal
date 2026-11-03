@@ -21,6 +21,7 @@ export const commonMessages: Record<string, MessageDescriptor> = {
   editArtist: { id: 'common.editArtist', defaultMessage: 'Edit artist' },
   checkArtistTitle: { id: 'common.checkArtistTitle', defaultMessage: 'Check artist and title' },
   checkArtist: { id: 'common.checkArtist', defaultMessage: 'Check artist' },
+  songExists: { id: 'common.songExists', defaultMessage: 'A version of this song already exists in the library.' },
   password: { id: 'common.password', defaultMessage: 'password' },
   username: { id: 'common.username', defaultMessage: 'username' },
   displayName: { id: 'common.displayName', defaultMessage: 'display name' },

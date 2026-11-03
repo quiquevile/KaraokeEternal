@@ -6,12 +6,13 @@
 - Downloaded tracks land in a subfolder named after the downloader, and each user only sees their own download notifications (admins see them all)
 - Users with the download-for-others capability can queue downloads for another user in an open room, with presence checks at enqueue and completion time
 - The download target picker also lists the requester's own ghosts (for admins or users with the ghost-users capability), which accept the download without being in the room
-- Downloads are refused when the song or the file already exists, without downloading anything
+- Downloads are refused when the destination file already exists or another version of the song is already in that folder; a song living elsewhere is fine and the download lands as another version of it
 - yt-dlp is fully self-contained: it downloads and updates itself in the configured folder, picking the right build per environment and healing itself when broken; features stay disabled until a folder is selected
 
 ### Library management (admin)
 
-- Songs can be retagged from the library or the queue, with media files renamed automatically to match
+- Songs can be retagged from the library or the queue, with media files renamed automatically to match; retagging onto an artist/title that already exists in another folder merges both songs into that one (media, queue entries, stars and flaws move over), while sharing a folder is rejected without changing anything
+- The download and retag dialogs warn when a version of the song already exists in the library (checked as you type, without blocking the action)
 - Artists can be renamed by admins with a swipe on their row; the name is updated everywhere and every matching media file is renamed automatically, and name clashes are rejected without changing anything
 - Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
 - Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on

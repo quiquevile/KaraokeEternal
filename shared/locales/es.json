@@ -358,6 +358,7 @@
   "common.editArtist": "Editar artista",
   "common.checkArtistTitle": "Revisa artista y título",
   "common.checkArtist": "Revisa artista",
+  "common.songExists": "Ya existe una versión de esta canción en la biblioteca.",
   "common.password": "contraseña",
   "common.username": "nombre de usuario",
   "common.displayName": "nombre visible",

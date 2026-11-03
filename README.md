@@ -1,69 +1,6 @@
 # Karaoke Eternal (quiquevile's fork)
 
-Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser — with full library management, YouTube downloads and granular user permissions on top of the base project.
-
-## What's new in this fork
-
-### Library management (admin)
-- Edit a song's artist and title from the library or the queue (admin only), with case cycling and artist/title swap.
-- Media files are renamed automatically to match (`Artist - Title.ext`, MP3+G sidecars included); clashes are refused without changing anything.
-- Delete whole songs or individual versions: the dialog lists every file with its full path, inline audio/video preview and checkboxes, plus a Delete all option with confirmation.
-- Deleting removes queue entries in every room; if the playing song is deleted, playback skips ahead, and if the playing version is deleted it restarts with the new current one.
-- Admins can filter the library by media folder (YouTube downloads folder included; the old "Downloaded" toggle is gone), and narrow results to multi-version songs or by preferred version (any / without / with) from the header.
-- Everything updates live on all connected clients.
-
-### YouTube downloads
-- Dedicated search tab with direct video-URL support and automatic artist/title identification.
-- Each downloader gets their own subfolder named after their username.
-- Downloads are refused when the song or the file already exists — no duplicates, nothing half-downloaded.
-- Download notifications are private to whoever started them (admins see them all).
-- Download for others: users with the capability can queue a download for another user in an open room.
-- Self-contained yt-dlp: it downloads and updates itself in the configured folder, picked per environment (no system Python or yt-dlp needed). YouTube features stay disabled until a folder is selected.
-
-### Permissions
-- Granular per-user capabilities instead of a single admin-or-not model: delete/move/restart queue songs, open the player, control playback and download from YouTube (e.g. a download-only user profile).
-- Player access alone lets a user start playback (projection use case), without playback controls.
-- Admins sign in to password-protected rooms without knowing the room password.
-- Room admins and a managed account editor with roles and a permissions dialog.
-- Admins switch rooms without logging out (click a room's status or date, closed rooms included) and always see the current room badge in the header.
-
-### Player
-- Live pitch control in semitones, kept on restart and reset on track change (disabled where unsupported; Firefox for Android may produce noise when shifting up — Chrome is recommended there).
-- On-screen overlays for the current singer, the pitch value and the upcoming singer, with admin-configurable timings (player display prefs in account Preferences).
-- Always-on song progress readout on the player screen (bar, artist - title, current singer and remaining time), each element toggled independently per room; the title expands up to half the screen while the bar is hidden.
-- Visualizer preset data loads on demand per pack: sessions that never show the visualizer (e.g. MP4-only) skip the 3 MB preset pack entirely.
-- Global playback keyboard shortcuts: space toggles play/pause, +/- adjust pitch (0 resets it), up/down adjust volume, right arrow skips to next, left arrow replays, Q toggles the room QR, B toggles the progress bar, F enters player fullscreen (player window only: browsers restrict fullscreen to the visible page).
-- Player Options dialog (display, sound, QR code and song progress visibility, per room).
-- Replay/restart button in the top playback bar.
-- VLC-style ten-band equalizer, adjustable per player room.
-- ReplayGain leveling with a per-room toggle in the display options (enabled by default) plus manual per-version trim (admin).
-- A "Measure ReplayGain" button (admin) measures every song still missing a level, tags first and ffmpeg otherwise; stored values are never overwritten by scans.
-
-### Queue
-- Move songs around, and delete played or currently-playing songs from the queue.
-- Queue for others: users with the capability (or admins) long-press a library song to queue it for another user currently in the room.
-- Requeue for others: the "+" button on a played song lets users with the capability (or admins) pick which room user to queue it for.
-- Queue header filters: search by title or artist, show only starred songs, and show only the songs queued by one user; a message appears when every song is filtered out.
-
-### Search history
-- The library and YouTube search boxes remember recent searches per browser and suggest them while typing; picking one searches immediately.
-- History sizes are configured separately with `KES_HISTORY_LIBRARY_SIZE` / `KES_HISTORY_YOUTUBE_SIZE` (default 10 each, 0 disables).
-
-### Interface language
-- Bilingual interface (English/Español), per device, switchable from account Preferences; server messages follow the browser language.
-
-### Docker
-- Ready-to-build image and compose file (`Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh`).
-- Resource-friendly defaults for small hosts (capped node heap and ffmpeg threads), tunable per deployment with `NODE_OPTIONS` and `KES_FFMPEG_THREADS`.
-- HTTP compression (brotli/gzip) for text responses; binary media streams untouched.
-
----
-
-> The original Karaoke Eternal README follows below.
-
-# Karaoke Eternal
-
-Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser. The player is also fully browser-based with support for MP3+G, MP4 videos and WebGL visualizations. The server is self-hosted and runs on nearly everything.
+Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser. The player is also fully browser-based with support for MP3+G, MP4 videos and WebGL visualizations. The server is self-hosted and runs on nearly everything. This fork adds library management, YouTube downloads and granular permissions on top of the original [Karaoke Eternal](https://github.com/bhj/KaraokeEternal/blob/master/README.md).
 
 [![Karaoke Eternal](/docs/assets/images/README.jpg?raw=true)](/docs/assets/images/README.jpg?raw=true)
 
@@ -83,31 +20,20 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Dynamic queues keep parties fair, fun and no-fuss
 - Fully self-hosted
 - No ads or telemetry
+- This fork adds:
+  - YouTube downloads straight from the app, with per-user subfolders
+  - Granular per-user permissions, queue-for-others included
+  - Bilingual interface (English / Español)
+  - Admin library tools (retag, rename, delete) with live updates on every client
+  - Ten-band equalizer and instant pitch control
 
 Microphones are *not* required since the player itself only outputs music - this allows your audio setup to be as simple or complex as you like. See the [F.A.Q.](https://www.karaoke-eternal.com/faq/#recommended-audio-microphone-setup) for more information.
 
 ## Getting Started
 
- Karaoke Eternal basically has 3 parts. See [Getting Started](https://www.karaoke-eternal.com/docs/getting-started/) to get up and running step-by-step, or jump to the documentation for each part below:
- 
-- **[Server:](https://www.karaoke-eternal.com/docs/karaoke-eternal-server/)** Runs on pretty much anything to serve the web app and your media files, including a Windows PC, Mac, or a dedicated server like a Raspberry Pi or Synology NAS.
-- **[App:](https://www.karaoke-eternal.com/docs/karaoke-eternal-app/)** Fast, modern mobile web app designed for "karaoke conditions".
-- **[Player:](https://www.karaoke-eternal.com/docs/karaoke-eternal-app/#player)** Just another part of the app, but meant to run fullscreen on the system handling audio/video for a [room](https://www.karaoke-eternal.com/docs/karaoke-eternal-app/#rooms-admin-only)
+Karaoke Eternal basically has 3 parts, plus administration in this fork. See [Getting Started](docs/getting-started.md) to get up and running step-by-step, or jump to the documentation for each part below:
 
-## Installation
-
-There are several [installation methods](https://www.karaoke-eternal.com/docs/karaoke-eternal-server/#installation) available for Karaoke Eternal Server.
-
-## Discord & Support
-
-Join the [Karaoke Eternal Discord Server](https://discord.gg/PgqVtFq) for general support and development chat, or just to say hi!
-
-## Contributing & Development
-
-Contributions are welcome! Please join the `#dev` channel of the [Discord Server](https://discord.gg/PgqVtFq) before embarking on major features; the project's scope is limited to ensure success.
-
-Make sure you have [Node.js](https://nodejs.org/en/) v24 or later, then:
-
-1. Fork and clone the repo
-2. `npm i`
-3. `npm run dev` and look for "Web server running at" for the **server URL**
+- **[Server:](docs/server.md)** Runs on pretty much anything to serve the web app and your media files, including a Windows PC, Mac, or a dedicated server like a Raspberry Pi or Synology NAS. See [installation](docs/server.md#installation) for Docker and from-source options.
+- **[App:](docs/app.md)** Fast, modern mobile web app designed for "karaoke conditions".
+- **[Player:](docs/app.md#player)** Just another part of the app, but meant to run fullscreen on the system handling audio/video for a [room](docs/administration.md#rooms).
+- **[Administration:](docs/administration.md)** Rooms, users and capabilities, library management, YouTube downloads and everything else that needs an admin account.

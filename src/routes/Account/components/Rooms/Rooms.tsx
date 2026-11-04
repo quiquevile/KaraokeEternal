@@ -76,12 +76,7 @@ const Rooms = () => {
           )}
         </td>
         <td>
-          <a
-            onClick={() => handleSwitchRoom(roomId)}
-            aria-label={intl.formatMessage(accountMessages.switchTo, { name: room.name })}
-          >
-            {formatDateTime(new Date(room.dateCreated * 1000))}
-          </a>
+          {formatDateTime(new Date(room.dateCreated * 1000))}
         </td>
       </tr>
     )

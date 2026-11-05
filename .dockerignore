@@ -4,6 +4,7 @@
 build
 node_modules
 docker-compose.yml
+tmp
 *.log
 docs/*
 !docs/assets

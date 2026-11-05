@@ -5,6 +5,9 @@ on:
     branches: [develop, release, main]
     tags: ['v*.*.*', '*.*.*']
 
+env:
+  REGISTRY_IMAGE: quiquevile/karaoke-eternal
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -24,34 +27,92 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  docker:
+  build:
     needs: validate
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - pair: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - pair: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Login to Docker Hub
-        if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'
-        uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Image tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: quiquevile/karaoke-eternal
-          tags: |
-            type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=ref,event=tag
-
-      - name: Build (and push from main / version tags)
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ github.ref == 'refs/heads/main' || github.ref_type == 'tag' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha
+          platforms: ${{ matrix.platform }}
+          pull: true
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.pair }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.pair }}
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.pair }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Release version from package.json
+        if: github.ref == 'refs/heads/release'
+        run: |
+          v="$(jq -r .version package.json)"
+          if [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "RELEASE_VERSION=$v" >> "$GITHUB_ENV"
+          else
+            echo "package.json version '$v' is not strict X.Y.Z, skipping version tag"
+            echo "RELEASE_VERSION=" >> "$GITHUB_ENV"
+          fi
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=release,enable=${{ github.ref == 'refs/heads/release' }}
+            type=raw,value=release-${{ env.RELEASE_VERSION }},enable=${{ github.ref == 'refs/heads/release' && env.RELEASE_VERSION != '' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "${REGISTRY_IMAGE}@sha256:%s " *)
+      - name: Inspect image
+        run: docker buildx imagetools inspect "$REGISTRY_IMAGE:${{ steps.meta.outputs.version }}"

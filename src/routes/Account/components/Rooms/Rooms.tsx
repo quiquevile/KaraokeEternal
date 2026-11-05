@@ -6,6 +6,7 @@ import { switchRoom } from 'store/modules/user'
 import { formatDateTime } from 'lib/dateTime'
 import Panel from 'components/Panel/Panel'
 import Button from 'components/Button/Button'
+import Icon from 'components/Icon/Icon'
 import EditRoom from './EditRoom/EditRoom'
 import { cleanupRooms, closeRoomEditor, fetchRooms, filterByStatus, openRoomEditor } from 'store/modules/rooms'
 import { filterByRoom } from '../../modules/users'
@@ -20,6 +21,7 @@ const Rooms = () => {
 
   const { isEditorOpen, filterStatus } = useAppSelector(state => state.rooms)
   const rooms = useAppSelector(getRoomList)
+  const currentRoomId = useAppSelector(state => state.user.roomId)
 
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -52,16 +54,21 @@ const Rooms = () => {
     const room = rooms.entities[roomId]
     return (
       <tr key={String(roomId)}>
+        <td>
+          {roomId !== currentRoomId && (
+            <a
+              onClick={() => handleSwitchRoom(roomId)}
+              aria-label={intl.formatMessage(accountMessages.switchTo, { name: room.name })}
+            >
+              <Icon icon='EXIT_TO_APP' />
+            </a>
+          )}
+        </td>
         <td translate='no'><a data-room-id={roomId} onClick={handleOpen}>{room.name}</a></td>
         <td>
-          <a
-            onClick={() => handleSwitchRoom(roomId)}
-            aria-label={intl.formatMessage(accountMessages.switchTo, { name: room.name })}
-          >
-            {room.status === 'open' && intl.formatMessage(accountMessages.statusOpen)}
-            {room.status === 'closed' && intl.formatMessage(accountMessages.statusClosed)}
-            {room.status !== 'open' && room.status !== 'closed' && room.status}
-          </a>
+          {room.status === 'open' && intl.formatMessage(accountMessages.statusOpen)}
+          {room.status === 'closed' && intl.formatMessage(accountMessages.statusClosed)}
+          {room.status !== 'open' && room.status !== 'closed' && room.status}
           {room.numUsers > 0 && (
             <>
 &nbsp;
@@ -99,6 +106,7 @@ const Rooms = () => {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th />
               <th><FormattedMessage {...accountMessages.roomsName} /></th>
               <th><FormattedMessage {...accountMessages.status} /></th>
               <th><FormattedMessage {...accountMessages.created} /></th>

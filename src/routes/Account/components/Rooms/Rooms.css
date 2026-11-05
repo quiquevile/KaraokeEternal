@@ -21,10 +21,14 @@
 }
 
 .table th:first-child {
-  width: 100%;
+  width: 1px;
 }
 
 .table th:nth-child(2) {
+  width: 100%;
+}
+
+.table th:nth-child(3) {
   min-width: 70px;
 }
 
@@ -34,7 +38,16 @@
   white-space: nowrap;
 }
 
-.table td:first-child  {
+.table td:first-child {
+  padding-right: var(--space-xs);
+}
+
+.table td:first-child svg {
+  display: block;
+  height: var(--icon-size-s);
+}
+
+.table td:nth-child(2) {
   text-overflow: ellipsis;
   max-width: 0;
 }

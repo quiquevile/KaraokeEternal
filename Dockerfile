@@ -15,7 +15,8 @@ FROM node:24-alpine
 
 RUN apk add --no-cache \
     ffmpeg \
-    tini
+    tini \
+ && apk upgrade --no-cache
 
 WORKDIR /app
 

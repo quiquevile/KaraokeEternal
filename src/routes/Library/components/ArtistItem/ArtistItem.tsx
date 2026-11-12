@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
-import Highlighter from 'react-highlight-words'
 import { useIntl } from 'react-intl'
 import { useSwipeable } from 'react-swipeable'
 import SongList from '../SongList/SongList'
 import Button from 'components/Button/Button'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
-import ToggleAnimation from 'components/ToggleAnimation/ToggleAnimation'
+import useToggleAnimation from 'lib/useToggleAnimation'
+import Highlight from '../Highlight/Highlight'
 import styles from './ArtistItem.css'
 import { commonMessages } from '../../../../lib/messages'
 
@@ -16,7 +16,7 @@ let ignoreMouseup = false
 
 interface ArtistItemProps {
   artistSongIds: number[]
-  filterKeywords?: string[]
+  highlight?: RegExp | null
   isExpanded: boolean
   isAdmin: boolean
   name: string
@@ -25,12 +25,13 @@ interface ArtistItemProps {
   onEditArtist: () => void
   starredSongs: number[]
   style?: object
-  upcomingSongs: number[]
+  upcomingSongs: Set<number>
+  currentSongId: number | undefined
 }
 
 const ArtistItem = ({
   artistSongIds,
-  filterKeywords,
+  highlight,
   isExpanded,
   isAdmin,
   name,
@@ -39,11 +40,15 @@ const ArtistItem = ({
   starredSongs,
   style,
   upcomingSongs,
+  currentSongId,
 }: ArtistItemProps): React.ReactElement => {
   const [menuOpen, setMenuOpen] = useState(false)
   const intl = useIntl()
-  const isChildUpcoming = artistSongIds.some(songId => upcomingSongs.includes(songId))
+  const isChildUpcoming = artistSongIds.some(songId =>
+    upcomingSongs.has(songId) || currentSongId === songId,
+  )
   const isChildStarred = artistSongIds.some(songId => starredSongs.includes(songId))
+  const glow = useToggleAnimation(isChildUpcoming, styles.animateGlow)
 
   const handleClick = () => {
     if (ignoreMouseup) {
@@ -86,11 +91,12 @@ const ArtistItem = ({
             )}
             {!isExpanded && <div className={styles.count}>{artistSongIds.length}</div>}
           </div>
-          <ToggleAnimation toggle={isChildUpcoming} className={styles.animateGlow}>
-            <div className={clsx(styles.name, isChildUpcoming && styles.isChildUpcoming)}>
-              {filterKeywords?.length ? <Highlighter autoEscape textToHighlight={name} searchWords={filterKeywords} /> : name}
-            </div>
-          </ToggleAnimation>
+          <div
+            className={clsx(styles.name, isChildUpcoming && styles.isChildUpcoming, glow.className)}
+            onAnimationEnd={glow.onAnimationEnd}
+          >
+            <Highlight text={name} pattern={highlight ?? null} />
+          </div>
         </div>
 
         <Buttons btnWidth={56} isExpanded={menuOpen}>
@@ -111,7 +117,7 @@ const ArtistItem = ({
         <SongList
           songIds={artistSongIds}
           showArtist={false}
-          filterKeywords={filterKeywords}
+          highlight={highlight}
         />
       )}
     </div>

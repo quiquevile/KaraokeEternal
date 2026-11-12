@@ -15,6 +15,7 @@ export const LOCATE_SONG = 'library/LOCATE_SONG'
 export const LOCATE_BLINKED = 'library/LOCATE_BLINKED'
 export const TOGGLE_ARTIST_RESULT_EXPANDED = 'library/TOGGLE_ARTIST_RESULT_EXPANDED'
 export const SCROLL_ARTISTS = 'library/SCROLL_ARTISTS'
+export const SCROLL_SEARCH_RESULTS = 'library/SCROLL_SEARCH_RESULTS'
 export const SONG_STARRED = 'library/SONG_STARRED'
 export const SONG_UNSTARRED = 'library/SONG_UNSTARRED'
 export const SONG_FLAWED = 'library/SONG_FLAWED'
@@ -22,6 +23,11 @@ export const SONG_UNFLAWED = 'library/SONG_UNFLAWED'
 export const STAR_COUNTS_PUSH = 'library/STAR_COUNTS_PUSH'
 export const LIBRARY_PUSH = 'library/PUSH'
 export const LIBRARY_PUSH_SONG = 'library/PUSH_SONG'
+
+// Media
+export const MEDIA_PITCH_SET = 'server/MEDIA_PITCH_SET'
+export const MEDIA_RG_SET = 'server/MEDIA_RG_SET'
+export const MEDIA_USER_PITCH_SET = 'server/MEDIA_USER_PITCH_SET'
 
 // Queue
 export const QUEUE_ADD = 'server/QUEUE_ADD'
@@ -92,12 +98,29 @@ export const FLAW_SONG = 'server/FLAW_SONG'
 export const UNFLAW_SONG = 'server/UNFLAW_SONG'
 export const FLAWS_PUSH = 'user/FLAWS_PUSH'
 
+// Provider search
+export const PROVIDER_SEARCH_REQUEST = 'server/PROVIDER_SEARCH_REQUEST'
+export const PROVIDER_SEARCH_CANCEL = 'server/PROVIDER_SEARCH_CANCEL'
+export const PROVIDER_SEARCH_RESULT = 'library/PROVIDER_SEARCH_RESULT'
+export const PROVIDER_SEARCH_PROVIDER_ERROR = 'library/PROVIDER_SEARCH_PROVIDER_ERROR'
+export const PROVIDER_SEARCH_COMPLETE = 'library/PROVIDER_SEARCH_COMPLETE'
+export const PROVIDER_SEARCH_CLEAR = 'library/PROVIDER_SEARCH_CLEAR'
+
+// Provider fetch (item download)
+export const PROVIDER_FETCH_REQUEST = 'server/PROVIDER_FETCH_REQUEST'
+export const PROVIDER_FETCH_CANCEL = 'server/PROVIDER_FETCH_CANCEL'
+export const PROVIDER_FETCH_STATUS = 'library/PROVIDER_FETCH_STATUS'
+
 // Preferences
 export const PREFS_RECEIVE = 'prefs/RECEIVE'
 export const PREFS_REQUEST = 'prefs/REQUEST'
 export const PREFS_SET = 'server/PREFS_SET'
 export const PREFS_PATH_SET_PRIORITY = 'server/PREFS_PATH_SET_PRIORITY'
 export const PREFS_PATH_UPDATE = 'prefs/PREFS_PATH_UPDATE'
+export const PREFS_PROVIDER_SET_PRIORITY = 'server/PREFS_PROVIDER_SET_PRIORITY'
+export const PREFS_PROVIDER_UPDATE = 'prefs/PREFS_PROVIDER_UPDATE'
+// runtime provider status, pushed to admins only
+export const PROVIDER_STATUS_PUSH = 'prefs/PROVIDER_STATUS_PUSH'
 export const PREFS_PUSH = 'prefs/PREFS_PUSH'
 export const PREFS_REQ_SCANNER_START = 'prefs/REQ_SCANNER_START'
 export const PREFS_REQ_SCANNER_STOP = 'prefs/REQ_SCANNER_STOP'
@@ -144,6 +167,7 @@ export const ARTIST_INFO_UPDATE = 'artistInfo/UPDATE'
 // IPC Messages
 export const REQUEST_SCAN = 'scannerWorker/REQUEST_SCAN'
 export const REQUEST_SCAN_STOP = 'scannerWorker/REQUEST_SCAN_STOP'
+export const REQUEST_SCAN_FILE = 'scannerWorker/REQUEST_SCAN_FILE'
 export const SCANNER_WORKER_STATUS = 'scannerWorker/STATUS'
 export const SERVER_WORKER_STATUS = 'serverWorker/STATUS'
 export const SERVER_WORKER_ERROR = 'serverWorker/ERROR'
@@ -152,6 +176,7 @@ export const MEDIA_ADD = 'scannerWorker/MEDIA_ADD'
 export const MEDIA_CLEANUP = 'scannerWorker/MEDIA_CLEANUP'
 export const MEDIA_REMOVE = 'scannerWorker/MEDIA_REMOVE'
 export const MEDIA_UPDATE = 'scannerWorker/MEDIA_UPDATE'
+export const PATH_DATA_SET = 'scannerWorker/PATH_DATA_SET'
 export const WATCHER_WORKER_EVENT = 'watcherWorker/EVENT'
 export const WATCHER_WORKER_WATCH = 'watcherWorker/WATCH'
 

@@ -5,20 +5,16 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  // mirrors webpack's resolve.modules/alias so client modules can be imported
+  // by their app-relative paths
   resolve: {
-    // mirror webpack's resolve.modules + alias so client modules are importable in tests
-    alias: [
-      // webpack inlines the processor as a string (asset/source); point tests at a stub
-      {
-        find: /^@soundtouchjs\/audio-worklet\/processor$/,
-        replacement: path.resolve(__dirname, './test-stubs/soundtouch-processor.ts'),
-      },
-      { find: /^shared\//, replacement: `${path.resolve(__dirname, '../shared')}/` },
-      { find: /^lib\//, replacement: `${path.resolve(__dirname, '../src/lib')}/` },
-      { find: /^store\//, replacement: `${path.resolve(__dirname, '../src/store')}/` },
-      { find: /^routes\//, replacement: `${path.resolve(__dirname, '../src/routes')}/` },
-      { find: /^components\//, replacement: `${path.resolve(__dirname, '../src/components')}/` },
-    ],
+    alias: {
+      components: path.resolve(__dirname, '../src/components'),
+      lib: path.resolve(__dirname, '../src/lib'),
+      routes: path.resolve(__dirname, '../src/routes'),
+      shared: path.resolve(__dirname, '../shared'),
+      store: path.resolve(__dirname, '../src/store'),
+    },
   },
   test: {
     exclude: [

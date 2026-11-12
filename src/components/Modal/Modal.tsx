@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
@@ -10,39 +10,58 @@ export type ModalProps = {
   buttons?: React.ReactNode
   className?: string
   children?: React.ReactNode
+  /* styles the heading row, which contains the title/headingComponent and the close button */
+  headingClassName?: string
   onClose: () => void
   scrollable?: boolean
-  title: string
   visible?: boolean
-}
+} & (
+  | { 'title': string, 'headingComponent'?: never, 'aria-label'?: string }
+  | { 'title'?: never, 'headingComponent': React.ReactElement, 'aria-label': string }
+)
 
-const Modal = ({ buttons, className, children, visible = true, onClose, scrollable, title }: ModalProps) => {
+const Modal = ({ 'aria-label': ariaLabel, buttons, className, children, headingClassName, headingComponent, visible = true, onClose, scrollable, title }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const isOutsideClick = useRef(false)
+  const isOutsideClickRef = useRef(false)
   const intl = useIntl()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current
 
     // showModal throws if already open (e.g. StrictMode double-effects)
     if (visible && dialog && !dialog.open) {
-      dialog.showModal()
-    }
+      const opener = document.activeElement
+      const wasOpenerFocusVisible = opener?.matches(':focus-visible')
 
-    return () => {
-      if (dialog?.open) dialog.close()
+      // without an [autofocus] descendant, showModal() focuses the close button, which
+      // iOS Safari rings as :focus-visible. Focus the dialog itself instead; the first Tab
+      // then lands on the close button. An [autofocus] descendant (e.g. a form field) still wins
+      dialog.autofocus = !dialog.querySelector('[autofocus]')
+      dialog.showModal()
+
+      return () => {
+        // close() while still in the DOM so the browser restores focus to the opener
+        dialog.close()
+
+        // WebKit carries the dialog's :focus-visible over to the restored opener, ringing
+        // a row that was only tapped. Re-focus it without the ring if it had none before
+        if (!wasOpenerFocusVisible && opener instanceof HTMLElement && document.activeElement === opener) {
+          opener.blur()
+          opener.focus({ focusVisible: false, preventScroll: true })
+        }
+      }
     }
   }, [visible])
 
   const handleMouseDown = (event: React.MouseEvent<HTMLDialogElement>) => {
-    isOutsideClick.current = event.target === dialogRef.current
+    isOutsideClickRef.current = event.target === dialogRef.current
   }
 
   const handleMouseUp = (event: React.MouseEvent<HTMLDialogElement>) => {
-    if (isOutsideClick.current && event.target === dialogRef.current) {
+    if (isOutsideClickRef.current && event.target === dialogRef.current) {
       onClose()
     }
-    isOutsideClick.current = false
+    isOutsideClickRef.current = false
   }
 
   const handleCancel = (e: React.SyntheticEvent) => {
@@ -58,13 +77,14 @@ const Modal = ({ buttons, className, children, visible = true, onClose, scrollab
   return createPortal(
     <dialog
       ref={dialogRef}
+      aria-label={ariaLabel ?? title}
       className={clsx(styles.container, className)}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onCancel={handleCancel}
     >
-      <div className={styles.titleContainer}>
-        <h1>{title}</h1>
+      <div className={clsx(styles.titleContainer, headingClassName)}>
+        {headingComponent ?? <h1>{title}</h1>}
         <Button
           icon='CLEAR'
           className={styles.btnClose}

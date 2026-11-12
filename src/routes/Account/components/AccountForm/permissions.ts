@@ -8,6 +8,7 @@ export const PERMISSIONS: Array<{ value: Permission, message: (typeof accountMes
   { value: 'queueForOthers', message: accountMessages.permsQueueForOthers },
   { value: 'playerAccess', message: accountMessages.permsPlayerAccess },
   { value: 'playerControls', message: accountMessages.permsPlayerControls },
+  { value: 'setSongPitch', message: accountMessages.permsSetSongPitch, parent: 'playerControls' },
   { value: 'youtubeDownload', message: accountMessages.permsYoutubeDownload },
   { value: 'downloadForOthers', message: accountMessages.permsDownloadForOthers, parent: 'youtubeDownload' },
   { value: 'ghostUsers', message: accountMessages.permsGhostUsers },

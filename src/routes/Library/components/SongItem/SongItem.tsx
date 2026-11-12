@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
-import Highlighter from 'react-highlight-words'
 import { useIntl } from 'react-intl'
 import { useSwipeable } from 'react-swipeable'
 import { useLongPress } from 'use-long-press'
@@ -16,7 +15,8 @@ import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
-import ToggleAnimation from 'components/ToggleAnimation/ToggleAnimation'
+import useToggleAnimation from 'lib/useToggleAnimation'
+import Highlight from '../Highlight/Highlight'
 import { formatDuration } from 'lib/dateTime'
 import styles from './SongItem.css'
 import { commonMessages } from '../../../../lib/messages'
@@ -50,7 +50,7 @@ interface SongItemProps {
   isAdmin: boolean
   numStars: number
   numMedia: number
-  filterKeywords: string[]
+  highlight?: RegExp | null
 }
 
 const SongItem = ({
@@ -72,9 +72,10 @@ const SongItem = ({
   isAdmin,
   numStars,
   numMedia,
-  filterKeywords,
+  highlight,
 }: SongItemProps) => {
-  const [isExpanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const glow = useToggleAnimation(isUpcoming, styles.animateGlow)
   const [queuePickerOpen, setQueuePickerOpen] = useState(false)
   const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number, flip: boolean } | null>(null)
   const longPressActiveRef = useRef(false)
@@ -129,6 +130,14 @@ const SongItem = ({
 
     if (ignoreMouseup) ignoreMouseup = false
     else if (!isUpcoming) onSongQueue(songId)
+  }
+  // arrow keys are the keyboard equivalent of swiping
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft') setExpanded(isAdmin)
+    else if (e.key === 'ArrowRight') setExpanded(false)
+    else if ((e.key === 'Enter' || e.key === ' ') && !isUpcoming) onSongQueue(songId)
+    else return
+    e.preventDefault()
   }
   const handleInfoClick = () => onSongInfo(songId)
   const handleEditClick = () => onSongEdit(songId)
@@ -218,34 +227,45 @@ const SongItem = ({
         isPlayed && styles.played,
         isUpcoming && styles.upcoming,
         isStarred && styles.starred,
-        isExpanded && styles.expanded,
+        expanded && styles.expanded,
         isHighlighted && styles.located,
         artist && styles.withArtist,
       )}
     >
-      <ToggleAnimation toggle={isUpcoming} className={styles.animateGlow}>
+      <div
+        className={clsx(styles.primary, glow.className)}
+        role='button'
+        tabIndex={0}
+        aria-disabled={isUpcoming}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        onAnimationEnd={glow.onAnimationEnd}
+        {...bindQueueForOthers()}
+      >
         <div className={styles.duration}>
           {formatDuration(duration)}
         </div>
-        <div onClick={handleClick} className={styles.primary} {...bindQueueForOthers()}>
-          <div className={styles.title}>
-            {filterKeywords?.length ? <Highlighter autoEscape textToHighlight={title} searchWords={filterKeywords} /> : title}
-            {isAdmin && numMedia > 1 && (
-              <i>
-                {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around a count, not prose */}
-                {' '}
-                (
-                {numMedia}
-                )
-                {/* eslint-enable formatjs/no-literal-string-in-jsx */}
-              </i>
-            )}
-            {artist && <div className={styles.artist}>{artist}</div>}
-          </div>
+        <div className={styles.title}>
+          <Highlight text={title} pattern={highlight ?? null} />
+          {isAdmin && numMedia > 1 && (
+            <i>
+              {/* eslint-disable formatjs/no-literal-string-in-jsx -- punctuation around a count, not prose */}
+              {' '}
+              (
+              {numMedia}
+              )
+              {/* eslint-enable formatjs/no-literal-string-in-jsx */}
+            </i>
+          )}
+          {artist && (
+            <div className={styles.artist}>
+              <Highlight text={artist} pattern={highlight ?? null} />
+            </div>
+          )}
         </div>
-      </ToggleAnimation>
+      </div>
 
-      <Buttons btnWidth={56} isExpanded={isExpanded}>
+      <Buttons btnWidth={56} isExpanded={expanded}>
         <ButtonStar
           className={styles.btn}
           onClick={handleStarClick}
@@ -294,4 +314,4 @@ const SongItem = ({
   )
 }
 
-export default SongItem
+export default React.memo(SongItem)

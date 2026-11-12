@@ -25,7 +25,6 @@ const AccountView = () => {
       style={{
         paddingTop: ui.headerHeight,
         paddingBottom: ui.footerHeight,
-        width: ui.contentWidth,
         height: ui.innerHeight,
       }}
     >

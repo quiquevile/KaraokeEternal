@@ -2,6 +2,7 @@ import React from 'react'
 import { useIntl } from 'react-intl'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
+import useOptimisticValue from 'lib/useOptimisticValue'
 import styles from './VolumeSlider.css'
 import { headerMessages } from '../../messages'
 
@@ -10,42 +11,36 @@ interface VolumeSliderProps {
   onVolumeChange: (value: number) => void
 }
 
-interface HandleProps {
-  'className'?: string
-  'aria-label'?: string
-}
+const VolumeSlider = ({ volume, onVolumeChange }: VolumeSliderProps) => {
+  const intl = useIntl()
+  // optimistic value, since the player-reported volume is throttled
+  const [displayVolume, setDisplayVolume] = useOptimisticValue(volume)
 
-// volume slider handle/grabber
-const makeHandle = (label: string) => (node: React.ReactElement<HandleProps>, { value }: { value: number }) => {
+  const handleChange = (val: number) => {
+    setDisplayVolume(val)
+    onVolumeChange(val)
+  }
+
   const icon = (() => {
-    if (value === 0) return 'VOLUME_OFF'
-    if (value < 0.4) return 'VOLUME_MUTE'
-    if (value < 0.7) return 'VOLUME_DOWN'
+    if (displayVolume === 0) return 'VOLUME_OFF'
+    if (displayVolume < 0.4) return 'VOLUME_MUTE'
+    if (displayVolume < 0.7) return 'VOLUME_DOWN'
     return 'VOLUME_UP'
   })()
 
-  // rc-slider passes a node (div) to which we add style and children
-  return React.cloneElement(node, {
-    'aria-label': label,
-    'className': styles.handle,
-  }, (
-    <Icon icon={icon} />
-  ))
-}
-
-const VolumeSlider = ({ volume, onVolumeChange }: VolumeSliderProps) => {
-  const intl = useIntl()
-
   return (
-    <Slider
-      className={styles.slider}
-      handle={makeHandle(intl.formatMessage(headerMessages.volume))}
-      min={0}
-      max={1}
-      onChange={onVolumeChange}
-      step={0.01}
-      value={volume}
-    />
+    <div className={styles.container}>
+      <Slider
+        aria-label={intl.formatMessage(headerMessages.volume)}
+        className={styles.slider}
+        handleComponent={<Icon icon={icon} className={styles.handleIcon} />}
+        min={0}
+        max={1}
+        onChange={handleChange}
+        step={0.01}
+        value={displayVolume}
+      />
+    </div>
   )
 }
 

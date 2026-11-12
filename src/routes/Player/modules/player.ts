@@ -1,10 +1,13 @@
 import { createAction, createReducer } from '@reduxjs/toolkit'
+import { ensureState } from 'redux-optimistic-ui'
 import { AppThunk } from 'store/store'
 import { CANCEL } from 'redux-throttle'
 import getWebGLSupport from 'lib/getWebGLSupport'
 import socket from 'lib/socket'
 import { EQ_FREQUENCIES, EQ_PRESETS, clampEqGain } from '../lib/equalizer'
 import { roomSwitched } from 'store/modules/status'
+import { pitchShifterEngine } from 'lib/pitchShifter'
+import { PITCH_SEMITONES_MAX, PITCH_SEMITONES_MIN } from 'shared/types'
 import {
   PLAYER_CMD_NEXT,
   PLAYER_CMD_OPTIONS,
@@ -27,7 +30,7 @@ export const playerUpdate = createAction<object>(PLAYER_UPDATE)
 
 // triggered by media events
 export const playerError = createAction<string>(PLAYER_ERROR)
-export const playerLoad = createAction(PLAYER_LOAD)
+export const playerLoad = createAction<{ queueId: number, pitch: number }>(PLAYER_LOAD)
 export const playerPlay = createAction(PLAYER_PLAY)
 export const playerCmdNext = createAction(PLAYER_CMD_NEXT)
 
@@ -40,7 +43,7 @@ const playerCmdOptions = createAction<{
   cdgAlpha: number
   cdgSize: number
   mp4Alpha: number
-  pitchSemitones: number
+  pitch: number
   isReplayGainEnabled: boolean
   eqEnabled: boolean
   eqGains: number[]
@@ -50,7 +53,13 @@ const playerCmdOptions = createAction<{
 // ------------------------------------
 // Actions for emitting to room
 // ------------------------------------
-export function playerStatus (status: Partial<PlayerState> = {}, deferEmit = false): AppThunk {
+/**
+ * isImmediate skips the throttle's wait, which during playback is nearly always
+ * running because position updates arrive several times a second. Cancelling the
+ * pending emit first is what makes this safe: it can only hold an older snapshot
+ * than the one sent now, and a second unthrottled path would let it go out after.
+ */
+export function playerStatus (status: Partial<PlayerState> = {}, isImmediate = false): AppThunk {
   return (dispatch, getState) => {
     const { player, playerVisualizer } = getState()
 
@@ -70,6 +79,8 @@ export function playerStatus (status: Partial<PlayerState> = {}, deferEmit = fal
       visualizer: playerVisualizer,
     }
 
+    if (isImmediate) dispatch(playerStatusCancel())
+
     // offline: keep this window's own status mirror fresh (the server
     // echo never arrives, and the header controls read the mirror), and
     // skip the emit entirely — replaying buffered status on reconnect
@@ -83,12 +94,34 @@ export function playerStatus (status: Partial<PlayerState> = {}, deferEmit = fal
       type: PLAYER_EMIT_STATUS,
       payload,
       meta: {
+        // redux-throttle keeps the options from the first action of this type,
+        // so these can't vary per call
         throttle: {
           wait: 1000,
-          leading: !deferEmit,
+          leading: true,
         },
       },
     })
+  }
+}
+
+/**
+ * Apply the stored pitch for the item being loaded: the singer's own preference
+ * for the media if they've saved one, else the media's default. Derived here
+ * rather than passed in so both callers agree, and so neither has to take the
+ * queue as a dependency (see useMediaSource).
+ */
+export function playerLoadCurrent (): AppThunk {
+  return (dispatch, getState) => {
+    const { player, queue } = getState()
+    const queueItem = ensureState(queue).entities[player.queueId]
+
+    dispatch(playerLoad({
+      queueId: player.queueId,
+      pitch: queueItem && queueItem.isOptimistic !== true
+        ? queueItem.userPitch ?? queueItem.pitch ?? 0
+        : 0,
+    }))
   }
 }
 
@@ -124,6 +157,7 @@ export interface PlayerState {
   historyJSON: string
   isAtQueueEnd: boolean
   isErrored: boolean
+  isPitchSupported: boolean
   isPlaying: boolean
   isReplayGainEnabled: boolean
   isVideoKeyingEnabled: boolean
@@ -131,8 +165,7 @@ export interface PlayerState {
   mediaType: string | null
   mp4Alpha: number
   nextUserId: number | null
-  pitchSemitones: number
-  pitchSupported: boolean | null
+  pitch: number
   position: number
   duration: number
   queueId: number
@@ -143,6 +176,7 @@ export interface PlayerState {
   _isPlayingNext: boolean
   _isReplayingQueueId: number | null
   _lastReplayTime: number
+  _pitchLoadedForQueueId: number | null
 }
 
 const initialState: PlayerState = {
@@ -155,6 +189,7 @@ const initialState: PlayerState = {
   historyJSON: '[]', // queueIds (JSON string is hack to pass selector equality check on clients)
   isAtQueueEnd: false,
   isErrored: false,
+  isPitchSupported: pitchShifterEngine.isSupported(),
   isPlaying: false,
   isReplayGainEnabled: true,
   isVideoKeyingEnabled: false,
@@ -162,8 +197,7 @@ const initialState: PlayerState = {
   mediaType: null,
   mp4Alpha: 0.5,
   nextUserId: null,
-  pitchSemitones: 0,
-  pitchSupported: null,
+  pitch: 0,
   position: 0,
   duration: 0,
   queueId: -1,
@@ -175,6 +209,7 @@ const initialState: PlayerState = {
   _isPlayingNext: false,
   _isReplayingQueueId: null,
   _lastReplayTime: 0,
+  _pitchLoadedForQueueId: null,
 }
 
 const playerReducer = createReducer(initialState, (builder) => {
@@ -187,7 +222,9 @@ const playerReducer = createReducer(initialState, (builder) => {
       cdgAlpha: typeof payload.cdgAlpha === 'number' ? payload.cdgAlpha : state.cdgAlpha,
       cdgSize: typeof payload.cdgSize === 'number' ? payload.cdgSize : state.cdgSize,
       mp4Alpha: typeof payload.mp4Alpha === 'number' ? payload.mp4Alpha : state.mp4Alpha,
-      pitchSemitones: typeof payload.pitchSemitones === 'number' ? payload.pitchSemitones : state.pitchSemitones,
+      pitch: typeof payload.pitch === 'number' && Number.isFinite(payload.pitch)
+        ? Math.max(PITCH_SEMITONES_MIN, Math.min(PITCH_SEMITONES_MAX, Math.round(payload.pitch)))
+        : state.pitch,
       isReplayGainEnabled: typeof payload.isReplayGainEnabled === 'boolean' ? payload.isReplayGainEnabled : state.isReplayGainEnabled,
       eqEnabled: typeof payload.eqEnabled === 'boolean' ? payload.eqEnabled : state.eqEnabled,
       eqGains: Array.isArray(payload.eqGains) && payload.eqGains.length === EQ_FREQUENCIES.length
@@ -215,11 +252,19 @@ const playerReducer = createReducer(initialState, (builder) => {
       isPlaying: false,
       _isFetching: false,
     }))
-    .addCase(playerLoad, state => ({
+    .addCase(playerLoad, (state, { payload }) => ({
       ...state,
       errorMessage: '',
       isErrored: false,
+      // a load fires again when mediaSrc resolves, which for media awaiting
+      // ReplayGain analysis is up to a minute after the first one. Applying the
+      // default only once per queue item means that second load can't discard a
+      // pitch set while waiting.
+      pitch: payload.queueId === state._pitchLoadedForQueueId
+        ? state.pitch
+        : (state.isPitchSupported ? payload.pitch : 0),
       _isFetching: true,
+      _pitchLoadedForQueueId: payload.queueId,
     }))
     .addCase(playerPlay, (state) => {
       state._isFetching = false

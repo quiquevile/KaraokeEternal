@@ -7,12 +7,13 @@ import VolumeToast from '../PlayerTextOverlay/VolumeToast/VolumeToast'
 import SongProgress from '../PlayerTextOverlay/SongProgress/SongProgress'
 import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
-import { playerLeave, playerError, playerLoad, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
+import { playerLeave, playerError, playerLoadCurrent, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
 import { getPlayerDisplayPrefs, isNextUpVisible, isProgressVisible } from '../../lib/playerDisplay'
 import { areKeysCached, evictMedia, mediaCacheKey, prefetchMedia, pruneExcept } from '../../lib/mediaCache'
 import { parseNumberArray } from 'lib/util'
 import socket from 'lib/socket'
+import useMediaSource from './useMediaSource'
 import type { QueueItem } from 'shared/types'
 
 const mediaKeysFor = (item: QueueItem): string[] => (
@@ -84,11 +85,19 @@ const PlayerController = (props: PlayerControllerProps) => {
     !!nextQueueItem,
   )
 
+  const { mediaSrc, rgTrackGain, rgTrackPeak } = useMediaSource({
+    mediaId: queueItem ? queueItem.mediaId : null,
+    mediaType: queueItem ? queueItem.mediaType : null,
+    rgTrackGain: queueItem ? queueItem.rgTrackGain : null,
+    rgTrackPeak: queueItem ? queueItem.rgTrackPeak : null,
+    isReplayGainEnabled: player.isReplayGainEnabled,
+  })
+
   const dispatch = useAppDispatch()
   // bumped on reconnect to restart the prefetch loop after a failure
   const [prefetchNonce, setPrefetchNonce] = useState(0)
   const handleStatus = useCallback((status?: Partial<PlayerState>) => dispatch(playerStatus(status)), [dispatch])
-  const handleLoad = () => dispatch(playerLoad())
+  const handleLoad = () => dispatch(playerLoadCurrent())
   const handlePlay = () => dispatch(playerPlay())
 
   const handleReplay = useCallback((queueId: number) => {
@@ -110,14 +119,14 @@ const PlayerController = (props: PlayerControllerProps) => {
       isVideoKeyingEnabled: nextItem.isVideoKeyingEnabled,
       mediaType: nextItem.mediaType,
       // pitch only applies to the current song: keep it on restart, reset on change
-      pitchSemitones: queueId !== player.queueId ? 0 : player.pitchSemitones,
+      pitch: queueId !== player.queueId ? 0 : player.pitch,
       position: 0,
       duration: 0,
       queueId: nextItem.queueId,
       nextUserId: null,
       _isReplayingQueueId: null,
     })
-  }, [handleStatus, player.historyJSON, player.pitchSemitones, player.queueId, queue.entities])
+  }, [handleStatus, player.historyJSON, player.pitch, player.queueId, queue.entities])
 
   // restore the room's persisted equalizer once (fresh page load): later
   // prefs arrivals (e.g. QR tweaks) must not clobber live adjustments,
@@ -160,7 +169,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         isAtQueueEnd: true,
         isPlaying: false,
         mediaType: null,
-        pitchSemitones: 0,
+        pitch: 0,
         _isPlayingNext: false,
       })
 
@@ -174,7 +183,7 @@ const PlayerController = (props: PlayerControllerProps) => {
       isPlaying: true,
       isVideoKeyingEnabled: target.isVideoKeyingEnabled,
       mediaType: target.mediaType,
-      pitchSemitones: 0,
+      pitch: 0,
       position: 0,
       duration: 0,
       queueId: target.queueId,
@@ -363,11 +372,17 @@ const PlayerController = (props: PlayerControllerProps) => {
     player.isPlaying,
     player.isReplayGainEnabled,
     player.mp4Alpha,
-    player.pitchSemitones,
+    player.pitch,
     player.volume,
     playerVisualizer,
     queueItem?.isVideoKeyingEnabled,
   ])
+
+  // emit discrete visualizer changes immediately; keyed on primitives so that
+  // dragging the sensitivity slider stays throttled
+  useEffect(() => {
+    dispatch(playerStatus({}, true))
+  }, [dispatch, playerVisualizer.presetKey, playerVisualizer.isEnabled])
 
   // on unmount
   useEffect(() => () => dispatch(playerLeave()), [dispatch])
@@ -412,6 +427,7 @@ const PlayerController = (props: PlayerControllerProps) => {
       <Player
         cdgAlpha={player.cdgAlpha}
         cdgSize={player.cdgSize}
+        isFetching={player._isFetching}
         isPlaying={player.isPlaying}
         isVisible={!!queueItem && !player.isErrored && !player.isAtQueueEnd}
         isReplayGainEnabled={player.isReplayGainEnabled}
@@ -420,6 +436,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         mediaId={queueItem ? queueItem.mediaId : null}
         mediaKey={queueItem ? queueItem.queueId : null}
         mediaReplayKey={player._lastReplayTime}
+        mediaSrc={mediaSrc}
         mediaType={queueItem ? queueItem.mediaType : null}
         mp4Alpha={player.mp4Alpha}
         onEnd={handleLoadNext}
@@ -427,11 +444,11 @@ const PlayerController = (props: PlayerControllerProps) => {
         onLoad={handleLoad}
         onPlay={handlePlay}
         onStatus={handleStatus}
-        pitchSemitones={player.pitchSemitones}
+        pitch={player.pitch}
         eqEnabled={player.eqEnabled}
         eqGains={player.eqGains}
-        rgTrackGain={queueItem ? queueItem.rgTrackGain : null}
-        rgTrackPeak={queueItem ? queueItem.rgTrackPeak : null}
+        rgTrackGain={rgTrackGain}
+        rgTrackPeak={rgTrackPeak}
         visualizer={playerVisualizer}
         volume={player.volume}
         width={props.width}
@@ -450,7 +467,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         nextUpBlinkMs={displayPrefs.nextUpBlinkMs}
       />
       <PitchToast
-        pitchSemitones={player.pitchSemitones}
+        pitchSemitones={player.pitch}
         displayMs={displayPrefs.pitchToastMs}
         replayKey={player._lastReplayTime}
         queueId={player.queueId}
@@ -480,7 +497,7 @@ const PlayerController = (props: PlayerControllerProps) => {
             artist={artist?.name}
             title={song?.title}
             singer={queueItem?.userDisplayName}
-            pitchSemitones={player.pitchSemitones}
+            pitchSemitones={player.pitch}
             progress={roomPrefs.progress}
           />
         )

@@ -7,6 +7,7 @@ import { parsePathIds } from './lib/util.js'
 import {
   PREFS_PATHS_CHANGED,
   REQUEST_SCAN,
+  REQUEST_SCAN_FILE,
   REQUEST_SCAN_STOP,
   SCANNER_WORKER_EXITED,
   WATCHER_WORKER_EVENT,
@@ -23,10 +24,15 @@ const log = initLogger('server', {
   },
 }).scope(`main[${process.pid}]`)
 
-const refs: { scanner?: childProcess.ChildProcess, watcher?: childProcess.ChildProcess } = {}
+const refs: {
+  pathScanner?: childProcess.ChildProcess
+  fileScanner?: childProcess.ChildProcess
+  watcher?: childProcess.ChildProcess
+} = {}
 const shutdownHandlers: Array<() => Promise<void>> = []
 let pauseGainScan: () => boolean = () => false
 let resumeGainScan: () => void = () => {}
+const WATCHER_PROVIDER_GRACE_MS = 3000
 let IPC
 
 process.on(PREFS_PATHS_CHANGED, startWatcher)
@@ -47,13 +53,19 @@ if (Number.isInteger(env.KES_PUID)) {
   process.setuid(env.KES_PUID)
 }
 
-// handle shutdown gracefully
-['SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2', 'uncaughtException'].forEach((event) => {
-  process.on(event, (signal) => {
-    shutdown(signal).catch((err: unknown) => {
-      log.error('shutdown failed: %s', err instanceof Error ? err.message : err)
-    })
+// graceful shutdown on normal termination signals (a clean exit)
+;['SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2'].forEach((signal) => {
+  process.on(signal, () => {
+    void shutdown(signal)
   })
+})
+
+// an uncaught exception leaves the process in an unknown state: log it, run
+// best-effort cleanup, then exit non-zero so a process manager treats it as a
+// crash (and restarts) rather than a deliberate shutdown
+process.on('uncaughtException', (err) => {
+  log.error('Uncaught exception:', err?.stack || err)
+  void shutdown('uncaughtException', 1)
 })
 
 // make sure child processes don't hang around
@@ -79,8 +91,24 @@ process.on('unhandledRejection', (reason) => {
   IPC = IPCBridge.default
 
   IPC.use({
-    [WATCHER_WORKER_EVENT]: ({ payload }) => {
-      startScanner(payload.pathId)
+    [WATCHER_WORKER_EVENT]: async ({ payload }) => {
+      const { default: ProviderFetch } = await import('./Providers/ProviderFetch.js')
+
+      // Files a provider fetched are ingested on their own, so skip the scan
+      // when they're all that changed.
+      const check = () => {
+        if (payload.files.every(file => ProviderFetch.isIngestedFile(file))) {
+          log.verbose('watcher: ignoring provider-ingested file(s) in pathId %s', payload.pathId)
+          return
+        }
+
+        startPathScanner(payload.pathId)
+      }
+
+      // An in-flight fetch's file can land before its `complete` event
+      // arrives, so wait first (not airtight if the stream lags)
+      if (ProviderFetch.hasInFlight()) setTimeout(check, WATCHER_PROVIDER_GRACE_MS)
+      else check()
     },
   })
 
@@ -89,11 +117,11 @@ process.on('unhandledRejection', (reason) => {
   pauseGainScan = GainScan.pauseGainScan
   resumeGainScan = GainScan.resumeGainScan
   const serverWorker = await import('./serverWorker.js')
-  await serverWorker.default({ env, startScanner, stopScanner, isScannerActive, shutdownHandlers })
+  await serverWorker.default({ env, startPathScanner, startFileScanner, stopPathScanner, isScannerActive, shutdownHandlers })
 
-  // scanning on startup?
-  const pathIds = parsePathIds(env.KES_SCAN)
-  if (pathIds) startScanner(pathIds)
+  // scanning on startup? ("full" with no pathIds means all paths)
+  const { pathIds, full } = parsePathIds(env.KES_SCAN)
+  if (pathIds || full) startPathScanner(pathIds || true, full)
 
   // any paths with watching enabled?
   const { default: Prefs } = await import('./Prefs/Prefs.js')
@@ -131,48 +159,81 @@ function startWatcher (paths) {
   })
 }
 
-function startScanner (pathIds) {
-  if (refs.scanner === undefined) {
+function forkScannerWorker (role: 'pathScanner' | 'fileScanner', argv: string[]): childProcess.ChildProcess {
+  return childProcess.fork(path.join(import.meta.dirname, 'scannerWorker.js'), argv, {
+    env: { KES_ENV_JSON: JSON.stringify(env), KES_CHILD_PROCESS: role },
+    gid: Number.isInteger(env.KES_PGID) ? env.KES_PGID : undefined,
+    uid: Number.isInteger(env.KES_PUID) ? env.KES_PUID : undefined,
+  })
+}
+
+function startPathScanner (pathIds: number | number[] | true, full = false): void {
+  if (refs.pathScanner === undefined) {
     // pause gain measurement while the library scan runs (resumed on exit)
     pauseGainScan()
-    log.info('Starting media scanner process')
+    log.info('Starting path scanner process')
 
-    refs.scanner = childProcess.fork(path.join(import.meta.dirname, 'scannerWorker.js'), [pathIds.toString()], {
-      env: { KES_ENV_JSON: JSON.stringify(env), KES_CHILD_PROCESS: 'scanner' },
-      gid: Number.isInteger(env.KES_PGID) ? env.KES_PGID : undefined,
-      uid: Number.isInteger(env.KES_PUID) ? env.KES_PUID : undefined,
-    })
+    const csv = pathIds === true ? 'all' : (Array.isArray(pathIds) ? pathIds.join(',') : String(pathIds))
+    refs.pathScanner = forkScannerWorker('pathScanner', full ? [`--pathIds=${csv}`, '--full'] : [`--pathIds=${csv}`])
 
-    refs.scanner.on('exit', (code, signal) => {
-      IPC.removeChild(refs.scanner)
-      delete refs.scanner
+    refs.pathScanner.on('exit', (code, signal) => {
+      IPC.removeChild(refs.pathScanner)
+      delete refs.pathScanner
 
       // resume gain measurement paused for this scan, if any
       resumeGainScan()
 
-      ;(process.emit as (event: string, payload: unknown) => boolean)(SCANNER_WORKER_EXITED, { signal, code })
-      log.info(`Media scanner process exited (${signal || code})`)
+      ;(process as NodeJS.EventEmitter).emit(SCANNER_WORKER_EXITED, { signal, code })
+      log.info(`Path scanner process exited (${signal || code})`)
     })
 
-    IPC.addChild(refs.scanner)
+    IPC.addChild(refs.pathScanner)
   } else {
-    IPC.send({ type: REQUEST_SCAN, payload: { pathIds } })
+    IPC.send({ type: REQUEST_SCAN, payload: { pathIds, full } }, refs.pathScanner.pid)
   }
 }
 
-function stopScanner () {
-  if (refs.scanner) {
-    IPC.send({ type: REQUEST_SCAN_STOP })
+function startFileScanner (
+  opts: { absPath: string, pathId: number },
+): Promise<{ mediaId: number, songId: number }> {
+  if (refs.fileScanner === undefined) {
+    log.info('Starting file scanner process')
+
+    refs.fileScanner = forkScannerWorker('fileScanner', ['--file'])
+
+    refs.fileScanner.on('exit', (code, signal) => {
+      // IPC.removeChild rejects any in-flight IPC.req promises targeting this pid.
+      IPC.removeChild(refs.fileScanner)
+      delete refs.fileScanner
+
+      log.info(`File scanner process exited (${signal || code})`)
+    })
+
+    IPC.addChild(refs.fileScanner)
+  }
+
+  return IPC.req(
+    { type: REQUEST_SCAN_FILE, payload: opts },
+    refs.fileScanner.pid,
+  ) as Promise<{ mediaId: number, songId: number }>
+}
+
+function stopPathScanner () {
+  if (refs.pathScanner) {
+    IPC.send({ type: REQUEST_SCAN_STOP }, refs.pathScanner.pid)
   }
 }
 
 function isScannerActive () {
-  return refs.scanner !== undefined
+  return refs.pathScanner !== undefined
 }
 
-async function shutdown (signal) {
-  log.info('Received %s', signal)
+async function shutdown (reason, code = 0) {
+  log.info('Shutting down (%s)', reason)
+
+  // don't let a hung cleanup handler prevent exit; force the intended code
+  setTimeout(() => process.exit(code), 10000) // eslint-disable-line n/no-process-exit
 
   await Promise.allSettled(shutdownHandlers.map(f => f()))
-  process.exit(0) // eslint-disable-line n/no-process-exit
+  process.exit(code) // eslint-disable-line n/no-process-exit
 }

@@ -1,13 +1,16 @@
 import { createAction, createAsyncThunk, createReducer } from '@reduxjs/toolkit'
 import { RootState } from 'store/store'
-import type { Path, Role } from 'shared/types'
+import type { Path, Provider, ProviderStatus, Role } from 'shared/types'
 import {
   PREFS_RECEIVE,
   PREFS_REQUEST,
   PREFS_SET,
   PREFS_PATH_UPDATE,
   PREFS_PATH_SET_PRIORITY,
+  PREFS_PROVIDER_SET_PRIORITY,
+  PREFS_PROVIDER_UPDATE,
   PREFS_PUSH,
+  PROVIDER_STATUS_PUSH,
   PREFS_REQ_SCANNER_START,
   PREFS_REQ_SCANNER_STOP,
   PREFS_REQ_GAIN_START,
@@ -26,7 +29,9 @@ const logout = createAction(LOGOUT)
 export const setPref = createAction<{ key: string, data: unknown }>(PREFS_SET)
 export const receivePrefs = createAction<object>(PREFS_RECEIVE)
 export const setPathPriority = createAction<number[]>(PREFS_PATH_SET_PRIORITY)
+export const setProviderPriority = createAction<number[]>(PREFS_PROVIDER_SET_PRIORITY)
 const prefsPush = createAction<PrefsState>(PREFS_PUSH)
+const providerStatusPush = createAction<Record<number, ProviderStatus>>(PROVIDER_STATUS_PUSH)
 const scannerWorkerStatus = createAction<{ isScanning: boolean, pct: number, text: string, job?: string }>(SCANNER_WORKER_STATUS)
 
 export const setPathPrefs = createAsyncThunk(
@@ -39,6 +44,23 @@ export const setPathPrefs = createAsyncThunk(
     data: FormData
   }, thunkAPI) => {
     const response = await api.put(`/path/${pathId}`, {
+      body: data,
+    })
+
+    thunkAPI.dispatch(receivePrefs(response))
+  },
+)
+
+export const setProviderPrefs = createAsyncThunk(
+  PREFS_PROVIDER_UPDATE,
+  async ({
+    providerId,
+    data,
+  }: {
+    providerId: number
+    data: object
+  }, thunkAPI) => {
+    const response = await api.put(`/provider/${providerId}`, {
       body: data,
     })
 
@@ -62,17 +84,17 @@ export const fetchPrefs = createAsyncThunk<object, void, { state: RootState }>(
 
 export const requestScan = createAsyncThunk(
   PREFS_REQ_SCANNER_START,
-  async (pathId: number) => await api.get(`/path/${pathId}/scan`),
-)
-
-export const requestScanAll = createAsyncThunk(
-  PREFS_REQ_SCANNER_START,
-  async () => await api.get('/paths/scan'),
+  // scans all paths if pathId is omitted
+  async (pathId: number | void) => {
+    await api.post(typeof pathId === 'number' ? `/path/${pathId}/scan` : '/paths/scan')
+  },
 )
 
 export const requestScanStop = createAsyncThunk(
   PREFS_REQ_SCANNER_STOP,
-  async () => await api.get('/paths/scan/stop'),
+  async () => {
+    await api.post('/paths/scan/stop')
+  },
 )
 
 export const requestGainScan = createAsyncThunk(
@@ -134,10 +156,17 @@ export const saveEqPreset = createAsyncThunk(
 export interface PrefsState {
   isFirstRun?: boolean
   isScanning: boolean
+  isReplayGainEnabled: boolean
   paths: {
     result: number[]
     entities: Record<number, Path>
   }
+  providers: {
+    result: number[]
+    entities: Record<number, Provider>
+  }
+  // runtime status of enabled providers (admins only)
+  providerStatus: Record<number, ProviderStatus>
   roles: {
     result: number[]
     entities: Record<number, Role>
@@ -162,10 +191,16 @@ export interface PlayerDisplayPrefs {
 
 const initialState: PrefsState = {
   isScanning: false,
+  isReplayGainEnabled: false,
   paths: {
     result: [],
     entities: {},
   },
+  providers: {
+    result: [],
+    entities: {},
+  },
+  providerStatus: {},
   roles: {
     result: [],
     entities: {},
@@ -188,6 +223,10 @@ const prefsReducer = createReducer(initialState, (builder) => {
     .addCase(prefsPush, (state, { payload }) => ({
       ...state,
       ...payload,
+    }))
+    .addCase(providerStatusPush, (state, { payload }) => ({
+      ...state,
+      providerStatus: payload,
     }))
     .addCase(scannerWorkerStatus, (state, { payload }) => ({
       ...state,

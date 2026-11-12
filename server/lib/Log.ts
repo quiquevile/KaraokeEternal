@@ -1,5 +1,6 @@
 import log from 'electron-log/node.js' // eslint-disable-line n/no-missing-import
-const LEVELS = [false, 'error', 'warn', 'info', 'verbose', 'debug']
+type LevelOption = typeof log.transports.console.level
+const LEVELS: LevelOption[] = [false, 'error', 'warn', 'info', 'verbose', 'debug']
 
 class Logger {
   static #instance

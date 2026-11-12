@@ -31,4 +31,10 @@ export const commonMessages: Record<string, MessageDescriptor> = {
   createRoom: { id: 'common.createRoom', defaultMessage: 'Create Room' },
   createUser: { id: 'common.createUser', defaultMessage: 'Create User' },
   users: { id: 'common.users', defaultMessage: 'Users' },
+  dragToReorder: { id: 'common.dragToReorder', defaultMessage: 'Drag to Reorder' },
+  errorInfo: { id: 'common.errorInfo', defaultMessage: 'Error Info' },
+  info: { id: 'common.info', defaultMessage: 'Info' },
+  providerIdLabel: { id: 'common.providerIdLabel', defaultMessage: 'Provider ID: ' },
+  retry: { id: 'common.retry', defaultMessage: 'Retry' },
+  statusLabel: { id: 'common.statusLabel', defaultMessage: 'Status: ' },
 }

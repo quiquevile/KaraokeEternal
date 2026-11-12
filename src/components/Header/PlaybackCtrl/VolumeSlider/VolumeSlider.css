@@ -1,23 +1,17 @@
+.container {
+  display: flex;
+  flex: 0 1 360px;
+  min-width: 0;
+  margin: 0 38px 0 30px;
+}
+
 .slider {
   flex: 1;
   min-width: 0;
   width: 100%;
-  margin: 0 20px 0 10px;
 }
 
-.handle {
-  cursor: pointer;
+.handleIcon {
   color: var(--transport-btn-bg-color);
   filter: var(--transport-btn-filter);
-  position: absolute;
-  touch-action: pan-x;
-  outline: none;
-
-  &:focus-visible {
-    outline: var(--focus-outline);
-  }
-
-  svg {
-    height: var(--icon-size-xl);
-  }
 }

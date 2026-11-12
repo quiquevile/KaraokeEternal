@@ -2,13 +2,14 @@ import getLogger from '../lib/Log.js'
 import { sockLocale, t } from '../lib/locale.js'
 import Library from '../Library/Library.js'
 import Prefs from './Prefs.js'
-import { LIBRARY_PUSH, PREFS_PATH_SET_PRIORITY, PREFS_PUSH, PREFS_SET, _ERROR } from '../../shared/actionTypes.js'
+import pushPrefs from './pushPrefs.js'
+import { LIBRARY_PUSH, PREFS_PATH_SET_PRIORITY, PREFS_PROVIDER_SET_PRIORITY, PREFS_SET, _ERROR } from '../../shared/actionTypes.js'
 const log = getLogger(`server[${process.pid}]`)
 
 const ACTION_HANDLERS = {
   [PREFS_SET]: (sock, { payload }, acknowledge) => {
     if (!sock.user.isAdmin) {
-      acknowledge({
+      return acknowledge({
         type: PREFS_SET + _ERROR,
         error: t(sockLocale(sock), 'server.common.unauthorized', 'Unauthorized'),
       })
@@ -19,11 +20,11 @@ const ACTION_HANDLERS = {
     Prefs.set(payload.key, payload.data)
     log.info('%s (%s) set pref %s = %s', sock.user.name, sock.id, payload.key, payload.data)
 
-    pushPrefs(sock)
+    pushPrefs(sock.server)
   },
   [PREFS_PATH_SET_PRIORITY]: (sock, { payload }, acknowledge) => {
     if (!sock.user.isAdmin) {
-      acknowledge({
+      return acknowledge({
         type: PREFS_PATH_SET_PRIORITY + _ERROR,
         error: t(sockLocale(sock), 'server.common.unauthorized', 'Unauthorized'),
       })
@@ -34,7 +35,7 @@ const ACTION_HANDLERS = {
     Prefs.setPathPriority(payload)
     log.info('%s re-prioritized media folders; pushing library to all', sock.user.name)
 
-    pushPrefs(sock)
+    pushPrefs(sock.server)
 
     // invalidate cache
     Library.cache.version = null
@@ -44,26 +45,19 @@ const ACTION_HANDLERS = {
       payload: Library.get(),
     })
   },
-}
-
-// helper to push prefs: full prefs to admins, roles plus the player
-// display settings (overlay timings every player screen needs) to the rest
-const pushPrefs = (sock) => {
-  const prefs = Prefs.get() as unknown as { roles: unknown, playerDisplay?: unknown }
-
-  for (const s of sock.server.sockets.sockets.values()) {
-    if (s.user && s.user.isAdmin) {
-      s.emit('action', {
-        type: PREFS_PUSH,
-        payload: prefs,
-      })
-    } else if (s.user) {
-      s.emit('action', {
-        type: PREFS_PUSH,
-        payload: { roles: prefs.roles, playerDisplay: prefs.playerDisplay },
+  [PREFS_PROVIDER_SET_PRIORITY]: (sock, { payload }, acknowledge) => {
+    if (!sock.user.isAdmin) {
+      return acknowledge({
+        type: PREFS_PROVIDER_SET_PRIORITY + _ERROR,
+        error: 'Unauthorized',
       })
     }
-  }
+
+    Prefs.setProviderPriority(payload)
+    log.info('%s re-prioritized providers', sock.user.name)
+
+    pushPrefs(sock.server)
+  },
 }
 
 export default ACTION_HANDLERS

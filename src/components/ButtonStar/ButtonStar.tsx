@@ -1,9 +1,11 @@
 import React from 'react'
 import clsx from 'clsx'
+import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
-import ToggleAnimation from 'components/ToggleAnimation/ToggleAnimation'
+import useToggleAnimation from 'lib/useToggleAnimation'
 import styles from './ButtonStar.css'
+import { sharedMessages } from '../messages'
 
 interface ButtonStarProps {
   className?: string
@@ -18,14 +20,17 @@ const ButtonStar = ({
   count,
   isStarred,
 }: ButtonStarProps) => {
+  const intl = useIntl()
+  const starAnimation = useToggleAnimation(isStarred, styles.animateStar)
+
   return (
     <Button
       onClick={onClick}
       className={clsx(styles.container, isStarred && styles.starred, className)}
+      aria-label={intl.formatMessage(sharedMessages.star)}
+      aria-pressed={isStarred}
     >
-      <ToggleAnimation toggle={isStarred} className={styles.animateStar}>
-        <Icon icon='STAR_FULL' />
-      </ToggleAnimation>
+      <Icon icon='STAR_FULL' className={starAnimation.className} onAnimationEnd={starAnimation.onAnimationEnd} />
       <div className={styles.starCount}>
         {count || ''}
       </div>

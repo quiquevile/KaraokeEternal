@@ -10,8 +10,7 @@ import {
 } from 'store/modules/status'
 import { hasPermission } from 'store/modules/user'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
-import { clampPitchSemitones } from 'routes/Player/lib/pitchShift'
-import { nextProgressState } from 'routes/Player/lib/playerDisplay'
+import { clampPitch, nextProgressState } from 'routes/Player/lib/playerDisplay'
 import screenfull from 'screenfull'
 
 const VOLUME_STEP = 0.05
@@ -64,9 +63,9 @@ const usePlaybackShortcuts = () => {
         case '=':
         case 'Add':
           e.preventDefault()
-          if (status.pitchSupported !== false) {
+          if (status.isPitchSupported !== false) {
             dispatch(requestOptions({
-              pitchSemitones: clampPitchSemitones(status.pitchSemitones + 1),
+              pitch: clampPitch(status.pitch + 1),
             }))
           }
           break
@@ -74,16 +73,16 @@ const usePlaybackShortcuts = () => {
         case '_':
         case 'Subtract':
           e.preventDefault()
-          if (status.pitchSupported !== false) {
+          if (status.isPitchSupported !== false) {
             dispatch(requestOptions({
-              pitchSemitones: clampPitchSemitones(status.pitchSemitones - 1),
+              pitch: clampPitch(status.pitch - 1),
             }))
           }
           break
         case '0':
           e.preventDefault()
-          if (status.pitchSupported !== false) {
-            dispatch(requestOptions({ pitchSemitones: 0 }))
+          if (status.isPitchSupported !== false) {
+            dispatch(requestOptions({ pitch: 0 }))
           }
           break
         case 'ArrowUp':

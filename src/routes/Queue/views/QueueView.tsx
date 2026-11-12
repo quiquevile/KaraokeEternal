@@ -5,6 +5,7 @@ import { ensureState } from 'redux-optimistic-ui'
 import { Link } from 'react-router'
 import getRoundRobinQueue from '../selectors/getRoundRobinQueue'
 import getVisibleQueue from '../selectors/getVisibleQueue'
+import getPendingQueue from '../selectors/getPendingQueue'
 import QueueList from '../components/QueueList/QueueList'
 import Spinner from 'components/Spinner/Spinner'
 import TextOverlay from 'components/TextOverlay/TextOverlay'
@@ -24,6 +25,7 @@ const QueueView = () => {
   // only the filtered list renders
   const queue = useAppSelector(getRoundRobinQueue)
   const visibleQueue = useAppSelector(getVisibleQueue)
+  const pending = useAppSelector(getPendingQueue)
   const queueId = useAppSelector(state => state.status.queueId)
   const containerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
@@ -61,7 +63,7 @@ const QueueView = () => {
 
       {isLoading && <Spinner />}
 
-      {!isLoading && queue.result.length === 0 && (
+      {!isLoading && queue.result.length === 0 && pending.length === 0 && (
         <TextOverlay>
           <h1><FormattedMessage {...queueMessages.empty} /></h1>
           <p>

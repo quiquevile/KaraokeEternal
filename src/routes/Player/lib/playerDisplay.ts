@@ -1,5 +1,5 @@
 import type { PlayerDisplayPrefs } from 'store/modules/prefs'
-import type { IRoomPrefs } from 'shared/types'
+import { PITCH_SEMITONES_MAX, PITCH_SEMITONES_MIN, type IRoomPrefs } from 'shared/types'
 
 export const PLAYER_DISPLAY_DEFAULTS: PlayerDisplayPrefs = {
   nextUpLeadMs: 30000,
@@ -19,6 +19,12 @@ function asNonNegativeInt (value: unknown, fallback: number): number {
 
 export function formatPitch (pitchSemitones: number): string {
   return `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`
+}
+
+export function clampPitch (value: number): number {
+  if (!Number.isFinite(value)) return 0
+
+  return Math.min(PITCH_SEMITONES_MAX, Math.max(PITCH_SEMITONES_MIN, Math.round(value)))
 }
 
 export function getPlayerDisplayPrefs (stored?: Partial<PlayerDisplayPrefs> | null): PlayerDisplayPrefs {

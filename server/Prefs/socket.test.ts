@@ -5,6 +5,7 @@ vi.mock('./Prefs.js', () => ({
     set: vi.fn(),
     setPathPriority: vi.fn(),
     get: vi.fn(() => ({})),
+    getSanitizedProviders: vi.fn(() => ({ result: [], entities: {} })),
   },
 }))
 
@@ -55,22 +56,26 @@ describe('Prefs socket auth', () => {
   })
 
   it('pushes full prefs to admins and display prefs to everyone else', () => {
-    const adminEmit = vi.fn()
-    const userEmit = vi.fn()
     const ack = vi.fn()
     const sock = makeSock({ userId: 1, isAdmin: true }, new Map([
-      ['s0', { user: { userId: 1, isAdmin: true }, emit: adminEmit }],
-      ['s1', { user: { userId: 2, isAdmin: false }, emit: userEmit }],
+      ['s0', { id: 's0', user: { userId: 1, isAdmin: true } }],
+      ['s1', { id: 's1', user: { userId: 2, isAdmin: false } }],
     ]))
 
     handlers[PREFS_SET](sock, { payload: { key: 'a', data: 'b' } }, ack)
 
     expect(Prefs.set).toHaveBeenCalledWith('a', 'b')
-    expect(adminEmit).toHaveBeenCalledTimes(1)
-    expect(adminEmit).toHaveBeenCalledWith('action', expect.objectContaining({ payload: {} }))
-    expect(userEmit).toHaveBeenCalledTimes(1)
-    expect(userEmit).toHaveBeenCalledWith('action', expect.objectContaining({
-      payload: { roles: undefined, playerDisplay: undefined },
+
+    // one room emit per group: full prefs for admins, the shared subset
+    // (roles, display timings, sanitized providers) for everyone else
+    expect(sock.server.to).toHaveBeenCalledTimes(2)
+    expect(sock.server.to).toHaveBeenNthCalledWith(1, ['s0'])
+    expect(sock.server.to).toHaveBeenNthCalledWith(2, ['s1'])
+
+    const [adminRoom, userRoom] = sock.server.to.mock.results.map(result => result.value)
+    expect(adminRoom.emit).toHaveBeenCalledWith('action', expect.objectContaining({ payload: {} }))
+    expect(userRoom.emit).toHaveBeenCalledWith('action', expect.objectContaining({
+      payload: { roles: undefined, playerDisplay: undefined, providers: { result: [], entities: {} } },
     }))
     expect(sock.server.emit).not.toHaveBeenCalled()
   })

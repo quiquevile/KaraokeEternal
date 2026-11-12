@@ -18,6 +18,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
   - MP3+G (MP3 with CDG lyrics; including zipped)
   - MP4 videos
   - Music-synced visualizations (with automatic lyrics background removal)
+- Pitch shifting and automatic loudness normalization
 - Fast, modern mobile browser app designed for "karaoke conditions"
 - Easy joining with QR codes and guest accounts
 - Multiple simultaneous rooms/queues (optionally password-protected)
@@ -49,6 +50,6 @@ See the <a href="{{% baseurl %}}repo">GitHub project page</a>{{% icon-external %
 
 ## Acknowledgements
 
-- [David Zukowski](https://zuko.me){{% icon-external %}}: react-redux-starter-kit, which this project began as a fork of (all contributors up until it was detached to its own project are listed on the Contributors page)
-- [Luke Tucker](https://github.com/ltucker/){{% icon-external %}}: the original JavaScript CD+Graphics implementation
-- Mic favicon by [Freepik](https://www.freepik.com/){{% icon-external %}} from [flaticon.com](https://www.flaticon.com/){{% icon-external %}}
+- [David Zukowski](https://zuko.me): react-redux-starter-kit, which this project began as a fork of (all contributors up until it was detached to its own project are listed on the Contributors page)
+- [Luke Tucker](https://github.com/ltucker/): the original JavaScript CD+Graphics implementation
+- Mic favicon by [Freepik](https://www.freepik.com/) from [flaticon.com](https://www.flaticon.com/)

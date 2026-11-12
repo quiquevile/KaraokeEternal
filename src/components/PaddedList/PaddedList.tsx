@@ -3,7 +3,9 @@ import { List, type RowComponentProps, type ListImperativeAPI } from 'react-wind
 import styles from './PaddedList.css'
 
 interface PaddedListProps {
+  defaultScrollOffset?: number
   numRows: number
+  onRef?(ref: ListImperativeAPI | null): void
   onRowsRendered?: (visibleRows: {
     startIndex: number
     stopIndex: number
@@ -11,7 +13,7 @@ interface PaddedListProps {
       startIndex: number
       stopIndex: number
     }) => void
-  onRef?(ref: ListImperativeAPI | null): void
+  onScroll?: React.UIEventHandler<HTMLDivElement>
   paddingTop: number
   paddingRight?: number
   paddingBottom: number
@@ -22,14 +24,58 @@ interface PaddedListProps {
   height: number
 }
 
+interface PaddedRowProps {
+  padNumRows: number
+  padPaddingRight?: number
+  padRowComponent: React.ComponentType<RowComponentProps>
+  [key: string]: unknown
+}
+
+// module scope so its identity is stable across PaddedList renders; a changing
+// rowComponent identity makes React remount every row (and reload row images)
+const PaddedRowComponent = ({
+  index,
+  style,
+  ariaAttributes,
+  padNumRows,
+  padPaddingRight,
+  padRowComponent: RowComponent,
+  ...rest
+}: RowComponentProps<PaddedRowProps>) => {
+  // top & bottom spacer
+  if (index === 0 || index === padNumRows + 1) {
+    return (
+      <div style={style} />
+    )
+  }
+
+  // inset the row itself (not just its content) so row backgrounds are contained too,
+  // while the scroll container stays full-width so wheeling over the gutter still scrolls
+  return (
+    <RowComponent
+      index={index - 1}
+      style={{
+        ...style,
+        left: 'var(--content-gutter)',
+        width: 'calc(100% - 2 * var(--content-gutter))',
+        paddingRight: padPaddingRight,
+      }}
+      ariaAttributes={ariaAttributes}
+      {...rest}
+    />
+  )
+}
+
 const PaddedList = ({
+  defaultScrollOffset,
   numRows,
-  onRowsRendered,
   onRef,
+  onRowsRendered,
+  onScroll,
   paddingTop,
   paddingRight,
   paddingBottom,
-  rowComponent: RowComponent,
+  rowComponent,
   rowHeight,
   rowProps = {},
   width,
@@ -37,17 +83,6 @@ const PaddedList = ({
 }: PaddedListProps) => {
   const handleListRef = (ref: ListImperativeAPI | null) => {
     if (onRef) onRef(ref)
-  }
-
-  const PaddedRowComponent = ({ index, style, ariaAttributes, ...rest }: RowComponentProps) => {
-    // top & bottom spacer
-    if (index === 0 || index === numRows + 1) {
-      return (
-        <div key={index === 0 ? 'top' : 'bottom'} style={style} />
-      )
-    }
-
-    return <RowComponent index={--index} style={{ ...style, paddingRight }} ariaAttributes={ariaAttributes} {...rest} />
   }
 
   const getRowHeight = (index: number) => {
@@ -60,15 +95,24 @@ const PaddedList = ({
 
   return (
     <List
-      rowProps={rowProps}
+      rowProps={{
+        ...rowProps,
+        padNumRows: numRows,
+        padPaddingRight: paddingRight,
+        padRowComponent: rowComponent,
+      }}
       rowComponent={PaddedRowComponent}
       rowCount={numRows + 2} // top & bottom spacer
       rowHeight={getRowHeight}
+      defaultScrollOffset={defaultScrollOffset}
       onRowsRendered={onRowsRendered}
+      onScroll={onScroll}
       overscanCount={10}
       listRef={handleListRef}
       className={styles.container}
-      style={{ width, height }}
+      // scrollToRow() aligns within scroll-padding, so rows land below the
+      // header/footer that overlay the spacers regardless of their heights
+      style={{ width, height, scrollPaddingTop: paddingTop, scrollPaddingBottom: paddingBottom }}
     />
   )
 }

@@ -49,16 +49,39 @@ const PathInfo = ({ onClose, onRemove, onUpdate, path }: PathInfoProps) => {
         </p>
 
         <form className={styles.form}>
-          <InputCheckbox
-            label={intl.formatMessage(accountMessages.watch)}
-            defaultChecked={path?.prefs?.isWatchingEnabled}
-            onChange={event => handleChange({ isWatchingEnabled: event.currentTarget.checked })}
-          />
-          <InputCheckbox
-            label={intl.formatMessage(accountMessages.keying)}
-            defaultChecked={path?.prefs?.isVideoKeyingEnabled}
-            onChange={event => handleChange({ isVideoKeyingEnabled: event.currentTarget.checked })}
-          />
+          <div>
+            <InputCheckbox
+              label={intl.formatMessage(accountMessages.watch)}
+              defaultChecked={path?.prefs?.isWatchingEnabled}
+              onChange={event => handleChange({ isWatchingEnabled: event.currentTarget.checked })}
+              aria-describedby='isWatchingEnabled-desc'
+            />
+            <p id='isWatchingEnabled-desc' className={styles.description}>
+              <FormattedMessage {...accountMessages.watchDesc} />
+            </p>
+          </div>
+          <div>
+            <InputCheckbox
+              label={intl.formatMessage(accountMessages.scanFull)}
+              defaultChecked={path?.prefs?.scanFull}
+              onChange={event => handleChange({ scanFull: event.currentTarget.checked })}
+              aria-describedby='scanFull-desc'
+            />
+            <p id='scanFull-desc' className={styles.description}>
+              <FormattedMessage {...accountMessages.scanFullDesc} />
+            </p>
+          </div>
+          <div>
+            <InputCheckbox
+              label={intl.formatMessage(accountMessages.keying)}
+              defaultChecked={path?.prefs?.isVideoKeyingEnabled}
+              onChange={event => handleChange({ isVideoKeyingEnabled: event.currentTarget.checked })}
+              aria-describedby='isVideoKeyingEnabled-desc'
+            />
+            <p id='isVideoKeyingEnabled-desc' className={styles.description}>
+              <FormattedMessage {...accountMessages.keyingDesc} />
+            </p>
+          </div>
         </form>
       </div>
     </Modal>

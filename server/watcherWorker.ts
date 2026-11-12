@@ -3,6 +3,7 @@ import pathLib from 'path'
 import { initLogger } from './lib/Log.js'
 import accumulatedThrottle from './lib/accumulatedThrottle.js'
 import fileTypes from './Media/fileTypes.js'
+import { CONFIG_FILENAME } from './Scanner/scanUtils.js'
 import {
   WATCHER_WORKER_EVENT,
   WATCHER_WORKER_WATCH,
@@ -46,14 +47,17 @@ const searchExts = Object.keys(fileTypes).filter(ext => fileTypes[ext].scan !== 
         log.info('  => %s', entities[pathId].path)
 
         const cb = accumulatedThrottle((events) => {
-          const event = events.find(([, filename]) => searchExts.includes(pathLib.extname(filename).toLowerCase()))
-          if (!event) return
+          const matched = events.filter(([, filename]) => searchExts.includes(pathLib.extname(filename).toLowerCase())
+            || pathLib.basename(filename).toLowerCase() === CONFIG_FILENAME)
+          if (!matched.length) return
 
-          log.info('event in path: %s (filename=%s) (type=%s)', entities[pathId].path, event[1], event[0])
+          log.info('event in path: %s (filename=%s) (type=%s)', entities[pathId].path, matched[0][1], matched[0][0])
+
+          const files = [...new Set(matched.map(([, filename]) => pathLib.join(entities[pathId].path, filename)))]
 
           IPC.send({
             type: WATCHER_WORKER_EVENT,
-            payload: { pathId },
+            payload: { pathId, files },
           })
         }, 1000)
 

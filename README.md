@@ -14,6 +14,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
   - MP3+G (MP3 with CDG lyrics; including zipped)
   - MP4 videos
   - Music-synced visualizations (with automatic lyrics background removal)
+- Pitch shifting and automatic loudness normalization
 - Fast, modern mobile browser app designed for "karaoke conditions"
 - Easy joining with QR codes and guest accounts
 - Multiple simultaneous rooms/queues (optionally password-protected)
@@ -37,3 +38,19 @@ Karaoke Eternal basically has 3 parts, plus administration in this fork. See [Ge
 - **[App:](docs/app.md)** Fast, modern mobile web app designed for "karaoke conditions".
 - **[Player:](docs/app.md#player)** Just another part of the app, but meant to run fullscreen on the system handling audio/video for a [room](docs/administration.md#rooms).
 - **[Administration:](docs/administration.md)** Rooms, users and capabilities, library management, YouTube downloads and everything else that needs an admin account.
+
+## Installation
+
+There are several [installation methods](https://www.karaoke-eternal.com/docs/karaoke-eternal-server/#installation) available for Karaoke Eternal Server.
+
+## Discord & Support
+
+Join the [Karaoke Eternal Discord Server](https://discord.gg/PgqVtFq) for general support and development chat, or just to say hi!
+
+## Provider Development
+
+Providers are an official way to extend Karaoke Eternal. Check the [currently available providers](https://github.com/bhj/KaraokeEternal-Providers), including reference implementations, and join the `#dev` channel of the [Discord Server](https://discord.gg/PgqVtFq).
+
+## Contributing
+
+Contributions are welcome! The project's scope is limited to ensure success, so please join the `#dev` channel of the [Discord Server](https://discord.gg/PgqVtFq) before embarking on major features.

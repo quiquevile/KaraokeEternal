@@ -15,7 +15,6 @@ import {
 import { getInitialLocale, persistLocale, type LocaleCode } from 'lib/intl'
 import { AppThunk, RootState } from 'store/store'
 
-const MAX_CONTENT_WIDTH = 768
 let scrollLockTimer: ReturnType<typeof setTimeout> | null
 
 // ------------------------------------
@@ -94,7 +93,6 @@ export interface UIState {
   headerHeight: number
   innerWidth: number
   innerHeight: number
-  contentWidth: number
   locale: LocaleCode
   filterStr: string
   filterStarred: boolean
@@ -108,7 +106,6 @@ const initialState: UIState = {
   headerHeight: 0,
   innerWidth: window.innerWidth,
   innerHeight: window.innerHeight,
-  contentWidth: Math.min(window.innerWidth, MAX_CONTENT_WIDTH),
   locale: getInitialLocale(),
   filterStr: '',
   filterStarred: false,
@@ -133,7 +130,6 @@ const uiReducer = createReducer(initialState, (builder) => {
     .addCase(windowResize, (state, { payload }) => {
       state.innerWidth = payload.innerWidth
       state.innerHeight = payload.innerHeight
-      state.contentWidth = Math.min(payload.innerWidth, MAX_CONTENT_WIDTH)
     })
     .addCase(setLocale, (state, { payload }) => {
       state.locale = payload

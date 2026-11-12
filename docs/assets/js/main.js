@@ -21,6 +21,22 @@
       toggleNav()
     }
 
+    // Logo power-on: one random tube flickers on first; the rest power on (staggered) once it's lit
+    const BLINK_DELAY = 150
+    const BLINK_DURATION = 600
+    const POWER_ON_SPREAD = 200
+    const tubes = document.documentElement.classList.contains('logo-lit') ? [] : document.querySelectorAll('.logo-tube')
+    const blinker = Math.floor(Math.random() * tubes.length)
+
+    tubes.forEach((el, i) => {
+      el.classList.toggle('logo-blinker', i === blinker)
+      el.style.setProperty('--delay', `${i === blinker
+        ? BLINK_DELAY
+        : BLINK_DELAY + BLINK_DURATION + Math.random() * POWER_ON_SPREAD}ms`)
+    })
+
+    document.querySelector('.logo')?.style.setProperty('--blink-duration', `${BLINK_DURATION}ms`)
+
     // Wait for font to load before showing logo effects
     if (document.fonts) {
       document.fonts.load('1em Beon').then(() => {
@@ -48,16 +64,24 @@
     openFaq()
     window.addEventListener('hashchange', openFaq)
 
-    // Dismiss screenshot overlay with Escape key
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && window.location.hash) {
-        try {
-          const el = document.querySelector(window.location.hash)
-          if (el && el.classList.contains('overlay')) {
-            window.location.hash = "_"
-          }
-        } catch (err) { /* ignore invalid selectors */ }
-      }
-    })
+    // Open image links in a modal lightbox (Escape closes natively)
+    const lightbox = document.getElementById('lightbox')
+
+    if (lightbox && typeof lightbox.showModal === 'function') {
+      const img = lightbox.querySelector('img')
+
+      document.querySelectorAll('a.lightbox-link').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault()
+          const thumb = link.querySelector('img')
+          img.src = link.href
+          img.alt = thumb ? thumb.alt : ''
+          lightbox.showModal()
+        })
+      })
+
+      lightbox.addEventListener('click', () => lightbox.close())
+      lightbox.addEventListener('close', () => img.removeAttribute('src'))
+    }
   })
 })();

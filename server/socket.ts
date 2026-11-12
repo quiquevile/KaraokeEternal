@@ -3,6 +3,7 @@ import jsonWebToken from 'jsonwebtoken'
 import parseCookie from './lib/parseCookie.js'
 import Library from './Library/Library.js'
 import LibrarySocket from './Library/socket.js'
+import MediaSocket from './Media/socket.js'
 import PlayerSocket from './Player/socket.js'
 import Prefs from './Prefs/Prefs.js'
 import PrefsSocket from './Prefs/socket.js'
@@ -10,6 +11,10 @@ import Rooms from './Rooms/Rooms.js'
 import RoomsSocket from './Rooms/socket.js'
 import Queue from './Queue/Queue.js'
 import QueueSocket from './Queue/socket.js'
+import ProvidersSocket, { disposeProviderSearch } from './Providers/socket.js'
+import ProviderFetch from './Providers/ProviderFetch.js'
+import ProviderStatus from './Providers/ProviderStatus.js'
+import type { Prefs as PrefsType } from '../shared/types.js'
 
 import {
   LIBRARY_PUSH,
@@ -20,6 +25,8 @@ import {
   PLAYER_STATUS,
   PLAYER_LEAVE,
   PREFS_PUSH,
+  PROVIDER_FETCH_STATUS,
+  PROVIDER_STATUS_PUSH,
   SOCKET_AUTH_ERROR,
   _ERROR,
 } from '../shared/actionTypes.js'
@@ -27,26 +34,32 @@ const log = getLogger('server')
 
 const handlers = {
   ...LibrarySocket,
+  ...MediaSocket,
   ...QueueSocket,
   ...PlayerSocket,
   ...PrefsSocket,
   ...RoomsSocket,
+  ...ProvidersSocket,
 }
 
 const { verify: jwtVerify } = jsonWebToken
 
-export default function (io, jwtKey) {
+export default function (io, jwtKey, getClientIp) {
   io.on('connection', (sock) => {
+    const clientIp = getClientIp(sock)
     const { keToken } = parseCookie(sock.handshake.headers.cookie)
     const clientLibraryVersion = parseInt(sock.handshake.query.library, 10)
     const clientStarsVersion = parseInt(sock.handshake.query.stars, 10)
 
     // authenticate the JWT sent via cookie in http handshake
     try {
-      sock.user = jwtVerify(keToken, jwtKey)
+      const decoded = jwtVerify(keToken, jwtKey) as { exp?: number }
+      // Reject tokens without an expiry (e.g. issued before JWT expiry existed).
+      if (typeof decoded.exp !== 'number') throw new Error('token missing exp')
+      sock.user = decoded
 
       // success
-      log.verbose('%s (%s) connected from %s', sock.user.name, sock.id, sock.handshake.address)
+      log.verbose('%s (%s) connected from %s', sock.user.name, sock.id, clientIp)
     } catch (err) {
       io.to(sock.id).emit('action', {
         type: SOCKET_AUTH_ERROR,
@@ -54,7 +67,7 @@ export default function (io, jwtKey) {
 
       sock.user = null
       sock.disconnect()
-      log.verbose('disconnected %s (%s)', sock.handshake.address, err.message)
+      log.verbose('disconnected %s (%s)', clientIp, err.message)
       return
     }
 
@@ -64,12 +77,15 @@ export default function (io, jwtKey) {
         sock.user.name, sock.id, reason,
       )
 
+      disposeProviderSearch(sock)
+
       if (typeof sock.user.roomId !== 'number') return
 
       // beyond this point assumes there is a room
 
       log.verbose('%s (%s) left room %s (%s; %s in room)',
-        sock.user.name, sock.id, sock.user.roomId, reason, sock.adapter.rooms.size,
+        sock.user.name, sock.id, sock.user.roomId, reason,
+        sock.adapter.rooms.get(Rooms.prefix(sock.user.roomId))?.size ?? 0,
       )
 
       // any players left in room?
@@ -108,79 +124,105 @@ export default function (io, jwtKey) {
       }
     })
 
-    // push prefs (admin only)
-    if (sock.user.isAdmin) {
+    // a throw below would escape socket.io's connect path and crash the
+    // process via uncaughtException, so one bad payload (e.g. a corrupted
+    // room queue) must not go unhandled
+    try {
+      // push prefs (full for admins; sanitized providers for everyone else)
       log.verbose('pushing prefs to %s (%s)', sock.user.name, sock.id)
+      const prefs = Prefs.get() as unknown as PrefsType
       io.to(sock.id).emit('action', {
         type: PREFS_PUSH,
-        payload: Prefs.get(),
+        payload: sock.user.isAdmin
+          ? prefs
+          : { providers: Prefs.getSanitizedProviders(prefs.providers) },
       })
-    }
 
-    // push library (only if client's is outdated)
-    if (clientLibraryVersion !== Library.cache.version) {
-      log.verbose('pushing library to %s (%s) (client=%s, server=%s)',
-        sock.user.name, sock.id, clientLibraryVersion, Library.cache.version)
-
-      io.to(sock.id).emit('action', {
-        type: LIBRARY_PUSH,
-        payload: Library.get(),
-      })
-    }
-
-    // push user's stars
-    io.to(sock.id).emit('action', {
-      type: STARS_PUSH,
-      payload: Library.getUserStars(sock.user.userId),
-    })
-
-    // push user's defective song marks
-    io.to(sock.id).emit('action', {
-      type: FLAWS_PUSH,
-      payload: Library.getUserFlaws(sock.user.userId),
-    })
-
-    // push star counts (only if client's is outdated)
-    if (clientStarsVersion !== Library.starCountsCache.version) {
-      log.verbose('pushing star counts to %s (%s) (client=%s, server=%s)',
-        sock.user.name, sock.id, clientStarsVersion, Library.starCountsCache.version)
-
-      io.to(sock.id).emit('action', {
-        type: STAR_COUNTS_PUSH,
-        payload: Library.getStarCounts(),
-      })
-    }
-
-    // it's possible for an admin to not be in a room
-    if (typeof sock.user.roomId !== 'number') return
-
-    // beyond this point assumes there is a room
-
-    // add user to room and track membership
-    sock.join(Rooms.prefix(sock.user.roomId))
-    Rooms.trackUser(sock.user.roomId, sock.user.userId)
-
-    // if there's a player in room, emit its last known status
-    // @todo this just emits the first status found
-    for (const s of io.of('/').sockets.values()) {
-      if (s.user && s.user.roomId === sock.user.roomId && s._lastPlayerStatus) {
+      if (sock.user.isAdmin) {
         io.to(sock.id).emit('action', {
-          type: PLAYER_STATUS,
-          payload: s._lastPlayerStatus,
+          type: PROVIDER_STATUS_PUSH,
+          payload: ProviderStatus.getAll(),
         })
-
-        break
       }
+
+      // push library (only if client's is outdated)
+      if (clientLibraryVersion !== Library.cache.version) {
+        log.verbose('pushing library to %s (%s) (client=%s, server=%s)',
+          sock.user.name, sock.id, clientLibraryVersion, Library.cache.version)
+
+        io.to(sock.id).emit('action', {
+          type: LIBRARY_PUSH,
+          payload: Library.get(),
+        })
+      }
+
+      // push user's stars
+      io.to(sock.id).emit('action', {
+        type: STARS_PUSH,
+        payload: Library.getUserStars(sock.user.userId),
+      })
+
+      // push user's defective song marks
+      io.to(sock.id).emit('action', {
+        type: FLAWS_PUSH,
+        payload: Library.getUserFlaws(sock.user.userId),
+      })
+
+      // push star counts (only if client's is outdated)
+      if (clientStarsVersion !== Library.starCountsCache.version) {
+        log.verbose('pushing star counts to %s (%s) (client=%s, server=%s)',
+          sock.user.name, sock.id, clientStarsVersion, Library.starCountsCache.version)
+
+        io.to(sock.id).emit('action', {
+          type: STAR_COUNTS_PUSH,
+          payload: Library.getStarCounts(),
+        })
+      }
+
+      // it's possible for an admin to not be in a room
+      if (typeof sock.user.roomId !== 'number') return
+
+      // beyond this point assumes there is a room
+
+      // add user to room and track membership
+      sock.join(Rooms.prefix(sock.user.roomId))
+      Rooms.trackUser(sock.user.roomId, sock.user.userId)
+
+      // if there's a player in room, emit its last known status
+      // @todo this just emits the first status found
+      for (const s of io.of('/').sockets.values()) {
+        if (s.user && s.user.roomId === sock.user.roomId && s._lastPlayerStatus) {
+          io.to(sock.id).emit('action', {
+            type: PLAYER_STATUS,
+            payload: s._lastPlayerStatus,
+          })
+
+          break
+        }
+      }
+
+      log.verbose('%s (%s) joined room %s (%s in room)',
+        sock.user.name, sock.id, sock.user.roomId,
+        sock.adapter.rooms.get(Rooms.prefix(sock.user.roomId))?.size ?? 0,
+      )
+
+      // send room's queue
+      io.to(sock.id).emit('action', {
+        type: QUEUE_PUSH,
+        payload: Queue.get(sock.user.roomId),
+      })
+
+      // rehydrate any in-flight provider fetches for this room
+      const fetchItems = ProviderFetch.rehydrateForRoom(sock.user.roomId)
+      if (fetchItems.length) {
+        io.to(sock.id).emit('action', {
+          type: PROVIDER_FETCH_STATUS,
+          payload: fetchItems,
+        })
+      }
+    } catch (err) {
+      log.error('error pushing initial state to %s (%s): %s',
+        sock.user.name, sock.id, err?.stack || err)
     }
-
-    log.verbose('%s (%s) joined room %s (%s in room)',
-      sock.user.name, sock.id, sock.user.roomId, sock.adapter.rooms.size,
-    )
-
-    // send room's queue
-    io.to(sock.id).emit('action', {
-      type: QUEUE_PUSH,
-      payload: Queue.get(sock.user.roomId),
-    })
   })
 }

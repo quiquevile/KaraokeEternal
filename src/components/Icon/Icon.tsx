@@ -4,6 +4,7 @@ import icons, { type IconPath } from './icons'
 interface IconProps {
   className?: string
   icon: keyof typeof icons
+  onAnimationEnd?: React.AnimationEventHandler<SVGSVGElement>
   size?: number
 }
 

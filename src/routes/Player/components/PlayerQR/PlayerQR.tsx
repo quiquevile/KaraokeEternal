@@ -10,6 +10,19 @@ import styles from './PlayerQR.css'
 const MIN_STATIC_MS = 10000 // 10 sec
 const MAX_STATIC_MS = 180000 // 3 min
 
+// an admin-supplied URL is unconstrained, so anything unparseable falls back
+const getBaseURL = (customURL?: string) => {
+  if (customURL) {
+    try {
+      return new URL(customURL)
+    } catch { /* fall through */ }
+  }
+
+  const url = new URL(window.location.href)
+  url.pathname = url.pathname.replace(/\/player$/, '')
+  return url
+}
+
 interface PlayerQRProps {
   height: number
   prefs: IRoomPrefs['qr']
@@ -19,8 +32,8 @@ interface PlayerQRProps {
 
 const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
   const ref = useRef<HTMLDivElement>(null)
-  const maxTimerID = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastToggleTime = useRef<number>(0)
+  const maxTimerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastToggleTimeRef = useRef<number>(0)
   const [show, setShow] = useState(true)
   const [alternate, setAlternate] = useState(false)
   const { isPlaying, isErrored, duration } = useAppSelector(state => state.player)
@@ -32,38 +45,38 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
   )
 
   const scheduleNextToggle = useCallback(() => {
-    if (maxTimerID.current) {
-      clearTimeout(maxTimerID.current)
-      maxTimerID.current = null
+    if (maxTimerIdRef.current) {
+      clearTimeout(maxTimerIdRef.current)
+      maxTimerIdRef.current = null
     }
 
     // wait for current song to end?
     if (isPlaying) return
 
     const now = Date.now()
-    const timeSinceLastToggle = now - lastToggleTime.current
+    const timeSinceLastToggle = now - lastToggleTimeRef.current
     const timeUntilMax = Math.max(MAX_STATIC_MS - timeSinceLastToggle, 0)
 
-    maxTimerID.current = setTimeout(() => {
+    maxTimerIdRef.current = setTimeout(() => {
       setShow(false)
     }, timeUntilMax)
   }, [isPlaying])
 
   useEffect(() => {
-    lastToggleTime.current = Date.now()
+    lastToggleTimeRef.current = Date.now()
   }, [])
 
   useEffect(() => {
     scheduleNextToggle()
 
     return () => {
-      if (maxTimerID.current) clearTimeout(maxTimerID.current)
+      if (maxTimerIdRef.current) clearTimeout(maxTimerIdRef.current)
     }
   }, [scheduleNextToggle])
 
   useEffect(() => {
     const now = Date.now()
-    const timeSinceLastToggle = now - lastToggleTime.current
+    const timeSinceLastToggle = now - lastToggleTimeRef.current
 
     if (timeSinceLastToggle > MIN_STATIC_MS) {
       const timeout = setTimeout(() => setShow(false), 0)
@@ -75,15 +88,14 @@ const PlayerQR = ({ height, prefs, qrPassword, queueItem }: PlayerQRProps) => {
     if (!show) {
       setAlternate(prev => !prev)
       setShow(true) // trigger enter transition
-      lastToggleTime.current = Date.now()
+      lastToggleTimeRef.current = Date.now()
 
       scheduleNextToggle()
     }
   }
 
-  const url = new URL(window.location.href)
-  url.pathname = url.pathname.replace(/\/player$/, '')
-  url.searchParams.append('roomId', String(roomId))
+  const url = getBaseURL(prefs.url)
+  url.searchParams.set('roomId', String(roomId))
 
   if (prefs.includePassword && qrPassword) {
     // already encoded, exactly as it travels in the URL

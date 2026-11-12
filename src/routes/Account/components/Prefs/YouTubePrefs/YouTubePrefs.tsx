@@ -121,13 +121,14 @@ const YouTubePrefs = () => {
   return (
     <Accordion
       className={styles.container}
-      headingComponent={(
-        <div className={styles.heading}>
+      renderHeading={button => <div className={styles.heading}>{button}</div>}
+      heading={(
+        <>
           <Icon icon='NAV_YOUTUBE' size={32} className={styles.icon} />
           <div className={styles.title}>
             <FormattedMessage {...accountMessages.youtubePrefsTitle} />
           </div>
-        </div>
+        </>
       )}
     >
       <div className={styles.content}>

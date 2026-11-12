@@ -1,7 +1,6 @@
 import React from 'react'
 import GLChroma from 'gl-chromakey'
-import { getPlayableUrl } from 'routes/Player/lib/mediaCache'
-import styles from './MP4Player.css'
+import styles from './MP4AlphaPlayer.css'
 
 const BACKDROP_PADDING = 10 // px at 1:1 scale
 const BORDER_RADIUS = parseInt(getComputedStyle(document.body).getPropertyValue('--border-radius'))
@@ -11,6 +10,7 @@ interface MP4AlphaPlayerProps {
   mediaId: number
   mediaKey: number
   mediaReplayKey?: number
+  mediaSrc?: string | null
   mp4Alpha: number
   width: number
   height: number
@@ -40,7 +40,6 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
     this.video.oncanplaythrough = this.updateIsPlaying
     this.video.onended = this.handleEnded
     this.video.onerror = this.handleError
-    this.video.onloadstart = this.props.onLoad
     this.video.onloadedmetadata = this.handleLoadedMetadata
     this.video.onplay = this.handlePlay
     this.video.ontimeupdate = this.handleTimeUpdate
@@ -55,9 +54,8 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
   }
 
   componentDidUpdate (prevProps: MP4AlphaPlayerProps) {
-    // same queue item, but the underlying file changed (e.g. its media
-    // version was deleted): restart with the new file
-    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaId !== this.props.mediaId) {
+    // mediaSrc resolves asynchronously, so it can arrive after the mediaKey change
+    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaSrc !== this.props.mediaSrc) {
       this.updateSources()
       return
     }
@@ -79,6 +77,7 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
       const contentBounds = this.chroma.render({ passthrough: this.props.mp4Alpha === 1 }).getContentBounds()
 
       if (!contentBounds.every((val, i) => val === this.state.contentBounds[i])) {
+        // eslint-disable-next-line @eslint-react/no-set-state-in-component-did-update -- canvas measurement; guarded by the comparison above
         this.setState({ contentBounds })
       }
     }
@@ -146,15 +145,13 @@ class MP4AlphaPlayer extends React.Component<MP4AlphaPlayerProps> {
   }
 
   updateSources = async () => {
-    const { mediaId } = this.props
     this.stopChroma()
+    this.props.onLoad()
 
-    // cached media plays from a blob URL (rides out connection hiccups),
-    // misses fall back to streaming the URL directly
-    const url = await getPlayableUrl(mediaId, 'video')
-    // the item changed while the lookup was in flight?
-    if (this.props.mediaId !== mediaId) return
-    this.video.src = url
+    // src is still being resolved; we'll be called again once it is
+    if (!this.props.mediaSrc) return
+
+    this.video.src = this.props.mediaSrc
     this.video.load()
   }
 

@@ -41,12 +41,15 @@ export default class HttpApi {
 
     const res = await fetch(`${document.baseURI}api/${this.prefix}${url}`, opts)
 
-    // account endpoints answer 401s of their own (wrong password, ...),
-    // so only sessions talking to the rest of the API reset here
-    if (res.status === 401
+    // dead session tokens (expired / invalid) are flagged on any endpoint,
+    // including account ones, which otherwise answer 401s of their own
+    if (res.headers.get('X-Session-Expired')) {
+      HttpApi.onUnauthorized?.()
+    } else if (res.status === 401
       && !/^(login|logout|setup|user)/.test(url)
       && HttpApi.onUnauthorized
     ) {
+      // non-account 401s mean the session is gone server-side
       HttpApi.onUnauthorized()
     }
 

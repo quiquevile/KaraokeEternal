@@ -1,5 +1,4 @@
 import React from 'react'
-import { getPlayableUrl } from 'routes/Player/lib/mediaCache'
 import styles from './MP4Player.css'
 
 interface MP4PlayerProps {
@@ -7,6 +6,7 @@ interface MP4PlayerProps {
   mediaId: number
   mediaKey: number
   mediaReplayKey?: number
+  mediaSrc?: string | null
   width: number
   height: number
   onAudioElement(video: HTMLVideoElement): void
@@ -27,9 +27,8 @@ class MP4Player extends React.Component<MP4PlayerProps> {
   }
 
   componentDidUpdate (prevProps: MP4PlayerProps) {
-    // same queue item, but the underlying file changed (e.g. its media
-    // version was deleted): restart with the new file
-    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaId !== this.props.mediaId) {
+    // mediaSrc resolves asynchronously, so it can arrive after the mediaKey change
+    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaSrc !== this.props.mediaSrc) {
       this.updateSources()
       return
     }
@@ -56,7 +55,6 @@ class MP4Player extends React.Component<MP4PlayerProps> {
         onCanPlayThrough={this.updateIsPlaying}
         onEnded={this.props.onEnd}
         onError={this.handleError}
-        onLoadStart={this.props.onLoad}
         onPlay={this.handlePlay}
         onTimeUpdate={this.handleTimeUpdate}
         ref={this.video}
@@ -65,15 +63,13 @@ class MP4Player extends React.Component<MP4PlayerProps> {
   }
 
   updateSources = async () => {
-    const { mediaId } = this.props
     if (!this.video.current) return
+    this.props.onLoad()
 
-    // cached media plays from a blob URL (rides out connection hiccups),
-    // misses fall back to streaming the URL directly
-    const url = await getPlayableUrl(mediaId, 'video')
-    // the item changed while the lookup was in flight?
-    if (!this.video.current || this.props.mediaId !== mediaId) return
-    this.video.current.src = url
+    // src is still being resolved; we'll be called again once it is
+    if (!this.props.mediaSrc) return
+
+    this.video.current.src = this.props.mediaSrc
     this.video.current.load()
   }
 

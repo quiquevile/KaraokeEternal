@@ -1,4 +1,4 @@
-import { clampPitchSemitones } from './pitchShift'
+import { clampPitch } from './playerDisplay'
 
 // zone widths as a fraction of the player container width
 export const SIDE_ZONE_RATIO = 0.18
@@ -103,7 +103,7 @@ export function moveGesture (state: GestureState, point: GesturePoint): GestureI
   const step = Math.trunc(dy / PITCH_PX_PER_STEP)
   if (step === state.lastPitchStep) return null
   state.lastPitchStep = step
-  return { type: 'pitch', semitones: clampPitchSemitones(state.startPitch + step) }
+  return { type: 'pitch', semitones: clampPitch(state.startPitch + step) }
 }
 
 /**

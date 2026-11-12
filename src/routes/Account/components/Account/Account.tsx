@@ -16,8 +16,8 @@ const Account = () => {
   const upcomingQueueIds = useAppSelector(state => getUpcoming(state, user.userId))
   const intl = useIntl()
 
-  const curPassword = useRef(null)
-  const [isDirty, setDirty] = useState(false)
+  const curPasswordRef = useRef(null)
+  const [dirty, setDirty] = useState(false)
 
   const handleSignOut = () => {
     if (!user.isAdmin) {
@@ -44,13 +44,13 @@ const Account = () => {
 
   const handleSubmit = (data: FormData) => {
     if (!user.isGuest) {
-      if (!curPassword.current.value.trim()) {
+      if (!curPasswordRef.current.value.trim()) {
         alert(intl.formatMessage(accountMessages.needCurrentPassword))
-        curPassword.current.focus()
+        curPasswordRef.current.focus()
         return
       }
 
-      data.append('password', curPassword.current.value)
+      data.append('password', curPasswordRef.current.value)
     }
 
     dispatch(updateAccount(data))
@@ -81,18 +81,18 @@ const Account = () => {
           showUsername={!user.isGuest}
           showPassword={!user.isGuest}
         >
-          {isDirty && !user.isGuest && (
+          {dirty && !user.isGuest && (
             <input
               type='password'
               autoComplete='current-password'
               placeholder={intl.formatMessage(accountMessages.currentPassword)}
-              ref={curPassword}
+              ref={curPasswordRef}
             />
 
           )}
 
           <div className={styles.btnContainer}>
-            {isDirty && (
+            {dirty && (
               <Button type='submit' variant='primary'>
                 <FormattedMessage {...accountMessages.update} />
               </Button>

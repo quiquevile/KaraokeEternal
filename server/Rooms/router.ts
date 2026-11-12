@@ -6,6 +6,7 @@ import Rooms, { STATUSES } from '../Rooms/Rooms.js'
 import { can } from '../lib/permissions.js'
 import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
 import { ctxLocale, t } from '../lib/locale.js'
+import ProviderFetch from '../Providers/ProviderFetch.js'
 
 interface RequestWithBody {
   body: Record<string, unknown>
@@ -126,6 +127,9 @@ router.post('/', async (ctx) => {
     mapDomainError(ctx, err)
   }
 
+  // remove provider entries that aren't needed anymore
+  ProviderFetch.prune()
+
   // send updated room list
   ctx.body = Rooms.get(null, { status: STATUSES })
 })
@@ -177,6 +181,9 @@ export async function handleUpdateRoom (ctx: RouterContext): Promise<void> {
   } catch (err) {
     mapDomainError(ctx, err)
   }
+
+  // remove provider entries that aren't needed anymore
+  ProviderFetch.prune()
 
   log.verbose('%s updated a room (roomId: %s)', ctx.user.name, roomId)
 
@@ -244,6 +251,9 @@ router.delete('/:roomId', (ctx) => {
     WHERE roomId = ${roomId}
   `
   db.run(String(roomQuery), roomQuery.parameters)
+
+  // remove provider entries that aren't needed anymore
+  ProviderFetch.prune()
 
   log.verbose('%s deleted roomId %s', ctx.user.name, roomId)
 

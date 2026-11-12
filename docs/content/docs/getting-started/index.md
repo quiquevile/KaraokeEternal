@@ -5,7 +5,7 @@ description: Getting started with Karaoke Eternal and Karaoke Eternal Server
 
 You'll want to have a few things to get started with Karaoke Eternal:
 
-- **Songs**: Karaoke Eternal supports MP4 video files as well as MP3 audio files that have lyrics in an accompanying CDG file (commonly known as [MP3+G](https://en.wikipedia.org/wiki/MP3%2BG){{% icon-external %}}). See the <a href='{{< ref "faq#where-can-i-download-karaoke-songs" >}}'>F.A.Q.</a> if you're looking for songs!
+- **Songs**: Karaoke Eternal supports MP4 video files as well as MP3 audio files that have lyrics in an accompanying CDG file (commonly known as [MP3+G](https://en.wikipedia.org/wiki/MP3%2BG)). See the <a href='{{< ref "faq#where-can-i-download-karaoke-songs" >}}'>F.A.Q.</a> if you're looking for songs!
 
 - **Server**: This can be a Windows PC, Mac, or a dedicated server like a Raspberry Pi or NAS. Karaoke Eternal Server runs on pretty much anything to serve the web app and your media files.
 
@@ -63,7 +63,7 @@ You can do a lot more in the Library view, but for now let's play some music!
 
 Karaoke Eternal's player is just another part of the browser app, but it's meant to run fullscreen on the system connected to your display and speakers. If you aren't using the system you intend to use as the player, go to it now, browse to the **server URL**, and sign in with your admin account.
 
-By now you've probably noticed a **"No player in room"** message at the top of the app. Click the **Start Player** link to do just that!
+By now you've probably noticed a **"No player in room"** message at the top of the app. Click the **Launch Player** link to do just that!
 
 <aside class="info">
   {{% icon-info %}}

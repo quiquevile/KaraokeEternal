@@ -15,6 +15,7 @@ import Buttons from 'components/Buttons/Buttons'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
 import UserImage from 'components/UserImage/UserImage'
 import { requestPlayNext, requestReplay } from 'store/modules/status'
+import { showSongInfo } from 'store/modules/songInfo'
 import { toggleSongStarred } from 'store/modules/userStars'
 import { showErrorMessage } from 'store/modules/ui'
 import { queueSong, removeItem } from '../../modules/queue'
@@ -33,6 +34,7 @@ import { buildQueueTargets } from '../../selectors/buildQueueTargets'
 import styles from './QueueItem.css'
 import { queueMessages } from '../../messages'
 import { libraryMessages } from 'routes/Library/messages'
+import { commonMessages } from 'lib/messages'
 
 const LONG_PRESS_THRESHOLD_MS = 700
 // right-drag distance that triggers locate-in-library
@@ -48,6 +50,7 @@ interface QueueItemProps {
   errorMessage: string
   isCurrent: boolean
   isErrored: boolean
+  isInfoable: boolean
   isMovable: boolean
   isOwner: boolean
   isPlayed: boolean
@@ -76,6 +79,7 @@ const QueueItem = ({
   errorMessage,
   isCurrent,
   isErrored,
+  isInfoable,
   isMovable,
   isOwner,
   isPlayed,
@@ -97,7 +101,7 @@ const QueueItem = ({
   userId,
   wait,
 }: QueueItemProps) => {
-  const [isExpanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [queuePickerOpen, setQueuePickerOpen] = useState(false)
   const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number, flip: boolean } | null>(null)
   const longPressActiveRef = useRef(false)
@@ -111,6 +115,7 @@ const QueueItem = ({
   const canQueueForOthers = hasPermission(user, 'queueForOthers')
 
   const handleErrorInfoClick = () => dispatch(showErrorMessage(errorMessage))
+  const handleInfoClick = () => dispatch(showSongInfo(songId))
   const handleMoveClick = () => {
     onMoveClick(queueId)
     setExpanded(false)
@@ -169,6 +174,8 @@ const QueueItem = ({
   }
   const handleRemoveClick = () => dispatch(removeItem({ queueId }))
   const handleStarClick = () => dispatch(toggleSongStarred(songId))
+
+  const isExpandable = isErrored || isInfoable || isPlayed || isMovable || isRemovable || isSkippable || isReplayable
 
   // tapping outside the picker (including on the row itself, so another
   // tap collapses it; or scrolling away, or Escape) closes the picker
@@ -259,10 +266,10 @@ const QueueItem = ({
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
-      setExpanded(isErrored || isPlayed || isMovable || isRemovable || isSkippable || isReplayable)
+      setExpanded(isExpandable)
     },
     onSwipedRight: () => {
-      if (!isExpanded && locateXRef.current >= LOCATE_THRESHOLD_PX) {
+      if (!expanded && locateXRef.current >= LOCATE_THRESHOLD_PX) {
         handleLocate()
       } else {
         setExpanded(false)
@@ -272,7 +279,7 @@ const QueueItem = ({
       setLocateX(0)
     },
     onSwiping: (e) => {
-      if (isExpanded || e.dir !== 'Right' || e.deltaX <= 0) {
+      if (expanded || e.dir !== 'Right' || e.deltaX <= 0) {
         if (locateXRef.current !== 0) {
           locateXRef.current = 0
           setLocateX(0)
@@ -304,6 +311,15 @@ const QueueItem = ({
     [swipeHandlers],
   )
 
+  // keyboard equivalent of swiping; ignore keys bubbling up from the buttons
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return
+    if (e.key === 'ArrowLeft') setExpanded(isExpandable)
+    else if (e.key === 'ArrowRight') setExpanded(false)
+    else return
+    e.preventDefault()
+  }
+
   const bindRemovePressHandlers = useLongPress(() => {
     const confirmText = isOwner ? 'Remove all your upcoming songs?' : `Remove all upcoming songs for "${userDisplayName}"?`
     longPressActiveRef.current = true
@@ -329,6 +345,8 @@ const QueueItem = ({
     <div
       {...swipeHandlers}
       ref={setRowRef}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       className={clsx(
         styles.container,
         isCurrent && styles.current,
@@ -371,12 +389,13 @@ const QueueItem = ({
           </div>
         </div>
 
-        <Buttons btnWidth={56} isExpanded={isExpanded} className={styles.btnContainer}>
+        <Buttons btnWidth={56} isExpanded={expanded} className={styles.btnContainer}>
           {isErrored && (
             <Button
               className={styles.danger}
-              icon='INFO_OUTLINE'
+              icon='ALERT_OUTLINE'
               onClick={handleErrorInfoClick}
+              aria-label={intl.formatMessage(commonMessages.errorInfo)}
             />
           )}
           <ButtonStar
@@ -385,9 +404,18 @@ const QueueItem = ({
             onClick={handleStarClick}
             count={starCount}
           />
+          {isInfoable && (
+            <Button
+              className={styles.active}
+              data-hide
+              icon='INFO_OUTLINE'
+              onClick={handleInfoClick}
+              aria-label={intl.formatMessage(queueMessages.info)}
+            />
+          )}
           {isMovable && (
             <Button
-              className={clsx(styles.btnMove, styles.active)}
+              className={styles.active}
               data-hide
               icon='MOVE_TOP'
               onClick={handleMoveClick}
@@ -414,7 +442,7 @@ const QueueItem = ({
           )}
           {isRemovable && (
             <Button
-              className={clsx(styles.btnRemove, styles.danger)}
+              className={styles.danger}
               data-hide
               icon='DELETE'
               aria-label={intl.formatMessage(queueMessages.remove)}

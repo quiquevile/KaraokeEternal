@@ -106,7 +106,10 @@ describe('Queue.get with corrupt chains', () => {
     db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [21, 2, 2, 1, 20])
     db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [22, 2, 1, 1, 20])
 
-    expect(Queue.get(2).result).toEqual([20, 22])
+    // the walk follows the last writer for a shared prevQueueId and then
+    // stops; the unreachable remainder degrades to insertion order so a
+    // corrupt chain can't hide songs from the queue
+    expect(Queue.get(2).result).toEqual([20, 22, 21])
   })
 
   it('terminates on a cycle instead of hanging', () => {
@@ -114,7 +117,9 @@ describe('Queue.get with corrupt chains', () => {
     db.run('INSERT INTO queue (queueId, roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?, ?)', [31, 2, 2, 1, 30])
     db.run('UPDATE queue SET prevQueueId = 31 WHERE queueId = 30')
 
-    expect(Queue.get(2).result).toEqual([])
+    // with no head the walk can't start; every row is still returned in
+    // insertion order rather than showing an empty queue
+    expect(Queue.get(2).result).toEqual([30, 31])
   }, 5000)
 })
 

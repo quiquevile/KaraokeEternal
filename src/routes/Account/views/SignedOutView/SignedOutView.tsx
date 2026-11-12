@@ -17,12 +17,12 @@ import { commonMessages } from '../../../../lib/messages'
 const SignedOutView = () => {
   const userSectionRef = useRef<HTMLDivElement | null>(null)
   const firstFieldRef = useRef<HTMLInputElement | null>(null)
+  const scrollOnFocusRef = useRef(false)
 
   const prefs = useAppSelector(state => state.prefs)
   // pre-filtered to open rooms: closed rooms must never show on login,
   // even with a stale admin-fetched list in memory
   const rooms = useAppSelector(getRoomList)
-  const ui = useAppSelector(state => state.ui)
   const dispatch = useAppDispatch()
 
   const [mode, setMode] = useState('returning')
@@ -42,9 +42,23 @@ const SignedOutView = () => {
     guest: intl.formatMessage(commonMessages.guest),
   }
 
+  const [isRoomsLoading, setIsRoomsLoading] = useState(true)
+  const [isWaitExpired, setIsWaitExpired] = useState(false)
+
   // once per mount
   useEffect(() => {
-    dispatch(fetchRooms())
+    // don't wait on a hung request forever (admins must always be able to sign in)
+    const timer = setTimeout(() => setIsWaitExpired(true), 2000)
+
+    const load = async () => {
+      // the thunk's promise resolves even when the request fails
+      await dispatch(fetchRooms())
+      setIsRoomsLoading(false)
+    }
+
+    load()
+
+    return () => clearTimeout(timer)
   }, [dispatch])
 
   // room selection visibility/defaults
@@ -84,8 +98,8 @@ const SignedOutView = () => {
     setMode('returning')
 
     if (!rooms.entities[id]?.hasPassword || !showRoomSection) {
+      scrollOnFocusRef.current = true
       setFocusRequest(r => r + 1)
-      userSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
@@ -134,12 +148,45 @@ const SignedOutView = () => {
   const allowNewStandard = getAllowed('standard')
   const allowNew = allowNewStandard || allowNewGuest
 
+  // allowNew depends on both rooms and roles, so wait for them to avoid swapping headings
+  const isReady = isWaitExpired || (!isRoomsLoading && prefs.roles.result.length > 0)
+
   useEffect(() => {
-    firstFieldRef.current?.focus()
-  }, [focusRequest, mode])
+    const scroll = scrollOnFocusRef.current
+    scrollOnFocusRef.current = false
+
+    // focus synchronously so iOS shows the keyboard (requires a user gesture)
+    firstFieldRef.current?.focus({ preventScroll: scroll })
+    if (!scroll) return
+
+    const scrollToUserSection = () => {
+      userSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    // WebKit cancels smooth scrolls during the first rendering update after a text field
+    // is focused, so wait until that frame has rendered before starting the scroll
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(scrollToUserSection)
+    })
+
+    // iOS also cancels it when the on-screen keyboard opens and reveals the field,
+    // so scroll again as the viewport resizes for the keyboard (ignoring unrelated resizes later)
+    const focusedAt = performance.now()
+
+    const handleViewportResize = () => {
+      if (performance.now() - focusedAt < 1000) scrollToUserSection()
+    }
+
+    window.visualViewport?.addEventListener('resize', handleViewportResize)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.visualViewport?.removeEventListener('resize', handleViewportResize)
+    }
+  }, [focusRequest, mode, isReady])
 
   return (
-    <div className={styles.container} style={{ maxWidth: Math.max(340, ui.contentWidth * 0.66) }}>
+    <div className={styles.container}>
       <Logo className={styles.logo} />
 
       {showRoomSection && (
@@ -156,7 +203,7 @@ const SignedOutView = () => {
         </>
       )}
 
-      <div ref={userSectionRef} className={clsx(rooms.result.length > 1 && roomId === null && styles.hidden)}>
+      <div ref={userSectionRef} className={clsx((!isReady || (rooms.result.length > 1 && roomId === null)) && styles.hidden)}>
         {allowNew
           ? (
               <>

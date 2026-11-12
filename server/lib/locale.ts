@@ -43,7 +43,7 @@ function loadMessages (locale: LocaleCode): Record<string, string> {
 
   if (cached) return cached
 
-  let messages: Record<string, string> = {}
+  let messages: Record<string, string>
 
   try {
     const raw = fs.readFileSync(

@@ -9,11 +9,13 @@ interface SliderProps extends RCSliderProps {
   'aria-label'?: string
   'aria-labelledby'?: string
   'className'?: string
-  'handle'?: RCSliderProps['handleRender']
+  'handleComponent'?: React.ReactElement
   'handleIcon'?: React.ComponentProps<typeof Icon>['icon']
   'min': number
   'max': number
   'onChange': RCSliderProps['onChange']
+  /** the value once the interaction settles, after any drag */
+  'onChangeComplete'?: RCSliderProps['onChangeComplete']
   'step': number
   'value': number
 }
@@ -22,6 +24,7 @@ interface HandleProps {
   'aria-label'?: string
   'aria-labelledby'?: string
   'className'?: string
+  'onDragStart'?: React.DragEventHandler<HTMLDivElement>
   'onTouchEnd'?: React.TouchEventHandler<HTMLDivElement>
 }
 
@@ -29,26 +32,27 @@ const Slider = ({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledby,
   className,
-  handle,
+  handleComponent,
   handleIcon = 'CIRCLE',
   min,
   max,
   onChange,
+  onChangeComplete,
   step,
   value,
   ...rest
 }: SliderProps) => {
   const [tempVal, setTempVal] = useState<number | null>(null)
-  const timerId = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => () => {
-    if (timerId.current) clearTimeout(timerId.current)
+    if (timerIdRef.current) clearTimeout(timerIdRef.current)
   }, [])
 
   const handleChange = (val: number) => {
-    if (timerId.current) {
-      clearTimeout(timerId.current)
-      timerId.current = null
+    if (timerIdRef.current) {
+      clearTimeout(timerIdRef.current)
+      timerIdRef.current = null
     }
 
     lockScrolling(true)
@@ -62,32 +66,39 @@ const Slider = ({
     if (val === value) {
       setTempVal(null)
     } else {
-      timerId.current = setTimeout(() => {
+      timerIdRef.current = setTimeout(() => {
         setTempVal(null)
       }, 2000)
     }
+
+    // destructured out of `rest` above: spreading it onto RCSlider would replace
+    // this handler and with it the scroll lock and temp value cleanup
+    onChangeComplete?.(val)
   }
 
   // slider handle/grabber
   const defaultHandle = (node: React.ReactElement): React.ReactElement => {
   // rc-slider passes a node (div) to which we add style and children
+    // eslint-disable-next-line @eslint-react/no-clone-element -- required by rc-slider's handleRender API
     return React.cloneElement(node as React.ReactElement<HandleProps>, {
       'aria-label': ariaLabel,
       'aria-labelledby': ariaLabelledby,
       'className': styles.handle,
+      // prevent drag of a handleComponent's text instead of moving the handle
+      'onDragStart': (e: React.DragEvent<HTMLDivElement>) => e.preventDefault(),
       'onTouchEnd': (e: React.TouchEvent<HTMLDivElement>) => {
         // Prevent focus outline on touch in mobile Safari
         (e.currentTarget as HTMLDivElement).blur()
       },
     }, (
-      <Icon icon={handleIcon} />
+      handleComponent ?? <Icon icon={handleIcon} />
     ))
   }
 
   return (
     <RCSlider
       className={clsx(styles.container, className)}
-      handleRender={handle ?? defaultHandle}
+      handleRender={defaultHandle}
       max={max}
       min={min}
       onChangeComplete={handleChangeComplete}

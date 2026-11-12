@@ -9,7 +9,7 @@ import { toggleSongFlawed } from 'store/modules/userFlaws'
 import getSongsStatus from '../../selectors/getSongsStatus'
 
 interface SongListProps {
-  filterKeywords?: string[]
+  highlight?: RegExp | null
   showArtist: boolean
   songIds: number[]
 }
@@ -46,16 +46,16 @@ const SongList = (props: SongListProps) => {
 
     return (
       <SongItem
+        key={songId}
         {...song}
         artist={props.showArtist ? artist.name : ''}
-        filterKeywords={props.filterKeywords}
-        isPlayed={played.includes(songId)}
-        isUpcoming={upcoming.includes(songId) || current === songId}
+        highlight={props.highlight}
+        isPlayed={played.has(songId)}
+        isUpcoming={upcoming.has(songId) || current === songId}
         isHighlighted={locateSongId === songId && !locateBlinked}
         isStarred={starredSongs.includes(songId)}
         isFlawed={flawedSongs.includes(songId)}
         isAdmin={isAdmin}
-        key={songId}
         numStars={starredSongCounts[songId] || 0}
         onSongQueue={handleSongQueue}
         onSongStarClick={handleSongStar}

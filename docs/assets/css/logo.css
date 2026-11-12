@@ -1,0 +1,134 @@
+.logo {
+  font-size: 2rem;
+  line-height: 1.15; /* from app's <html> style */
+  text-align: center;
+  white-space: nowrap;
+  padding-top: .5rem;
+}
+
+.logo a {
+  font-family: 'Beon', sans-serif;
+  border: none;
+  color: hsl(var(--hue-blue), 10%, 80%) !important;
+  display: inline-block;
+  font-size: 200%;
+  text-transform: uppercase;
+  text-decoration: none;
+  margin: 1.75rem 0;
+  text-shadow:
+    0 0 .1em hsl(var(--hue-pink), 100%, 100%),
+    0 0 .5em hsl(var(--hue-pink), 100%, 100%),
+    0 0 .25em hsl(var(--hue-pink), 100%, 50%),
+    0 0 .5em hsl(var(--hue-pink), 100%, 50%),
+    0 0 .75em hsl(var(--hue-pink), 100%, 50%),
+    0 0 1em hsl(var(--hue-pink), 100%, 50%),
+    0 0 1.5em hsl(var(--hue-pink), 100%, 50%),
+    0 0 3em hsl(var(--hue-pink), 100%, 50%);
+}
+
+.logo-eternal {
+  position: relative;
+  font-size: 40%;
+  text-transform: uppercase;
+  display: block;
+  letter-spacing: .9em;
+  border: .1em solid transparent;
+  border-radius: .25em;
+  padding: .25em;
+  text-shadow:
+    0 0 .1em hsl(var(--hue-blue), 100%, 90%),
+    0 0 .25em hsl(var(--hue-blue), 100%, 90%),
+    0 0 .25em hsl(var(--hue-blue), 100%, 50%),
+    0 0 .5em hsl(var(--hue-blue), 100%, 50%);
+
+  /* the border is its own tube, separate from the letters */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -.1em;
+    border: .1em solid hsl(var(--hue-blue), 100%, 90%);
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+      0 0 .1em hsl(var(--hue-blue), 100%, 90%),
+      0 0 .25em hsl(var(--hue-blue), 100%, 90%),
+      0 0 .5em hsl(var(--hue-blue), 100%, 50%),
+      0 0 .75em hsl(var(--hue-blue), 100%, 50%),
+      inset 0 0 .5em hsl(var(--hue-blue), 100%, 50%),
+      inset 0 0 .75em hsl(var(--hue-blue), 100%, 50%);
+  }
+}
+
+.logo-lastChar {
+  letter-spacing: normal;
+}
+
+/* power-on sequence (tubes stay dark until the font is loaded; always lit without JS) */
+@media (scripting: enabled) {
+  .logo-letter,
+  .logo-eternal::before {
+    opacity: 0;
+  }
+}
+
+.fonts-loaded {
+  .logo-letter,
+  .logo-eternal::before {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .logo-letter,
+    .logo-eternal::before {
+      animation: logo-power-on 200ms ease-in var(--delay) both;
+    }
+
+    .logo-letter.logo-blinker,
+    .logo-eternal.logo-blinker::before {
+      animation: logo-blink var(--blink-duration) linear var(--delay) both;
+    }
+  }
+}
+
+/* already lit (navigating within the site) */
+.logo-lit {
+  .logo-letter,
+  .logo-eternal::before {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+@keyframes logo-power-on {
+  0% { opacity: 0; }
+  40% { opacity: .8; }
+  55% { opacity: .4; }
+  100% { opacity: 1; }
+}
+
+/* abrupt on/off flickers that settle on */
+@keyframes logo-blink {
+  0%, 10% { opacity: 0; }
+  11%, 28% { opacity: 1; }
+  29%, 50% { opacity: 0; }
+  51%, 56% { opacity: .7; }
+  57%, 64% { opacity: .2; }
+  65%, 100% { opacity: 1; }
+}
+
+.logo .tagline {
+  font-size: 1rem;
+  font-weight: 300;
+  text-align: center;
+  text-shadow: var(--text-shadow-glow);
+}
+
+@media (min-width: 960px) {
+  .logo {
+    font-size: 1.5rem;
+  }
+
+  .logo a {
+    margin-top: 0;
+  }
+}

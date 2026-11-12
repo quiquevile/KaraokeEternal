@@ -5,12 +5,13 @@ import sql from 'sqlate'
 import jsonWebToken from 'jsonwebtoken'
 import crypto from '../lib/crypto.js'
 import { can, parsePermissions } from '../lib/permissions.js'
-import { checkLoginRateLimit, clearLoginAttempts, getClientIp, recordLoginFailure } from '../lib/loginRateLimit.js'
+import { RateLimiterMemory } from 'rate-limiter-flexible'
 import KoaRouter from '@koa/router'
 import Prefs from '../Prefs/Prefs.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
 import { STATUSES } from '../Rooms/Rooms.js'
+import ProviderFetch from '../Providers/ProviderFetch.js'
 import User from '../User/User.js'
 import { QUEUE_PUSH } from '../../shared/actionTypes.js'
 import {
@@ -55,6 +56,38 @@ const readFile = promisify(fs.readFile)
 const deleteFile = promisify(fs.unlink)
 const { sign: jwtSign } = jsonWebToken
 
+// Limits for the unauthenticated routes, keyed on the client IP resolved by
+// the proxy-trust middleware. Failures are counted after the fact so users who
+// get it right spend nothing; sign-ups count successes per room because each
+// one writes a row (plus an optional avatar) and a venue's rooms share one IP.
+// Windows are fixed, start at a key's first penalty() and expire on their own;
+// penalty() only counts and never rejects, so the pre-check is what refuses.
+const MINUTE = 60 // durations are in seconds
+const loginFailsByUser = new RateLimiterMemory({ keyPrefix: 'login-user', points: 10, duration: 15 * MINUTE })
+const loginFailsByIp = new RateLimiterMemory({ keyPrefix: 'login-ip', points: 50, duration: 15 * MINUTE })
+const signupFailsByIp = new RateLimiterMemory({ keyPrefix: 'signup-ip', points: 10, duration: 15 * MINUTE })
+const signupsByIpRoom = new RateLimiterMemory({ keyPrefix: 'signup-ip-room', points: 60, duration: 60 * MINUTE })
+
+// case-folded so casing variants can't multiply an account's budget
+const normalizeUsernameKey = (username: unknown) => String(username ?? '').trim().toLowerCase()
+
+// 429 with Retry-After once a key's budget is spent; reads without counting.
+// The client shows the body text as the form error.
+async function rejectIfLimited (
+  ctx: { set: (field: string, value: string) => void, throw: (status: number, message?: string) => never },
+  limiter: RateLimiterMemory,
+  key: string,
+  what: string,
+): Promise<void> {
+  const res = await limiter.get(key)
+  if (!res || res.remainingPoints > 0 || res.msBeforeNext <= 0) return
+
+  const retryAfter = Math.max(1, Math.ceil(res.msBeforeNext / 1000))
+  const minutes = Math.ceil(retryAfter / 60)
+  ctx.set('Retry-After', String(retryAfter))
+  ctx.throw(429, `Too many ${what}. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`)
+}
+
 // session lifetime: long enough for multi-day parties, short enough that
 // a stolen cookie eventually dies (the client drops its session on 401)
 const JWT_EXPIRES_IN = '30d'
@@ -64,7 +97,7 @@ const signToken = (userCtx: object, jwtKey: string): string => (
 )
 
 export interface RouterContext {
-  user: { isAdmin: boolean, userId?: number, username?: string, name?: string, roomId?: number | null, permissions?: Record<string, boolean> } | undefined
+  user: { isAdmin: boolean, userId?: number, username?: string, name?: string, roomId?: number | null, permissions?: Record<string, boolean>, exp?: number } | undefined
   params: Record<string, string>
   query: Record<string, string | undefined>
   request: { body: Record<string, unknown>, headers?: Record<string, string | string[] | undefined> }
@@ -75,6 +108,8 @@ export interface RouterContext {
   ip?: string
   jwtKey: string
   cookies: { set: (name: string, value: string, opts?: Record<string, unknown>) => void }
+  // true only when a trusted proxy reports HTTPS (X-Forwarded-Proto)
+  secure: boolean
 }
 
 // Takes the "raw" object returned by the User class and massages it
@@ -99,22 +134,19 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
   const req = ctx.request as unknown as RequestWithBody
   const body = req.body as UserBody
   const roomId = parseInt(body.roomId ?? '', 10) || null
+  const usernameKey = normalizeUsernameKey(body.username)
   let user
 
-  // brute-force protection counts credential failures only (room typos
-  // must not lock anyone out)
-  const ip = getClientIp(ctx.request.headers?.['x-forwarded-for'], ctx.ip)
-  const limit = checkLoginRateLimit(ip)
+  // refuse before any password hashing once either budget is spent
+  await rejectIfLimited(ctx, loginFailsByUser, usernameKey, 'sign-in attempts')
+  await rejectIfLimited(ctx, loginFailsByIp, ctx.ip, 'sign-in attempts')
 
-  if (limit.limited) {
-    ctx.set('Retry-After', String(limit.retryAfterSec))
-    ctx.throw(429, t(ctxLocale(ctx), 'server.auth.tooManyAttempts', 'Too many login attempts'))
-  }
-
+  // credential failures only: room typos must not lock anyone out
   try {
     user = await User.validate(body as { username: string, password: string }, ctxLocale(ctx))
   } catch (err) {
-    recordLoginFailure(ip)
+    await loginFailsByUser.penalty(usernameKey)
+    await loginFailsByIp.penalty(ctx.ip)
     ctx.throw(401, err.message)
   }
 
@@ -133,7 +165,8 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
     ctx.throw(401, err.message)
   }
 
-  clearLoginAttempts(ip)
+  // a successful sign-in clears the account's failure count
+  await loginFailsByUser.delete(usernameKey)
 
   if (crypto.isLegacy(user.password)) {
     const newHash = await crypto.hash(body.password as string)
@@ -154,6 +187,7 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
   ctx.cookies.set('keToken', token, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: ctx.secure, // true only when a trusted proxy reports HTTPS (X-Forwarded-Proto)
   })
 
   ctx.body = userCtx
@@ -162,7 +196,7 @@ export async function handleLogin (ctx: RouterContext): Promise<void> {
 router.post('/login', ctx => handleLogin(ctx as unknown as RouterContext))
 
 // logout
-router.get('/logout', (ctx) => {
+router.post('/logout', (ctx) => {
   requireSameOrigin(ctx as unknown as HttpContext)
   // @todo force socket room leave
   ctx.cookies.set('keToken', '')
@@ -200,11 +234,10 @@ export async function handleSwitchRoom (ctx: RouterContext): Promise<void> {
   ctx.cookies.set('keToken', signToken(userCtx, ctx.jwtKey), {
     httpOnly: true,
     sameSite: 'lax',
+    secure: ctx.secure, // true only when a trusted proxy reports HTTPS (X-Forwarded-Proto)
   })
   ctx.body = userCtx
 }
-
-router.post('/room', ctx => handleSwitchRoom(ctx as unknown as RouterContext))
 
 router.post('/room', ctx => handleSwitchRoom(ctx as unknown as RouterContext))
 
@@ -374,6 +407,7 @@ router.delete('/user/:userId', async (ctx) => {
   }
 
   User.remove(targetId)
+  ProviderFetch.dropUser(targetId)
 
   // disconnect their socket session(s)
   const sockets = await ctx.io.fetchSockets()
@@ -511,7 +545,7 @@ router.put('/user/:userId', async (ctx) => {
 
   // changing password? (managers can't set their ghosts' passwords)
   if (newPassword && !ctx.user.isGuest && !isOwnGhostEdit) {
-    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+    if (typeof newPassword !== 'string' || newPassword.length < PASSWORD_MIN_LENGTH) {
       ctx.throw(400, t(
         ctxLocale(ctx), 'server.users.passwordLength',
         'Password must have at least {min} characters',
@@ -654,13 +688,16 @@ router.put('/user/:userId', async (ctx) => {
 
   const userCtx = createUserCtx(updatedUser, ctx.user.roomId || null)
 
-  // create JWT (fresh expiry on profile change: activity renews the session)
-  const token = signToken(userCtx, ctx.jwtKey)
+  // Re-mint so claims (name, username, role) stay current, but keep the
+  // ORIGINAL expiry so repeated edits can't extend the session indefinitely.
+  // ctx.user.exp is guaranteed present since verify rejects tokens without it.
+  const token = jwtSign({ ...userCtx, exp: ctx.user.exp }, ctx.jwtKey)
 
   // set JWT as an httpOnly cookie
   ctx.cookies.set('keToken', token, {
     sameSite: 'lax',
     httpOnly: true,
+    secure: ctx.secure, // true only when a trusted proxy reports HTTPS (X-Forwarded-Proto)
   })
 
   ctx.body = userCtx
@@ -670,9 +707,13 @@ router.put('/user/:userId', async (ctx) => {
 router.post('/user', async (ctx) => {
   const req = ctx.request as unknown as RequestWithBody
   const body = req.body as UserBody
+  const isSelfSignup = !ctx.user.isAdmin
+  // per-room budget key; a bogus room never gains an entry because only
+  // successful sign-ups are counted against it
+  const signupKey = `${ctx.ip}:${parseInt(String(body.roomId ?? ''), 10)}`
   let image
 
-  if (!ctx.user.isAdmin) {
+  if (isSelfSignup) {
     if (body.role === 'ghost') {
       // signed-in ghost managers create their own ghosts (no room needed)
       if (ctx.user.userId == null || !can(ctx.user, 'ghostUsers')) {
@@ -684,8 +725,13 @@ router.post('/user', async (ctx) => {
         ctx.throw(401, t(ctxLocale(ctx), 'server.users.alreadySignedIn', 'You are already signed in'))
       }
 
+      // refuse before any validation or hashing once a budget is spent
+      await rejectIfLimited(ctx, signupFailsByIp, ctx.ip, 'sign-up attempts')
+      await rejectIfLimited(ctx, signupsByIpRoom, signupKey, 'sign-ups for this room from your network')
+
       // only possible roles; further validated per-room below
       if (typeof body.role !== 'string' || !['guest', 'standard'].includes(body.role)) {
+        await signupFailsByIp.penalty(ctx.ip)
         ctx.throw(401, t(ctxLocale(ctx), 'server.users.invalidRole', 'Invalid role'))
       }
 
@@ -697,6 +743,7 @@ router.post('/user', async (ctx) => {
           { role: body.role, locale: ctxLocale(ctx) },
         )
       } catch (err) {
+        await signupFailsByIp.penalty(ctx.ip)
         ctx.throw(401, err.message)
       }
     }
@@ -735,6 +782,9 @@ router.post('/user', async (ctx) => {
       return
     }
 
+    // only successful self sign-ups spend the per-room budget
+    await signupsByIpRoom.penalty(signupKey)
+
     const user = User.getById(userId, true)
 
     if (!user) {
@@ -750,28 +800,27 @@ router.post('/user', async (ctx) => {
     ctx.cookies.set('keToken', token, {
       sameSite: 'lax',
       httpOnly: true,
+      secure: ctx.secure, // true only when a trusted proxy reports HTTPS (X-Forwarded-Proto)
     })
 
     ctx.body = userCtx
   } catch (err) {
+    if (isSelfSignup) await signupFailsByIp.penalty(ctx.ip)
     ctx.throw(403, err.message)
   }
 })
 
 // first-time setup
 router.post('/setup', async (ctx) => {
-  const prefs = Prefs.get() as Record<string, unknown>
-  let image
-
   // must be first run
-  if (prefs.isFirstRun !== true) {
+  if ((Prefs.get() as { isFirstRun?: boolean }).isFirstRun !== true) {
     ctx.throw(403)
   }
 
   try {
     // create admin user
     const req = ctx.request as unknown as RequestWithBody
-    const userId = await User.create({ ...req.body as UserBody, image }, 'admin', ctxLocale(ctx))
+    const userId = await User.create({ ...req.body as UserBody, image: undefined }, 'admin', ctxLocale(ctx))
     const user = User.getById(userId, true)
 
     if (!user) {
@@ -802,6 +851,7 @@ router.post('/setup', async (ctx) => {
     ctx.cookies.set('keToken', token, {
       sameSite: 'lax',
       httpOnly: true,
+      secure: ctx.secure, // true only when a trusted proxy reports HTTPS (X-Forwarded-Proto)
     })
 
     // unset isFirstRun

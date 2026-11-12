@@ -1,5 +1,10 @@
 ## Unreleased (quiquevile's fork)
 
+### Upstream sync (v2.1.0)
+
+- The fork is now based on upstream Karaoke Eternal v2.1.0: song providers (Provider API), pitch shifting, ReplayGain first-play analysis, faster incremental scanning, combined artist+title search and its security fixes — full details in the [v2.1.0](#v210-2026-11-04) section below
+- All interface text introduced by the sync is translated, keeping the bilingual (English / Español) UI complete
+
 ### YouTube search and downloads
 
 - Added a dedicated search tab with direct video-URL support and automatic artist/title identification
@@ -33,6 +38,7 @@
 ### Permissions
 
 - Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor
+- A new "Can set pitch for songs" capability, nested under "Can control playback", lets non-admins set or clear a song's default pitch from the player options
 - Users with player access can start playback (projection use case) without playback controls
 - Admins can sign in to password-protected rooms without knowing the room password (their own password is still required)
 - Sessions expire after 30 days; expired clients are signed out automatically instead of failing silently
@@ -54,7 +60,7 @@
 - Playback now fully stops when the queue is exhausted: transport controls read Play, the progress readout hides, and songs queued afterwards wait for a manual start instead of auto-playing
 - Full offline mode in the player window: play/pause, next, replay, volume, pitch and the progress/QR display toggles (B/Q) apply locally while the connection is down and re-sync every controller on reconnect
 - A song interrupted by a network loss no longer errors out: playback moves on to the next fully cached song (uncached ones are skipped, still replayable later), silent freezes are treated as a song end after ten seconds, and playback stops at queue end when nothing cached is left to play
-- ReplayGain leveling moved from a global setting to a per-room toggle in the display options (enabled by default)
+- ReplayGain leveling moved from a global setting to a per-room toggle in the player options (Audio tab, below the equalizer), enabled by default
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted
 
@@ -88,6 +94,46 @@
 
 - Ready-to-build container image and compose file, with resource caps suited for small hosts (capped node heap and ffmpeg threads via environment, overridable per deployment)
 - More consistent API error statuses (404/422)
+
+## v2.1.0 (2026-11-04)
+
+This release includes important security fixes and big new features:
+
+### Provider API support
+
+An official way to extend Karaoke Eternal, **song providers** allow you to expand your song library using additional sources. Singers can search and queue provider songs like any other, and those songs are added to the library automatically.
+
+Interested in developing a provider? Check the [currently available providers](https://github.com/bhj/KaraokeEternal-Providers), including reference implementations, and join the `#dev` Discord channel.
+
+### Pitch shifting
+
+The player now supports pitch shifting, with admins able to set default song pitches, and each singer able to further adjust to fit their range.
+
+Because the player uses a low-latency (phase vocoder) AudioWorklet, **pitch shifting requires either an HTTPS connection or a `localhost` URL**. See the [Karaoke Eternal Server docs](https://www.karaoke-eternal.com/docs/karaoke-eternal-server/#reverse-proxy-https) for more on setting up a reverse proxy to enable HTTPS.
+
+### ReplayGain for all
+
+Previously, enabling the ReplayGain player preference only had an effect if your media actually had ReplayGain tags. Now, files without tags will be analyzed the first time they're played, so you can get more consistent volume across songs automatically.
+
+It's planned to enable this preference by default in future releases, so please try it out now!
+
+### Faster media scanning
+
+When scanning a media folder, Karaoke Eternal Server now defaults to skipping files that haven't changed since the last scan.
+
+### Other notable changes
+
+- **(App)** New combined search view now works for searches spanning both an artist name and song title (e.g. "beatles all together now")
+- **(Server)** Fixed a potential privilege escalation in preference validation
+- **(Server)** Fixed potential queue corruption if files were removed from a watched folder during an active scan
+- **(Server)** Fixed an issue when migrating from a v1.0 database
+- **(Server)** Added explicit reverse proxy support (see the docs!)
+
+### Sponsors
+
+This release was sponsored by: [jonnparkertx](https://github.com/jonnparkertx), [fgallarday](https://github.com/fgallarday).
+
+Thank you! If you have fun with it, please consider [sponsoring](https://www.karaoke-eternal.com/sponsor).
 
 ## v2.0.2 (2026-02-14)
 

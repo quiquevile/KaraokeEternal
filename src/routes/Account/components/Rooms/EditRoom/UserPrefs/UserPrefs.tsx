@@ -44,17 +44,18 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
 
   return (
     <Accordion
-      headingComponent={(
-        <div className={styles.heading}>
+      renderHeading={button => <div className={styles.heading}>{button}</div>}
+      heading={(
+        <>
           <Icon icon='PERSON' />
           <div className={styles.title}>
             <FormattedMessage {...commonMessages.users} />
           </div>
-        </div>
+        </>
       )}
     >
       <div className={styles.content}>
-        <div className={styles.field}>
+        <div>
           <InputCheckbox
             label={intl.formatMessage(accountMessages.allowStandard)}
             name='standard'
@@ -62,7 +63,7 @@ const UserPrefs = ({ onChange, prefs = {} }: UserPrefsProps) => {
             onChange={handleChange}
           />
         </div>
-        <div className={styles.field}>
+        <div>
           <InputCheckbox
             label={intl.formatMessage(accountMessages.allowGuests)}
             name='guest'

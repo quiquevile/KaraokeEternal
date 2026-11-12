@@ -10,7 +10,7 @@ import PathInfo from './PathInfo/PathInfo'
 import PathItem from './PathItem/PathItem'
 import Button from 'components/Button/Button'
 import styles from './PathPrefs.css'
-import { receivePrefs, requestScan, requestScanAll, setPathPriority, setPathPrefs } from 'store/modules/prefs'
+import { receivePrefs, requestScan, setPathPriority, setPathPrefs } from 'store/modules/prefs'
 import type { Path } from 'shared/types'
 import { accountMessages } from '../../../messages'
 import { commonMessages } from '../../../../../lib/messages'
@@ -21,7 +21,7 @@ const PathPrefs = () => {
   const paths = useAppSelector(state => state.prefs.paths)
   const isMeasuringGain = useAppSelector(state =>
     state.prefs.isScanning && state.prefs.scannerJob === 'gain')
-  const [isChoosing, setChoosing] = useState(false)
+  const [choosing, setChoosing] = useState(false)
   const [editingPath, setEditingPath] = useState<Path | null>(null)
   const [priority, setPriority] = useState(paths.result)
   const [prevPaths, setPrevPaths] = useState(paths)
@@ -88,17 +88,19 @@ const PathPrefs = () => {
 
   const handleInfo = (pathId: number) => setEditingPath(paths.entities[pathId])
   const handleRefresh = (pathId: number) => dispatch(requestScan(pathId))
-  const handleRefreshAll = () => dispatch(requestScanAll())
+  const handleRefreshAll = () => dispatch(requestScan())
 
   return (
-    <Accordion headingComponent={(
-      <div className={styles.heading}>
-        <Icon icon='FOLDER_MUSIC' />
-        <div className={styles.title}>
-          <FormattedMessage {...accountMessages.pathPrefsTitle} />
-        </div>
-      </div>
-    )}
+    <Accordion
+      renderHeading={button => <div className={styles.heading}>{button}</div>}
+      heading={(
+        <>
+          <Icon icon='FOLDER_MUSIC' />
+          <div className={styles.title}>
+            <FormattedMessage {...accountMessages.pathPrefsTitle} />
+          </div>
+        </>
+      )}
     >
       <div className={styles.content}>
         {paths.result.length === 0
@@ -135,7 +137,7 @@ const PathPrefs = () => {
           </Button>
         </div>
 
-        {isChoosing && (
+        {choosing && (
           <PathChooser
             onCancel={handleCloseChooser}
             onChoose={handleAdd}

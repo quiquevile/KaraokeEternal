@@ -30,11 +30,11 @@ const AccountForm = ({
   showPassword = true,
   user,
 }: AccountFormProps) => {
-  const username = useRef<HTMLInputElement>(null)
-  const newPassword = useRef<HTMLInputElement>(null)
-  const newPasswordConfirm = useRef<HTMLInputElement>(null)
-  const name = useRef<HTMLInputElement>(null)
-  const role = useRef<HTMLSelectElement>(null)
+  const usernameRef = useRef<HTMLInputElement>(null)
+  const newPasswordRef = useRef<HTMLInputElement>(null)
+  const newPasswordConfirmRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const roleRef = useRef<HTMLSelectElement>(null)
   const [prevDateUpdated, setPrevDateUpdated] = useState(user?.dateUpdated)
   const [state, setState] = useState({
     isDirty: false,
@@ -45,7 +45,7 @@ const AccountForm = ({
     ) as Record<string, boolean>,
   })
 
-  const prevIsDirty = useRef(state.isDirty)
+  const prevIsDirtyRef = useRef(state.isDirty)
 
   if (user && user.dateUpdated !== prevDateUpdated) {
     setPrevDateUpdated(user.dateUpdated)
@@ -53,11 +53,11 @@ const AccountForm = ({
   }
 
   useEffect(() => {
-    if (onDirtyChange && prevIsDirty.current !== state.isDirty) {
+    if (onDirtyChange && prevIsDirtyRef.current !== state.isDirty) {
       onDirtyChange(state.isDirty)
     }
 
-    prevIsDirty.current = state.isDirty
+    prevIsDirtyRef.current = state.isDirty
   }, [state.isDirty, onDirtyChange])
 
   const [selectedRole, setSelectedRole] = useState(user?.role ?? '')
@@ -76,12 +76,12 @@ const AccountForm = ({
 
     setState(prev => ({
       ...prev,
-      isDirty: (showUsernameField && !!username.current?.value)
-        || (showPasswordField && !!newPassword.current?.value)
-        || (name.current?.value !== user.name)
-        || (role.current && role.current.value !== (user.role ?? ''))
+      isDirty: (showUsernameField && !!usernameRef.current?.value)
+        || (showPasswordField && !!newPasswordRef.current?.value)
+        || (nameRef.current?.value !== user.name)
+        || (roleRef.current && roleRef.current.value !== (user.role ?? ''))
         || permsChanged,
-      isChangingPassword: showPasswordField && !!newPassword.current?.value,
+      isChangingPassword: showPasswordField && !!newPasswordRef.current?.value,
     }))
   }
 
@@ -112,25 +112,25 @@ const AccountForm = ({
     e.preventDefault()
     const data = new FormData()
 
-    if (name.current?.value.trim()) {
-      data.append('name', name.current.value.trim())
+    if (nameRef.current?.value.trim()) {
+      data.append('name', nameRef.current.value.trim())
     }
 
-    if (showUsernameField && username.current?.value.trim()) {
-      data.append('username', username.current.value.trim())
+    if (showUsernameField && usernameRef.current?.value.trim()) {
+      data.append('username', usernameRef.current.value.trim())
     }
 
     if (showPasswordField && state.isChangingPassword) {
-      data.append('newPassword', newPassword.current?.value || '')
-      data.append('newPasswordConfirm', newPasswordConfirm.current?.value || '')
+      data.append('newPassword', newPasswordRef.current?.value || '')
+      data.append('newPasswordConfirm', newPasswordConfirmRef.current?.value || '')
     }
 
     if (typeof state.userImage !== 'undefined') {
       data.append('image', state.userImage)
     }
 
-    if (role.current) {
-      data.append('role', role.current.value)
+    if (roleRef.current) {
+      data.append('role', roleRef.current.value)
     }
 
     if (showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && selectedRole !== 'ghost') {
@@ -158,7 +158,7 @@ const AccountForm = ({
             : intl.formatMessage(commonMessages.username)}
           // https://github.com/facebook/react/issues/23301
           ref={(r) => {
-            if (r) username.current = r
+            if (r) usernameRef.current = r
             if (autoFocus) r?.setAttribute('autofocus', 'true')
           }}
         />
@@ -172,7 +172,7 @@ const AccountForm = ({
           placeholder={isSignedIn
             ? intl.formatMessage(accountMessages.changePassword)
             : intl.formatMessage(commonMessages.password)}
-          ref={newPassword}
+          ref={newPasswordRef}
         />
       )}
 
@@ -183,7 +183,7 @@ const AccountForm = ({
           placeholder={isSignedIn
             ? intl.formatMessage(accountMessages.newPasswordConfirm)
             : intl.formatMessage(commonMessages.confirmPassword)}
-          ref={newPasswordConfirm}
+          ref={newPasswordConfirmRef}
         />
       )}
 
@@ -198,7 +198,7 @@ const AccountForm = ({
           defaultValue={user?.name ?? ''}
           onChange={() => updateDirty()}
           placeholder={intl.formatMessage(commonMessages.displayName)}
-          ref={name}
+          ref={nameRef}
         />
       </div>
 
@@ -209,7 +209,7 @@ const AccountForm = ({
             setSelectedRole(e.target.value)
             updateDirty()
           }}
-          ref={role}
+          ref={roleRef}
         >
           <option key='choose' value='' disabled>{intl.formatMessage(accountMessages.selectRole)}</option>
           {user?.role === 'guest' && <option key='guest' value='guest'>{intl.formatMessage(commonMessages.guest)}</option>}
@@ -221,11 +221,10 @@ const AccountForm = ({
 
       {showRole && selectedRole !== 'admin' && selectedRole !== 'guest' && selectedRole !== 'ghost' && (
         <Accordion
-          headingComponent={(
-            <div className={styles.permsHeading}>
-              <div className={styles.permsTitle}>
-                {intl.formatMessage(accountMessages.permissions)}
-              </div>
+          renderHeading={button => <div className={styles.permsHeading}>{button}</div>}
+          heading={(
+            <div className={styles.permsTitle}>
+              {intl.formatMessage(accountMessages.permissions)}
             </div>
           )}
         >

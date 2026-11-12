@@ -96,6 +96,7 @@ class User {
     image?: Buffer
     permissions?: unknown
     createdBy?: number | null
+    [key: string]: unknown
   }, role = 'standard', locale: LocaleCode = DEFAULT_LOCALE) {
     username = username?.trim()
     name = name?.trim()
@@ -115,7 +116,7 @@ class User {
         ))
       }
 
-      if (!newPassword) {
+      if (!newPassword || typeof newPassword !== 'string') {
         throw new Error(t(locale, 'server.users.passwordRequired', 'Password is required'))
       }
 
@@ -127,7 +128,7 @@ class User {
         ))
       }
 
-      if (!newPasswordConfirm) {
+      if (!newPasswordConfirm || typeof newPasswordConfirm !== 'string') {
         throw new Error(t(locale, 'server.users.passwordConfirmRequired', 'Password confirmation is required'))
       }
 
@@ -142,7 +143,7 @@ class User {
       fields.set('username', username)
       fields.set('password', await crypto.hash(newPassword))
     } else {
-      let res: { count?: number } = {}
+      let res: { count: number }
 
       // ensure unique guest/ghost username
       do {
@@ -223,8 +224,13 @@ class User {
     const user = User.getByUsername(username, true) as ServerUser
 
     // ghosts are owned accounts and can never sign in, even if a real
-    // password was set on them
-    if (!user || user.role === 'ghost' || !(await crypto.compare(password, user.password))) {
+    // password was set on them. Always compare against a dummy hash when
+    // there's no usable account so response time doesn't reveal whether
+    // the account exists.
+    const stored = user && user.role !== 'ghost' ? user.password : await crypto.getDummyHash()
+    const passwordOk = await crypto.compare(password, stored)
+
+    if (!user || user.role === 'ghost' || !passwordOk) {
       throw new Error(t(locale, 'server.auth.incorrectCredentials', 'Incorrect username or password'))
     }
 
@@ -357,6 +363,13 @@ class User {
       WHERE userId = ${userId}
     `
     db.run(String(songFlawsQuery), songFlawsQuery.parameters)
+
+    // remove user's pitch preferences
+    const userPitchesQuery = sql`
+      DELETE FROM userPitches
+      WHERE userId = ${userId}
+    `
+    db.run(String(userPitchesQuery), userPitchesQuery.parameters)
 
     // remove the user
     const usersQuery = sql`

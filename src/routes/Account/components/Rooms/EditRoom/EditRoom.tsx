@@ -21,7 +21,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
   const [roomPassword, setRoomPassword] = useState(room && room.hasPassword ? '*'.repeat(32) : '')
   const [prefs, setPrefs] = useState<IRoomPrefs>(room?.prefs || {} as IRoomPrefs)
   const [prevRoom, setPrevRoom] = useState(room)
-  const [isPasswordDirty, setIsPasswordDirty] = useState(false)
+  const [passwordDirty, setPasswordDirty] = useState(false)
   const dispatch = useAppDispatch()
   const intl = useIntl()
 
@@ -37,7 +37,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
     data.prefs = prefs
 
     if (room) {
-      if (!isPasswordDirty) delete data.password
+      if (!passwordDirty) delete data.password
       dispatch(updateRoom({ roomId: room.roomId, data }))
     } else {
       if (!data.password) delete data.password
@@ -53,6 +53,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
 
   const handlePrefsChange = (newPrefs: IRoomPrefs) => {
     setPrefs(newPrefs)
+
     if (room) {
       dispatch(requestPrefsPush(room.roomId, newPrefs))
     }
@@ -67,7 +68,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
   }
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsPasswordDirty(true)
+    setPasswordDirty(true)
     setRoomPassword(e.target.value)
   }
 
@@ -79,7 +80,7 @@ const EditRoom = ({ onClose, room }: EditRoomProps) => {
         ? intl.formatMessage(accountMessages.editTitle)
         : intl.formatMessage(commonMessages.createRoom)}
     >
-      <form onSubmit={handleSubmit} ref={formRef} className={styles.form}>
+      <form onSubmit={handleSubmit} ref={formRef}>
         <div className={styles.fieldContainer}>
           <input
             type='text'

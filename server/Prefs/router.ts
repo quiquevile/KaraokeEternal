@@ -5,6 +5,10 @@ import getFolders from '../lib/getFolders.js'
 import getEntries from '../lib/getEntries.js'
 import getWindowsDrives from '../lib/getWindowsDrives.js'
 import Prefs from './Prefs.js'
+import pushPrefs from './pushPrefs.js'
+import ProviderFetch from '../Providers/ProviderFetch.js'
+import { normalizeProviderUrl } from '../Providers/Providers.js'
+import validateProviderFields from './validateProviderFields.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
 import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
@@ -24,7 +28,7 @@ export interface RouterContext {
   status: number
   throw: (status: number, message?: string) => never
   io: { emit: (...args: unknown[]) => void }
-  startScanner: (pathIds: unknown) => void
+  startScanner: (pathIds: unknown, full?: boolean) => void
   stopScanner: () => void
   isScannerActive: () => boolean
 }
@@ -46,9 +50,13 @@ router.get('/', (ctx) => {
     return
   }
 
-  // non-admins only get roles and the player display settings
-  // (overlay timings the player screen needs)
-  ctx.body = { roles: prefs.roles, playerDisplay: prefs.playerDisplay }
+  // non-admins get roles, the player display settings (overlay timings
+  // the player screen needs) and the sanitized provider subset
+  ctx.body = {
+    roles: prefs.roles,
+    playerDisplay: prefs.playerDisplay,
+    providers: Prefs.getSanitizedProviders(prefs.providers),
+  }
 })
 
 // logged-in user's own EQ preset slots (per-user storage, never shared)
@@ -163,10 +171,10 @@ export async function handleScanPath (ctx: RouterContext): Promise<void> {
   const pathId = parseIdParam(ctx, 'pathId')
 
   ctx.status = 200
-  ctx.startScanner(pathId)
+  ctx.startScanner(pathId, ctx.query.full === 'true')
 }
 
-router.get('/path/:pathId/scan', ctx => handleScanPath(ctx as unknown as RouterContext))
+router.post('/path/:pathId/scan', ctx => handleScanPath(ctx as unknown as RouterContext))
 
 // scan all media paths
 export async function handleScanAll (ctx: RouterContext): Promise<void> {
@@ -176,10 +184,10 @@ export async function handleScanAll (ctx: RouterContext): Promise<void> {
   if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainInProgress', 'Gain measurement in progress'))
 
   ctx.status = 200
-  ctx.startScanner(true)
+  ctx.startScanner(true, ctx.query.full === 'true')
 }
 
-router.get('/paths/scan', ctx => handleScanAll(ctx as unknown as RouterContext))
+router.post('/paths/scan', ctx => handleScanAll(ctx as unknown as RouterContext))
 
 // stop scanning (also cancels a running gain measurement)
 export async function handleScanStop (ctx: RouterContext): Promise<void> {
@@ -191,7 +199,7 @@ export async function handleScanStop (ctx: RouterContext): Promise<void> {
   stopGainScan()
 }
 
-router.get('/paths/scan/stop', ctx => handleScanStop(ctx as unknown as RouterContext))
+router.post('/paths/scan/stop', ctx => handleScanStop(ctx as unknown as RouterContext))
 
 // measure loudness of songs without a stored level (admin only);
 // paused automatically while a library scan runs, resumed afterwards
@@ -217,6 +225,107 @@ export async function handleGainStatus (ctx: RouterContext): Promise<void> {
 }
 
 router.get('/gain/status', ctx => handleGainStatus(ctx as unknown as RouterContext))
+
+// add a provider
+router.post('/provider', (ctx) => {
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401)
+  }
+
+  const fields = (ctx.request as unknown as RequestWithBody).body
+  if (typeof fields.url === 'string') fields.url = normalizeProviderUrl(fields.url)
+  const { name, url, ...data } = fields
+
+  if (!name || typeof name !== 'string') {
+    ctx.throw(422, 'Invalid name')
+    return
+  }
+
+  if (!url || typeof url !== 'string') {
+    ctx.throw(422, 'Invalid url')
+    return
+  }
+
+  const err = validateProviderFields(fields)
+
+  if (err) {
+    ctx.throw(422, err)
+    return
+  }
+
+  Prefs.addProvider(name, url, data)
+  ProviderFetch.syncProviders()
+
+  ctx.body = Prefs.get() as unknown as PrefsType
+
+  pushPrefs(ctx.io)
+})
+
+// update provider data
+router.put('/provider/:providerId', (ctx) => {
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401)
+  }
+
+  const providerId = parseInt(ctx.params.providerId, 10)
+
+  if (isNaN(providerId)) {
+    ctx.throw(422, 'Invalid providerId')
+  }
+
+  const { body } = ctx.request as unknown as RequestWithBody
+
+  const provider = Prefs.get().providers.entities[providerId]
+
+  if (!provider) {
+    ctx.throw(404, 'Provider not found')
+    return
+  }
+
+  if (typeof body.url === 'string') body.url = normalizeProviderUrl(body.url)
+  const err = validateProviderFields(body)
+
+  if (err) {
+    ctx.throw(422, err)
+    return
+  }
+
+  Prefs.updateProvider(providerId, body)
+  ProviderFetch.syncProviders()
+
+  ctx.body = Prefs.get() as unknown as PrefsType
+
+  pushPrefs(ctx.io)
+})
+
+// remove a provider
+router.delete('/provider/:providerId', (ctx) => {
+  if (!ctx.user.isAdmin) {
+    ctx.throw(401)
+  }
+
+  const providerId = parseInt(ctx.params.providerId, 10)
+
+  if (isNaN(providerId)) {
+    ctx.throw(422, 'Invalid providerId')
+  }
+
+  const provider = Prefs.get().providers.entities[providerId]
+
+  if (!provider) {
+    ctx.throw(404, 'Provider not found')
+    return
+  }
+
+  // before removal, while the provider's url/apiKey are still available
+  ProviderFetch.cancelInFlight(provider)
+  Prefs.removeProvider(providerId)
+  ProviderFetch.syncProviders()
+
+  ctx.body = Prefs.get() as unknown as PrefsType
+
+  pushPrefs(ctx.io)
+})
 
 // get folder listing for path browser
 router.get('/path/ls', async (ctx) => {

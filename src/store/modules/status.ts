@@ -72,15 +72,23 @@ export const requestVolume = (vol: number): AppThunk => (dispatch, getState) => 
   })
 }
 
+// only slider values are throttled: all options share one throttle, which sends
+// just the first and last request in each window, so discrete requests (preset
+// changes, visualizer toggle) would be dropped by any request made right after
+const isDiscreteOptions = (opts: PlaybackOptions) => !!opts.visualizer
+  && Object.keys(opts.visualizer).some(key => key !== 'sensitivity')
+
 export const requestOptions = (opts: PlaybackOptions): AppThunk => (dispatch, getState) => {
   dispatch({
     type: isPlayerOffline(getState()) ? PLAYER_CMD_OPTIONS : PLAYER_REQ_OPTIONS,
     payload: opts,
     meta: {
-      throttle: {
-        wait: 200,
-        leading: true,
-      },
+      throttle: isDiscreteOptions(opts)
+        ? false
+        : {
+            wait: 200,
+            leading: true,
+          },
     },
   })
 }
@@ -98,6 +106,7 @@ export interface StatusState {
   historyJSON: string // queueIds in JSON array
   isAtQueueEnd: boolean
   isErrored: boolean
+  isPitchSupported: boolean
   isPlayerPresent: boolean
   isPlaying: boolean
   isReplayGainEnabled: boolean
@@ -106,8 +115,7 @@ export interface StatusState {
   mediaType: MediaType | null
   mp4Alpha: number
   nextUserId: number | null
-  pitchSemitones: number
-  pitchSupported: boolean | null
+  pitch: number
   position: number
   queueId: number
   visualizer: PlayerVisualizerState | Record<string, never>
@@ -124,6 +132,7 @@ const initialState: StatusState = {
   historyJSON: '[]', // queueIds in JSON array
   isAtQueueEnd: false,
   isErrored: false,
+  isPitchSupported: false,
   isPlayerPresent: false,
   isPlaying: false,
   isReplayGainEnabled: true,
@@ -132,8 +141,7 @@ const initialState: StatusState = {
   mediaType: null,
   mp4Alpha: 1,
   nextUserId: null,
-  pitchSemitones: 0,
-  pitchSupported: null,
+  pitch: 0,
   position: 0,
   queueId: -1,
   visualizer: {},

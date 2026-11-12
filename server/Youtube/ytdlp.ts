@@ -454,7 +454,7 @@ export async function updateYtdl (): Promise<{ ok: boolean, output: string, vers
       void (async () => {
         const trimmed = output.trim()
 
-        let version: string | null = null
+        let version: string | null
 
         try {
           version = await getYtdlVersion()

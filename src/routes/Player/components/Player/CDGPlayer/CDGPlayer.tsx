@@ -1,18 +1,20 @@
 import React from 'react'
 import CDGraphics from 'cdgraphics'
-import { getCdgBuffer, getPlayableUrl } from 'routes/Player/lib/mediaCache'
+import { getCdgBuffer } from 'routes/Player/lib/mediaCache'
 import styles from './CDGPlayer.css'
 
 const BACKDROP_PADDING = 10 // px at 1:1 scale
 const BORDER_RADIUS = parseInt(getComputedStyle(document.body).getPropertyValue('--border-radius'))
 
 interface CDGPlayerProps {
+  audioLatency: number
   cdgAlpha: number
   cdgSize: number
   isPlaying: boolean
   mediaId: number
-  mediaKey: string
+  mediaKey: number
   mediaReplayKey?: number
+  mediaSrc?: string | null
   width: number
   height: number
   onAudioElement(video: HTMLAudioElement): void
@@ -31,6 +33,7 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
   cdg: CDGraphics = null
   frameId: number | null = null
   lastBitmap: ImageBitmap | null = null
+  loadToken = 0
   supportsFilters = CSS.supports('backdrop-filter', 'blur(10px) brightness(100%) saturate(100%)') || CSS.supports('-webkit-backdrop-filter', 'blur(10px) brightness(100%) saturate(100%)')
 
   state = {
@@ -45,9 +48,8 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
   }
 
   componentDidUpdate (prevProps: CDGPlayerProps) {
-    // same queue item, but the underlying file changed (e.g. its media
-    // version was deleted): restart with the new file
-    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaId !== this.props.mediaId) {
+    // mediaSrc resolves asynchronously, so it can arrive after the mediaKey change
+    if (prevProps.mediaKey !== this.props.mediaKey || prevProps.mediaSrc !== this.props.mediaSrc) {
       this.updateSources()
       return
     }
@@ -117,7 +119,6 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
           onCanPlayThrough={this.updateIsPlaying}
           onEnded={this.handleEnded}
           onError={this.handleError}
-          onLoadStart={this.props.onLoad}
           onPlay={this.handlePlay}
           onTimeUpdate={this.handleTimeUpdate}
           ref={this.audio}
@@ -129,19 +130,26 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
   updateSources = async () => {
     const { mediaId } = this.props
     this.stopCDG()
+    this.props.onLoad() // loading includes the .cdg fetch, before the audio's loadstart
+
+    // src is still being resolved; we'll be called again once it is
+    if (!this.props.mediaSrc) return
+
+    // two rapid song changes would otherwise race, with the slower .cdg fetch winning
+    const token = ++this.loadToken
 
     // load .cdg file (from the media cache when available)
     try {
+      // from the media cache when available
       const buffer = await getCdgBuffer(mediaId)
-      // in case we've unmounted or switched items by this point
-      if (!this.audio.current || this.props.mediaId !== mediaId) return
+      // in case we've unmounted or moved on by this point
+      if (!this.audio.current || token !== this.loadToken) return
 
       this.cdg = new CDGraphics(buffer)
-      this.audio.current.src = await getPlayableUrl(mediaId, 'audio')
-      if (this.props.mediaId !== mediaId) return
+      this.audio.current.src = this.props.mediaSrc
       this.audio.current.load()
     } catch (err) {
-      this.props.onError(err.message)
+      if (token === this.loadToken) this.props.onError(err.message)
     }
   }
 
@@ -201,7 +209,9 @@ class CDGPlayer extends React.Component<CDGPlayerProps> {
     this.frameId = requestAnimationFrame(this.startCDG)
     if (!this.audio.current) return
 
-    const frame = this.cdg.render(this.audio.current.currentTime, { forceKey: true })
+    // render at the audible timeline (pitch shifting delays audio behind currentTime)
+    const audibleTime = Math.max(0, this.audio.current.currentTime - this.props.audioLatency)
+    const frame = this.cdg.render(audibleTime, { forceKey: true })
     if (!frame.isChanged) return
 
     // background color changed?

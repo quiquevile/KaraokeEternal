@@ -53,7 +53,6 @@ const RowComponent = ({
   }
 
   const artist = artists.entities[artists.result[index - 1]]
-  if (current) upcoming.push(current)
 
   return (
     <ArtistItem
@@ -66,6 +65,7 @@ const RowComponent = ({
       onArtistClick={() => dispatch(toggleArtistExpanded(artist.artistId))}
       onEditArtist={() => dispatch(showArtistEditor(artist.artistId))}
       upcomingSongs={upcoming}
+      currentSongId={current}
       starredSongs={starredSongs}
       style={style}
     />

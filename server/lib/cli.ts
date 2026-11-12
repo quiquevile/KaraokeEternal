@@ -48,10 +48,10 @@ const env = {
   KES_PATH_DATA: process.env.KES_PATH_DATA || getAppPath('Karaoke Eternal Server'),
   KES_PATH_WEBROOT: path.join(baseDir, 'build', 'client'),
   KES_PORT: parseInt(process.env.KES_PORT, 10) || 0,
+  KES_PROXY_CLIENT_IP_HEADER: process.env.KES_PROXY_CLIENT_IP_HEADER?.trim() || undefined,
+  KES_PROXY_TRUST: process.env.KES_PROXY_TRUST?.trim() || undefined,
   KES_ROTATE_KEY: ['1', 'true'].includes(process.env.KES_ROTATE_KEY?.toLowerCase()),
   KES_SCAN: process.env.KES_SCAN?.trim(),
-  KES_LOGIN_MAX_FAILS: parseInt(process.env.KES_LOGIN_MAX_FAILS, 10) || undefined,
-  KES_LOGIN_WINDOW_MIN: parseInt(process.env.KES_LOGIN_WINDOW_MIN, 10) || undefined,
   KES_HISTORY_LIBRARY_SIZE: parseHistorySize(process.env.KES_HISTORY_LIBRARY_SIZE),
   KES_HISTORY_YOUTUBE_SIZE: parseHistorySize(process.env.KES_HISTORY_YOUTUBE_SIZE),
   KES_SCANNER_CONSOLE_LEVEL: parseLevel(process.env.KES_SCANNER_CONSOLE_LEVEL),
@@ -77,11 +77,21 @@ const argv = yargs(hideBin(process.argv))
     number: true,
     requiresArg: true,
   })
+  .option('proxyClientIpHeader', {
+    describe: 'Header holding the real client IP, for proxies that do not send X-Forwarded-For; honored only from a trusted proxy',
+    requiresArg: true,
+    type: 'string',
+  })
+  .option('proxyTrust', {
+    describe: 'Comma-separated proxy IPs/CIDRs, or presets (loopback, private), to trust X-Forwarded-* from. Enables reverse-proxy mode',
+    requiresArg: true,
+    type: 'string',
+  })
   .option('rotateKey', {
     describe: 'Rotate the session key at startup',
   })
   .option('scan', {
-    describe: 'Run the media scanner at startup. Accepts a comma-separated list of pathIds, or "all"',
+    describe: 'Run the media scanner at startup. Accepts a comma-separated list of pathIds, "all", and/or "full" (also scans unchanged files)',
     type: 'string',
   })
   .option('scannerConsoleLevel', {
@@ -104,16 +114,6 @@ const argv = yargs(hideBin(process.argv))
     number: true,
     requiresArg: true,
   })
-  .option('loginMaxFails', {
-    describe: 'Failed logins before throttling (default=5)',
-    number: true,
-    requiresArg: true,
-  })
-  .option('loginWindowMin', {
-    describe: 'Login throttling window in minutes (default=15)',
-    number: true,
-    requiresArg: true,
-  })
   .option('urlPath', {
     describe: 'Web server URL base path (default=/)',
     requiresArg: true,
@@ -129,7 +129,8 @@ const argv = yargs(hideBin(process.argv))
   .parseSync()
 
 if (argv.version) {
-  console.log(process.env.npm_package_version)
+  // npm_package_version is only set when launched via npm scripts
+  console.log(JSON.parse(fs.readFileSync(path.join(baseDir, 'package.json'), 'utf8')).version)
   process.exit(0) // eslint-disable-line n/no-process-exit
 }
 
@@ -141,13 +142,13 @@ if (argv.rotateKey) {
 const opts = {
   data: 'KES_PATH_DATA',
   port: 'KES_PORT',
+  proxyClientIpHeader: 'KES_PROXY_CLIENT_IP_HEADER',
+  proxyTrust: 'KES_PROXY_TRUST',
   scan: 'KES_SCAN',
   scannerConsoleLevel: 'KES_SCANNER_CONSOLE_LEVEL',
   scannerLogLevel: 'KES_SCANNER_LOG_LEVEL',
   serverConsoleLevel: 'KES_SERVER_CONSOLE_LEVEL',
   serverLogLevel: 'KES_SERVER_LOG_LEVEL',
-  loginMaxFails: 'KES_LOGIN_MAX_FAILS',
-  loginWindowMin: 'KES_LOGIN_WINDOW_MIN',
   urlPath: 'KES_URL_PATH',
 }
 

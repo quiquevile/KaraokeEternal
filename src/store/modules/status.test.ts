@@ -120,7 +120,7 @@ describe('playback request thunks', () => {
     await store.dispatch(requestPlayNext())
     await store.dispatch(requestReplay(7))
     await store.dispatch(requestVolume(0.5))
-    await store.dispatch(requestOptions({ pitchSemitones: 2 } as PlaybackOptions))
+    await store.dispatch(requestOptions({ pitch: 2 } as PlaybackOptions))
 
     const requests = actions.filter(a => a.type.startsWith('server/'))
     expect(requests.map(a => a.type)).toEqual([
@@ -144,7 +144,7 @@ describe('playback request thunks', () => {
     await store.dispatch(requestPlayNext())
     await store.dispatch(requestReplay(7))
     await store.dispatch(requestVolume(0.5))
-    await store.dispatch(requestOptions({ pitchSemitones: 2 } as PlaybackOptions))
+    await store.dispatch(requestOptions({ pitch: 2 } as PlaybackOptions))
 
     expect(actions.map(a => a.type)).toEqual([
       PLAYER_CMD_PLAY,
@@ -182,7 +182,7 @@ describe('playback request thunks', () => {
     const { store, actions } = makeStore(true)
 
     await store.dispatch(requestVolume(0.25))
-    await store.dispatch(requestOptions({ pitchSemitones: 1 } as PlaybackOptions))
+    await store.dispatch(requestOptions({ pitch: 1 } as PlaybackOptions))
 
     expect(actions.find(a => a.type === PLAYER_CMD_VOLUME)?.meta).toMatchObject({
       throttle: { wait: 200, leading: false },

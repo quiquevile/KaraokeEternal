@@ -3,6 +3,7 @@ import type { MessageDescriptor } from 'react-intl'
 export const queueMessages: Record<string, MessageDescriptor> = {
   empty: { id: 'queue.view.empty', defaultMessage: 'Queue Empty' },
   getRoom: { id: 'queue.view.getRoom', defaultMessage: 'Get a Room!' },
+  info: { id: 'queue.item.info', defaultMessage: 'Info' },
   moveTop: { id: 'queue.item.moveTop', defaultMessage: 'Move to top' },
   noMatches: { id: 'queue.view.noMatches', defaultMessage: 'No Songs Match the Filters' },
   remove: { id: 'queue.item.remove', defaultMessage: 'Remove song' },

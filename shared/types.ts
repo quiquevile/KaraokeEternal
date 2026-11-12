@@ -16,14 +16,23 @@ export interface Song {
   folders: string[]
 }
 
+export interface ParsedSongMeta {
+  artist: string
+  artistNorm: string
+  title: string
+  titleNorm: string
+}
+
 export interface QueueItem {
   queueId: number
   songId: number
   userId: number
   prevQueueId: number
   mediaId: number
-  rgTrackGain: number
-  rgTrackPeak: number
+  pitch: number | null // the media's default
+  userPitch: number | null // the singer's own; takes precedence over pitch
+  rgTrackGain: number | null
+  rgTrackPeak: number | null
   userDateUpdated: number
   userDisplayName: string
   mediaType: 'cdg' | 'mp4'
@@ -46,6 +55,8 @@ export interface IRoomPrefs {
     // whether the room key is embedded in the QR (the key itself lives
     // in the rooms table, never here)
     includePassword?: boolean
+    // custom URL encoded into the room QR
+    url?: string
   }
   // persisted equalizer settings (explicit Save only; live tweaks travel
   // over the socket and stay ephemeral)
@@ -95,7 +106,94 @@ export interface Path {
   prefs: {
     isVideoKeyingEnabled: boolean
     isWatchingEnabled: boolean
+    scanFull: boolean
   }
+  scanner?: {
+    configs?: Record<string, number>
+  }
+}
+
+export interface Provider {
+  providerId: number
+  name: string
+  url: string
+  priority: number
+  apiKey?: string
+  prefs: ProviderPrefs
+}
+
+export interface ProviderPrefs {
+  enabled: boolean
+  // per item type; a missing entry means the type is disabled
+  types: ProviderTypePrefs
+}
+
+export interface ProviderTypePrefs {
+  song?: SongProviderPrefs
+}
+
+export interface SongProviderPrefs {
+  enabled: boolean
+  maxLibraryResults: number | null // null = always
+}
+
+export type ProviderState = 'checking' | 'ready' | 'unreachable' | 'unauthorized' | 'incompatible'
+
+// Runtime (not stored) result of checking a provider's /api discovery
+export interface ProviderStatus {
+  state: ProviderState
+  message?: string
+  // supported types the provider offers; version is null when no version is shared
+  types: Record<string, ProviderTypeStatus>
+}
+
+export interface ProviderTypeStatus {
+  version: number | null
+  message?: string
+}
+
+export interface ProviderSearchResult {
+  providerId: number
+  id: string
+  title: string
+  artist: string
+  source: string
+  iconUrl: string
+  duration?: number // seconds, when the provider knows it before download
+}
+
+export type ProviderFetchStatus = 'pending' | 'downloading' | 'complete' | 'error' | 'canceled'
+
+// One singer's request for a provider item. Each one becomes a queue item
+// when the item is ingested, and a row in that singer's room until then.
+export interface ProviderFetchRequester {
+  userId: number
+  userDisplayName: string
+  userDateUpdated: number
+  timestamp: number // when they requested it (UNIX seconds)
+}
+
+// A provider fetch as one room's clients see it: the download's state plus
+// the singers in that room waiting on it. Terminal statuses carry whichever
+// requesters remain; a canceled fetch has none.
+export interface ProviderFetchView {
+  providerId: number
+  itemId: string
+  status: ProviderFetchStatus
+  progress: number
+  error?: string
+  title: string
+  artist: string
+  source?: string
+  iconUrl?: string
+  duration?: number // seconds, when the search result had one
+  eta?: number // seconds until complete as of when this view was sent, when the provider estimates it
+  requests: ProviderFetchRequester[]
+}
+
+export interface ProviderSearchError {
+  providerId: number
+  message: string
 }
 
 export type Permission
@@ -106,6 +204,7 @@ export type Permission
     | 'ghostUsers'
     | 'playerAccess'
     | 'playerControls'
+    | 'setSongPitch'
     | 'youtubeDownload'
     | 'downloadForOthers'
     | 'songFlaws'
@@ -127,11 +226,14 @@ export interface UserWithRole extends User {
   role?: string
 }
 
+export const PITCH_SEMITONES_MIN = -6
+export const PITCH_SEMITONES_MAX = 6
+
 export interface PlaybackOptions {
   cdgAlpha?: number
   cdgSize?: number
   mp4Alpha?: number
-  pitchSemitones?: number
+  pitch?: number
   isReplayGainEnabled?: boolean
   eqEnabled?: boolean
   eqGains?: number[]
@@ -164,6 +266,10 @@ export interface Prefs {
   paths: {
     result: number[]
     entities: Record<number, Path>
+  }
+  providers: {
+    result: number[]
+    entities: Record<number, Provider>
   }
   roles: {
     result: number[]

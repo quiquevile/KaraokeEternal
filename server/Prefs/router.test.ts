@@ -124,11 +124,21 @@ describe('gain/scan endpoints', () => {
   it('starts library scans when no gain job runs', async () => {
     const allCtx = makeCtx()
     await handleScanAll(allCtx)
-    expect(allCtx.startScanner).toHaveBeenCalledWith(true)
+    expect(allCtx.startScanner).toHaveBeenCalledWith(true, false)
 
     const pathCtx = makeCtx({ params: { pathId: '3' } })
     await handleScanPath(pathCtx)
-    expect(pathCtx.startScanner).toHaveBeenCalledWith(3)
+    expect(pathCtx.startScanner).toHaveBeenCalledWith(3, false)
+  })
+
+  it('passes the full-scan flag through to the scanner', async () => {
+    const allCtx = makeCtx({ query: { full: 'true' } })
+    await handleScanAll(allCtx)
+    expect(allCtx.startScanner).toHaveBeenCalledWith(true, true)
+
+    const pathCtx = makeCtx({ params: { pathId: '3' }, query: { full: 'true' } })
+    await handleScanPath(pathCtx)
+    expect(pathCtx.startScanner).toHaveBeenCalledWith(3, true)
   })
 
   it('stop cancels both the scanner and the gain job', async () => {

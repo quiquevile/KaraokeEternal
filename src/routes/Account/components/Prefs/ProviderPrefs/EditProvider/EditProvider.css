@@ -1,0 +1,98 @@
+.modal {
+  min-width: 360px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  margin-bottom: var(--space-m);
+}
+
+.fieldContainer,
+.prefsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.heading {
+  flex: 1;
+  min-width: 0;
+
+  button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: var(--space-s);
+    padding: var(--space-s);
+    font-size: var(--font-size-s);
+  }
+
+  svg {
+    height: var(--icon-size-m);
+  }
+}
+
+.headingStatus {
+  margin-left: auto;
+  color: #777;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  padding: var(--space-m) var(--container-padding);
+}
+
+fieldset.content {
+  gap: var(--space-s);
+  margin: 0;
+  /* WebKit ignores float on a legend, so the legend carries the top padding */
+  padding-top: 0;
+  border: none;
+  min-width: 0;
+}
+
+.legend {
+  padding: var(--space-s) 0 calc(var(--space-s) + var(--space-xs));
+}
+
+/* hanging indent: wrapped text lines up with the radio's label, past the
+   1.5em radio and its gap (see InputRadio.css) */
+.sentence {
+  --radio-indent: calc(1.5em + var(--space-s));
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-s);
+  padding-inline-start: var(--radio-indent);
+
+  > label {
+    margin-inline-start: calc(-1 * var(--radio-indent));
+  }
+}
+
+.sentence input[type="number"] {
+  width: 2.5em;
+  padding-block: var(--space-xs);
+}
+
+.metaLabel {
+  font-weight: bold;
+  color: #777;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger, #d32f2f);
+  font-size: var(--font-size-s);
+}
+
+.meta {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+

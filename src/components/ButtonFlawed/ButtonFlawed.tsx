@@ -2,7 +2,7 @@ import React from 'react'
 import clsx from 'clsx'
 import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
-import ToggleAnimation from 'components/ToggleAnimation/ToggleAnimation'
+import useToggleAnimation from 'lib/useToggleAnimation'
 import styles from './ButtonFlawed.css'
 
 interface ButtonFlawedProps {
@@ -20,6 +20,8 @@ const ButtonFlawed = ({
   'aria-label': ariaLabel,
   ...rest
 }: ButtonFlawedProps) => {
+  const flawAnimation = useToggleAnimation(isFlawed, styles.animateFlaw)
+
   return (
     <Button
       onClick={onClick}
@@ -28,9 +30,11 @@ const ButtonFlawed = ({
       aria-label={ariaLabel}
       {...rest}
     >
-      <ToggleAnimation toggle={isFlawed} className={styles.animateFlaw}>
-        <Icon icon='STAR_BROKEN' />
-      </ToggleAnimation>
+      <Icon
+        icon='STAR_BROKEN'
+        className={flawAnimation.className}
+        onAnimationEnd={flawAnimation.onAnimationEnd}
+      />
     </Button>
   )
 }

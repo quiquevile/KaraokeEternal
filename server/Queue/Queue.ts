@@ -1,8 +1,31 @@
 import path from 'path'
 import { db } from '../lib/Database.js'
+import getLogger from '../lib/Log.js'
 import sql from 'sqlate'
 import { NotFoundError, ValidationError } from '../lib/Errors.js'
 import { QueueItem } from '../../shared/types.js'
+
+const log = getLogger('Queue')
+
+interface QueueEntityBuilding {
+  queueId: number
+  songId: number
+  userId: number
+  prevQueueId: number | null
+  mediaId: number | null
+  relPath?: string | null
+  pitch: number | null
+  userPitch: number | null
+  rgTrackGain: number | null
+  rgTrackPeak: number | null
+  userDisplayName: string
+  userDateUpdated: number
+  pathId: number | null
+  pathData?: string | null
+  isPreferred?: number | null
+  mediaType?: 'cdg' | 'mp4'
+  isVideoKeyingEnabled?: boolean
+}
 
 class Queue {
   /**
@@ -38,83 +61,110 @@ class Queue {
    * Get queued items for a given room
    */
   static get (roomId: number): { result: number[], entities: Record<number, QueueItem> } {
-    const result: number[] = []
-    // wire-only extras (relPath/pathData/...) are stripped below
-    const entities: Record<number, QueueItem & { relPath?: string, pathData?: string, isPreferred?: number, pathId?: number }> = {}
+    const chain: number[] = []
+    const orphaned = new Set<number>()
+    const entities: Record<number, QueueEntityBuilding> = {}
     const map = new Map()
     const pathData = new Map()
     let curQueueId = null
 
+    // media and paths are LEFT JOINed so that queue items whose media was
+    // removed (e.g. mid-scan) still anchor the prevQueueId chain; they're
+    // kept out of the payload below
     const query = sql`
-      SELECT queueId, songId, userId, prevQueueId,
-        media.mediaId, media.relPath, media.rgTrackGain, media.rgTrackPeak,
+      SELECT queueId, songId, queue.userId, prevQueueId,
+        media.mediaId, media.relPath, media.pitch, userPitches.pitch AS userPitch,
+        media.rgTrackGain, media.rgTrackPeak,
         users.name AS userDisplayName, users.dateUpdated AS userDateUpdated,
         paths.pathId, paths.data AS pathData,
+        -- the only aggregate here, so sqlite's bare column rule makes every
+        -- media.* above come from the row it picked: adding a second aggregate
+        -- would break that, and a song's media could then disagree. userPitches
+        -- is unique per (userId, mediaId), so it adds no rows and its pitch is
+        -- the one for the picked media.
         MAX(isPreferred) AS isPreferred
       FROM queue
         INNER JOIN users USING(userId)
-        INNER JOIN media USING(songId)
-        INNER JOIN paths USING(pathId)
+        LEFT JOIN media USING(songId)
+        LEFT JOIN paths USING(pathId)
+        LEFT JOIN userPitches ON userPitches.mediaId = media.mediaId AND userPitches.userId = queue.userId
       WHERE roomId = ${roomId}
       GROUP BY queueId
-      ORDER BY queueId, paths.priority ASC
+      ORDER BY queueId
     `
     const rows = db.all<{
       queueId: number
       songId: number
       userId: number
       prevQueueId: number
-      mediaId: number
-      relPath: string
-      rgTrackGain: number
-      rgTrackPeak: number
+      mediaId: number | null
+      relPath: string | null
+      pitch: number | null
+      userPitch: number | null
+      rgTrackGain: number | null
+      rgTrackPeak: number | null
       userDisplayName: string
       userDateUpdated: number
-      pathId: number
-      pathData: string
-      isPreferred: number
+      pathId: number | null
+      pathData: string | null
+      isPreferred: number | null
     }>(String(query), query.parameters)
 
     for (const row of rows) {
-      if (!pathData.has(row.pathId)) {
-        pathData.set(row.pathId, JSON.parse(row.pathData))
-      }
-
-      const pathPrefs = pathData.get(row.pathId)?.prefs
-
-      entities[row.queueId] = {
-        ...row,
-        mediaType: this.getType(row.relPath),
-        isVideoKeyingEnabled: !!pathPrefs?.isVideoKeyingEnabled,
-      }
-
-      // don't send over the wire
-      delete entities[row.queueId].relPath
-      delete entities[row.queueId].isPreferred
-      delete entities[row.queueId].pathData
-
+      // every row participates in the chain, orphaned or not
       if (row.prevQueueId === null) {
         // found the first item
-        result.push(row.queueId)
+        chain.push(row.queueId)
         curQueueId = row.queueId
       } else {
         // map indexed by prevQueueId
         map.set(row.prevQueueId, row.queueId)
       }
+
+      const { relPath, pathId } = row
+
+      if (row.mediaId === null || relPath === null || pathId === null) {
+        orphaned.add(row.queueId)
+        continue
+      }
+
+      if (!pathData.has(pathId)) {
+        pathData.set(pathId, row.pathData === null ? null : JSON.parse(row.pathData))
+      }
+
+      const pathPrefs = pathData.get(pathId)?.prefs
+
+      entities[row.queueId] = row
+      entities[row.queueId].mediaType = this.getType(relPath)
+      entities[row.queueId].isVideoKeyingEnabled = !!pathPrefs?.isVideoKeyingEnabled
+
+      // don't send over the wire
+      delete entities[row.queueId].relPath
+      delete entities[row.queueId].isPreferred
+      delete entities[row.queueId].pathData
     }
 
-    while (result.length < rows.length) {
-      // get the item whose prevQueueId references the current one;
-      // a corrupt chain ends the walk instead of crashing or spinning
+    while (chain.length < rows.length) {
+      // get the item whose prevQueueId references the current one
       const nextQueueId = map.get(curQueueId)
 
-      if (nextQueueId === undefined || !entities[nextQueueId]) break
+      if (nextQueueId === undefined) {
+        log.error('queue chain broken in room %s at queueId %s', roomId, curQueueId)
 
-      result.push(entities[nextQueueId].queueId)
+        // degrade to insertion order for the unreachable remainder
+        for (const row of rows) {
+          if (!chain.includes(row.queueId)) chain.push(row.queueId)
+        }
+
+        break
+      }
+
+      chain.push(nextQueueId)
       curQueueId = nextQueueId
     }
 
-    return { result, entities }
+    const result = chain.filter(queueId => !orphaned.has(queueId))
+    return { result, entities: entities as unknown as Record<number, QueueItem> }
   }
 
   /**
@@ -127,64 +177,61 @@ class Queue {
 
     if (prevQueueId === -1) prevQueueId = null
 
-    const currentQuery = sql`
-      SELECT prevQueueId
-      FROM queue
-      WHERE queueId = ${queueId} AND roomId = ${roomId}
-    `
-    const current = db.get<{ prevQueueId: number | null }>(String(currentQuery), currentQuery.parameters)
+    db.exec('BEGIN IMMEDIATE')
+    db.exec('PRAGMA defer_foreign_keys = ON')
 
-    if (!current) {
-      throw new NotFoundError(`queueId ${queueId} not found`)
-    }
-
-    // no-op: already right after the target
-    if (current.prevQueueId === prevQueueId) return
-
-    if (prevQueueId !== null) {
-      const targetQuery = sql`
-        SELECT queueId
-        FROM queue
-        WHERE queueId = ${prevQueueId} AND roomId = ${roomId}
+    try {
+      // get the current parent and validate prevQueueId
+      const curQuery = sql`
+        SELECT q.prevQueueId,
+          CASE WHEN ${prevQueueId} IS NULL THEN 1
+               WHEN EXISTS (SELECT 1 FROM queue WHERE queueId = ${prevQueueId} AND roomId = ${roomId}) THEN 1
+               ELSE 0
+          END AS prevValid
+        FROM queue q
+        WHERE q.queueId = ${queueId} AND q.roomId = ${roomId}
       `
-      const target = db.get<{ queueId: number }>(String(targetQuery), targetQuery.parameters)
+      const curRow = db.get<{ prevQueueId: number | null, prevValid: number }>(String(curQuery), curQuery.parameters)
 
-      if (!target) {
-        throw new ValidationError(`prevQueueId ${prevQueueId} not found`)
+      if (!curRow) {
+        throw new NotFoundError(`queueId ${queueId} not found in room ${roomId}`)
       }
+
+      if (!curRow.prevValid) {
+        throw new ValidationError(`prevQueueId ${prevQueueId} not found in room ${roomId}`)
+      }
+
+      const curParent = curRow.prevQueueId
+
+      // already in correct position?
+      if (curParent === prevQueueId) {
+        db.exec('COMMIT')
+        return
+      }
+
+      // perform the move
+      const updateQuery = sql`
+        UPDATE queue
+        SET prevQueueId = CASE
+          WHEN prevQueueId = ${queueId} THEN ${curParent}
+          WHEN queueId != ${queueId} AND prevQueueId ${prevQueueId === null ? sql`IS NULL` : sql`= ${prevQueueId}`} THEN ${queueId}
+          WHEN queueId = ${queueId} THEN ${prevQueueId}
+          ELSE prevQueueId
+        END
+        WHERE roomId = ${roomId} 
+          AND (
+            prevQueueId = ${queueId} 
+            OR (queueId != ${queueId} AND prevQueueId ${prevQueueId === null ? sql`IS NULL` : sql`= ${prevQueueId}`})
+            OR queueId = ${queueId}
+          )
+      `
+      db.run(String(updateQuery), updateQuery.parameters)
+
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw err
     }
-
-    db.transaction(() => {
-      // close the gap left behind
-      const detachQuery = sql`
-        UPDATE queue
-        SET prevQueueId = ${current.prevQueueId}
-        WHERE prevQueueId = ${queueId} AND roomId = ${roomId}
-      `
-      db.run(String(detachQuery), detachQuery.parameters)
-
-      // whoever followed the target now follows the moved item
-      const followerQuery = prevQueueId === null
-        ? sql`
-          UPDATE queue
-          SET prevQueueId = ${queueId}
-          WHERE prevQueueId IS NULL AND queueId != ${queueId} AND roomId = ${roomId}
-        `
-        : sql`
-          UPDATE queue
-          SET prevQueueId = ${queueId}
-          WHERE prevQueueId = ${prevQueueId} AND queueId != ${queueId} AND roomId = ${roomId}
-        `
-      db.run(String(followerQuery), followerQuery.parameters)
-
-      // link the moved item after the target
-      const moveQuery = sql`
-        UPDATE queue
-        SET prevQueueId = ${prevQueueId}
-        WHERE queueId = ${queueId} AND roomId = ${roomId}
-      `
-      db.run(String(moveQuery), moveQuery.parameters)
-    })
   }
 
   /**

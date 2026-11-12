@@ -62,7 +62,7 @@ const loadImageData = async (): Promise<ImageDataMap> => {
 }
 
 interface PlayerVisualizerProps {
-  audioSourceNode: MediaElementAudioSourceNode
+  audioNode: AudioNode
   isPlaying: boolean
   onError(error: string): void
   presetKey: string
@@ -81,7 +81,7 @@ class PlayerVisualizer extends React.Component<PlayerVisualizerProps> {
 
   componentDidMount () {
     try {
-      this.visualizer = butterchurn.createVisualizer(this.props.audioSourceNode.context, this.canvas.current, {
+      this.visualizer = butterchurn.createVisualizer(this.props.audioNode.context, this.canvas.current, {
         width: this.props.width,
         height: this.props.height,
       })
@@ -103,7 +103,7 @@ class PlayerVisualizer extends React.Component<PlayerVisualizerProps> {
   componentDidUpdate (prevProps: PlayerVisualizerProps) {
     const { props } = this
 
-    if (props.audioSourceNode !== prevProps.audioSourceNode) {
+    if (props.audioNode !== prevProps.audioNode) {
       this.updateAudioSource()
     }
 
@@ -177,8 +177,8 @@ class PlayerVisualizer extends React.Component<PlayerVisualizerProps> {
   }
 
   updateAudioSource = () => {
-    this.audioGainNode = this.props.audioSourceNode.context.createGain()
-    this.props.audioSourceNode.connect(this.audioGainNode)
+    this.audioGainNode = this.props.audioNode.context.createGain()
+    this.props.audioNode.connect(this.audioGainNode)
     this.visualizer.connectAudio(this.audioGainNode)
   }
 

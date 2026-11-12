@@ -52,9 +52,9 @@ const usePlayerGestures = (containerRef: React.RefObject<HTMLDivElement | null>)
       toPoint(e),
       el.clientWidth,
       status.volume,
-      status.pitchSemitones,
+      status.pitch,
     )
-  }, [containerRef, isEnabled, status.volume, status.pitchSemitones])
+  }, [containerRef, isEnabled, status.volume, status.pitch])
 
   const onPointerMove = useCallback((e: PointerEvent) => {
     const state = gestureRef.current
@@ -65,10 +65,10 @@ const usePlayerGestures = (containerRef: React.RefObject<HTMLDivElement | null>)
 
     if (intent.type === 'volume') {
       dispatch(requestVolume(intent.value))
-    } else if (intent.type === 'pitch' && status.pitchSupported !== false) {
-      dispatch(requestOptions({ pitchSemitones: intent.semitones }))
+    } else if (intent.type === 'pitch' && status.isPitchSupported !== false) {
+      dispatch(requestOptions({ pitch: intent.semitones }))
     }
-  }, [dispatch, status.pitchSupported])
+  }, [dispatch, status.isPitchSupported])
 
   const onPointerUp = useCallback((e: PointerEvent) => {
     const state = gestureRef.current

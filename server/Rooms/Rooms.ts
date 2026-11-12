@@ -68,8 +68,8 @@ class Rooms {
     roomId: number | null | undefined = undefined,
     { status = ['open'], includePassword = false }: { status?: string[], includePassword?: boolean } = {},
   ): { result: number[], entities: Record<number, RoomRow> } {
-    const result = []
-    const entities = {}
+    const result: number[] = []
+    const entities: Record<number, RoomRow> = {}
     const whereConditions = []
     let whereClause = sql``
 
@@ -108,19 +108,23 @@ class Rooms {
 
     res.forEach((row) => {
       const data = JSON.parse(row.data)
-      row.prefs = data.prefs ?? {}
-      delete row.data
-
-      row.hasPassword = !!row.password
+      const hasPassword = !!row.password
       // reversible value for QR embedding (never legacy hashes): only
       // members and admins ever see it, and only they know the key anyway
-      row.qrPassword = crypto.isEncodedRoomPassword(row.password) ? row.password : null
+      const qrPassword = crypto.isEncodedRoomPassword(row.password) ? row.password : null
+
+      delete row.data
       if (!includePassword) delete row.password
 
-      row.dateCreated = parseInt(String(row.dateCreated), 10) // v1.0 schema used 'text' column
-
       result.push(row.roomId)
-      entities[row.roomId] = row
+      entities[row.roomId] = {
+        ...row,
+        prefs: data.prefs ?? {},
+        hasPassword,
+        qrPassword,
+        // v1.0 schema used 'text' column
+        dateCreated: parseInt(String(row.dateCreated), 10),
+      }
     })
 
     return { result, entities }

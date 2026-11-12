@@ -76,13 +76,14 @@ const PlayerPrefs = () => {
   return (
     <Accordion
       className={styles.container}
-      headingComponent={(
-        <div className={styles.heading}>
+      renderHeading={button => <div className={styles.heading}>{button}</div>}
+      heading={(
+        <>
           <Icon icon='TELEVISION_PLAY' size={32} className={styles.icon} />
           <div className={styles.title}>
             <FormattedMessage {...accountMessages.playerPrefsTitle} />
           </div>
-        </div>
+        </>
       )}
     >
       <div className={styles.content}>

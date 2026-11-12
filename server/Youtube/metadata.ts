@@ -106,7 +106,7 @@ export function deriveMetadata (title: string, channel = ''): ParsedMetadata {
     ? cleaned.replace(/\s*\((?:made popular by|origin(?:al|ally)? by)[^)]*\)/gi, ' ')
     : cleaned
 
-  let artist = ''
+  let artist: string
   let songTitle = name
 
   try {

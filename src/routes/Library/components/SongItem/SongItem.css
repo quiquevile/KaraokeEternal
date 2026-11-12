@@ -2,7 +2,9 @@
   --song-item-btn-size: 48px;
 
   position: relative;
-  display: flex;  align-items: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
   margin-left: var(--space-xs);
   margin-bottom: var(--space-xs);
   background-color: hsl(var(--hue-blue), 40%, 6%);
@@ -62,16 +64,24 @@
   font-size: 14px;
   text-align: right;
   width: 40px;
+  flex-shrink: 0;
 }
 
 .primary {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
   align-self: stretch;
-  align-content: center;
   overflow: hidden;
   white-space: nowrap;
-  margin-left: 14px;
   cursor: pointer;
+
+  /* inset: the list clips anything outside the row */
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: -4px;
+  }
 }
 
 .title {

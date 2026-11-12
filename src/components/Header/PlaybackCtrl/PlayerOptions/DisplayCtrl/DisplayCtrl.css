@@ -1,0 +1,103 @@
+.visualizer legend {
+  label {
+    display: flex;
+    gap: var(--space-s);
+    align-items: center;
+    cursor: pointer;
+  }
+}
+
+.presetContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.presetButtons {
+  display: flex;
+  gap: var(--space-s);
+
+  button {
+    display: block;
+    background-color: var(--btn-active-bg-color);
+    border-radius: var(--border-radius);
+    width: 100%;
+
+    svg {
+      height: var(--icon-size-xl);
+      color: #000;
+      margin: 0 auto;
+    }
+  }
+}
+
+.presetAnimate {
+  animation: preset-glow 1s var(--activate-1);
+}
+
+/* no `to`: fades back to the button's unfiltered resting state */
+@keyframes preset-glow {
+  from {
+    filter: var(--btn-activate-filter);
+  }
+}
+
+.presetName {
+  margin: 0;
+  height: 2lh;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-gray-6);
+}
+
+.field label {
+  color: var(--color-gray-7);
+}
+
+.unsupported {
+  text-align: center;
+  margin: var(--space-m) 0;
+  color: grey;
+}
+
+.slider {
+  margin: 0 1.25rem;
+}
+
+.pitchButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.pitchButtons button {
+  flex: 1;
+}
+
+.step {
+  display: block;
+  background-color: var(--btn-active-bg-color);
+  border-radius: var(--border-radius);
+}
+
+.step svg {
+  height: var(--icon-size-xl);
+  color: #000;
+  margin: 0 auto;
+}
+
+.pitchButtons .reset {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.pitchValue {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

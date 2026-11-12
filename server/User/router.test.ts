@@ -51,7 +51,6 @@ vi.mock('../lib/Database.js', () => ({
 
 import { handleLogin, handleSwitchRoom, handleUsersCleanup, handleUsersNames } from './router.js'
 import router from './router.js'
-import { resetLoginRateLimits } from '../lib/loginRateLimit.js'
 import User from './User.js'
 
 const dispatch = router.routes() as (ctx: object, next: () => void) => Promise<void>
@@ -324,56 +323,50 @@ describe('handleLogin', () => {
   })
 
   it('rate-limits credential failures with Retry-After', async () => {
-    process.env.KES_LOGIN_MAX_FAILS = '2'
-    validateMock.mockRejectedValue(new Error('Incorrect username/email or password'))
-    const body = { username: 'pepe', password: 'wrong' }
+    validateMock.mockRejectedValue(new Error('Incorrect username or password'))
+    const body = { username: 'rate-limited-user', password: 'wrong' }
     const ip = '10.9.9.9'
 
-    try {
-      for (let i = 0; i < 2; i++) {
-        await expect(handleLogin(makeLoginCtx(body, ip) as never)).rejects.toMatchObject({ status: 401 })
-      }
-
-      const ctx = makeLoginCtx(body, ip)
-      await expect(handleLogin(ctx as never)).rejects.toMatchObject({ status: 429 })
-      expect(ctx.set).toHaveBeenCalledWith('Retry-After', expect.any(String))
-      expect(validateMock).toHaveBeenCalledTimes(2)
-    } finally {
-      delete process.env.KES_LOGIN_MAX_FAILS
-      resetLoginRateLimits()
+    // per-user budget: 10 failures per 15 minutes (rate-limiter-flexible)
+    for (let i = 0; i < 10; i++) {
+      await expect(handleLogin(makeLoginCtx(body, ip) as never)).rejects.toMatchObject({ status: 401 })
     }
+
+    const ctx = makeLoginCtx(body, ip)
+    await expect(handleLogin(ctx as never)).rejects.toMatchObject({ status: 429 })
+    expect(ctx.set).toHaveBeenCalledWith('Retry-After', expect.any(String))
+    // the pre-check refuses before any password hashing
+    expect(validateMock).toHaveBeenCalledTimes(10)
   })
 
   it('does not count room failures and clears the counter on success', async () => {
-    process.env.KES_LOGIN_MAX_FAILS = '2'
     const ip = '10.9.9.10'
+    const fail = { username: 'room-fail-user', password: 'wrong' }
+    const ok = { username: 'room-fail-user', password: 'secret', roomId: '1' }
 
-    try {
-      // credential failures: 1 counted
-      validateMock.mockRejectedValueOnce(new Error('Incorrect username/email or password'))
-      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'wrong' }, ip) as never))
-        .rejects.toMatchObject({ status: 401 })
-
-      // room failure with valid credentials: not counted
-      validateMock.mockResolvedValue(standardUser)
-      roomsValidateMock.mockRejectedValueOnce(new Error('Incorrect room password'))
-      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'secret', roomId: '1' }, ip) as never))
-        .rejects.toMatchObject({ status: 401 })
-
-      // success clears the counter: two more failures still below the limit
-      roomsValidateMock.mockResolvedValue(true)
-      validateMock.mockResolvedValue(adminUser)
-      await handleLogin(makeLoginCtx({ username: 'admin', password: 'secret' }, ip) as never)
-
-      validateMock.mockRejectedValue(new Error('Incorrect username/email or password'))
-      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'wrong' }, ip) as never))
-        .rejects.toMatchObject({ status: 401 })
-      await expect(handleLogin(makeLoginCtx({ username: 'pepe', password: 'wrong' }, ip) as never))
-        .rejects.toMatchObject({ status: 401 })
-    } finally {
-      delete process.env.KES_LOGIN_MAX_FAILS
-      resetLoginRateLimits()
+    // some credential failures are counted against the budget
+    validateMock.mockRejectedValue(new Error('Incorrect username or password'))
+    for (let i = 0; i < 3; i++) {
+      await expect(handleLogin(makeLoginCtx(fail, ip) as never)).rejects.toMatchObject({ status: 401 })
     }
+
+    // a successful sign-in clears the account's failure count
+    validateMock.mockResolvedValue(standardUser)
+    await handleLogin(makeLoginCtx(ok, ip) as never)
+
+    // room failure with valid credentials: not counted against the budget;
+    // the full 10 points must be available again after the clear — a leftover
+    // count or a counted room failure would spend them and fail below
+    roomsValidateMock.mockRejectedValueOnce(new Error('Incorrect room password'))
+    await expect(handleLogin(makeLoginCtx(ok, ip) as never)).rejects.toMatchObject({ status: 401 })
+
+    validateMock.mockRejectedValue(new Error('Incorrect username or password'))
+    for (let i = 0; i < 10; i++) {
+      await expect(handleLogin(makeLoginCtx(fail, ip) as never)).rejects.toMatchObject({ status: 401 })
+    }
+
+    // the budget is spent now
+    await expect(handleLogin(makeLoginCtx(fail, ip) as never)).rejects.toMatchObject({ status: 429 })
   })
 })
 

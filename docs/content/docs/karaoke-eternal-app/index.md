@@ -181,7 +181,7 @@ The Preferences panel allows admins to set these global preferences:
 - **Media Folders**
   - Add folders with [supported media files]({{< ref "docs/karaoke-eternal-server#media-files" >}}) to scan them into the library. You can re-arrange the folder order by dragging and dropping, and when songs have multiple versions the one in the folder highest in the list will be used.
 - **Player**
-  - **ReplayGain (clip-safe)**: [ReplayGain](https://en.wikipedia.org/wiki/ReplayGain){{% icon-external %}} metadata tags allow the player to automatically minimize volume differences between songs, resulting in a better experience for all, and without affecting the dynamic range of each song (no compression). This option should generally only be enabled when you know all of your media is properly tagged. It normally reduces the player's overall volume significantly, so just turn your output up, and/or your mics down.
+  - Default timings for the player's on-screen notices (next-up badge and pitch toast), plus a **Measure ReplayGain** button that analyzes every song still missing a loudness level.
 
 ### My Account
 
@@ -203,6 +203,8 @@ The player is just another part of the app, and is designed to run fullscreen on
 To start a player, sign in to the desired room as an admin and a player link will appear at the top. If you don't see a link that means fullscreen support wasn't detected, but you can still manually navigate to `/player`.
 
 Once a player is in the room, playback and display controls will appear. Admins will always see these, as well as the user who is currently singing.
+
+The **Player Options** button in the playback controls opens the dialog shown above. Its **Display** tab covers overlay and visualizer settings, while the **Audio** tab holds pitch, the equalizer and a room-wide [ReplayGain](https://en.wikipedia.org/wiki/ReplayGain) toggle. ReplayGain levels out volume differences between songs without compression (clip-safe, so dynamic range is untouched); media without loudness tags is downloaded and measured the first time it plays, so that analysis only has to happen once per song.
 
 <aside class="info">
   {{% icon-info %}}

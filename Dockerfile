@@ -21,7 +21,11 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# runtime only execs `node build/server/main.js`; drop the bundled npm so its
+# dependency tree (undici, brace-expansion, …) never ships in the final image
+RUN npm ci --omit=dev \
+ && rm -rf /usr/local/lib/node_modules/npm \
+ && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --from=build /app/build ./build
 COPY --from=build /app/assets ./assets

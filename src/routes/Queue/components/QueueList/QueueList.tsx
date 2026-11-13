@@ -11,7 +11,7 @@ import { providerFetchCancel, providerFetchRequest } from '../../../Library/modu
 import getPlayerHistory from '../../selectors/getPlayerHistory'
 import getMoveAnchor from '../../selectors/getMoveAnchor'
 import getRoundRobinQueue from '../../selectors/getRoundRobinQueue'
-import getDisplayQueue from '../../selectors/getDisplayQueue'
+import getVisibleDisplayQueue from '../../selectors/getVisibleDisplayQueue'
 import getWaits from '../../selectors/getWaits'
 import type { PendingQueueItem } from '../../selectors/getPendingQueue'
 
@@ -25,7 +25,7 @@ const QueueList = () => {
   // renders
   const chain = useAppSelector(state => ensureState(state.queue))
   const queue = useAppSelector(getRoundRobinQueue)
-  const rows = useAppSelector(getDisplayQueue)
+  const rows = useAppSelector(getVisibleDisplayQueue)
   const songs = useAppSelector(state => state.songs)
   const starredSongs = useAppSelector(state => ensureState(state.userStars).starredSongs)
   const starCounts = useAppSelector(state => state.starCounts)

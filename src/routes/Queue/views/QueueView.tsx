@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { ensureState } from 'redux-optimistic-ui'
 import { Link } from 'react-router'
 import getRoundRobinQueue from '../selectors/getRoundRobinQueue'
-import getVisibleQueue from '../selectors/getVisibleQueue'
+import getVisibleDisplayQueue from '../selectors/getVisibleDisplayQueue'
 import getPendingQueue from '../selectors/getPendingQueue'
 import QueueList from '../components/QueueList/QueueList'
 import Spinner from 'components/Spinner/Spinner'
@@ -22,9 +22,9 @@ const QueueView = () => {
   const isLoading = useAppSelector(state => ensureState(state.queue).isLoading)
   const filterStr = useAppSelector(state => state.ui.filterStr)
   // raw queue drives the empty state, the mount scroll and movement;
-  // only the filtered list renders
+  // only the filtered rows render
   const queue = useAppSelector(getRoundRobinQueue)
-  const visibleQueue = useAppSelector(getVisibleQueue)
+  const rows = useAppSelector(getVisibleDisplayQueue)
   const pending = useAppSelector(getPendingQueue)
   const queueId = useAppSelector(state => state.status.queueId)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -75,7 +75,7 @@ const QueueView = () => {
         </TextOverlay>
       )}
 
-      {!isLoading && queue.result.length > 0 && visibleQueue.result.length === 0 && (
+      {!isLoading && (queue.result.length > 0 || pending.length > 0) && rows.length === 0 && (
         <TextOverlay>
           <h1><FormattedMessage {...queueMessages.noMatches} /></h1>
           {/* only the text filter can be handed over to the library: other

@@ -49,7 +49,8 @@
 
 - Live pitch control in semitones, replay/restart button, and automatic advance when the playing item disappears
 - A "Next: singer" badge appears on the player screen near the end of the current song, with configurable lead and blink timings
-- Global keyboard shortcuts for playback controllers: space toggles play/pause, arrows control volume and next/replay, +/- adjust pitch, Q toggles the QR, B cycles the progress readout through five states (nothing, bar only, + time, + title, + singer), F enters fullscreen
+- Global keyboard shortcuts for playback controllers: space toggles play/pause, arrows control volume and next/replay, +/- adjust pitch (0 resets it, * restores the song's stored default), Q toggles the QR, B cycles the progress readout through five states (nothing, bar only, + time, + title, + singer), F enters fullscreen
+- Starting a song applies its stored default pitch (the singer's own saved value first, otherwise the song's default) instead of resetting to zero; restarting the song keeps the current pitch as before
 - VLC-style ten-band equalizer, adjustable per player room
 - Equalizer settings persist per room when saved (Done button); unsaved tweaks stay live-only and are lost on player reload
 - Three custom EQ slots (P1-P3) stored per user; anyone with playback controls can recall and save their own

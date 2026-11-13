@@ -5,6 +5,7 @@ import {
   formatPitch,
   formatRemaining,
   getPlayerDisplayPrefs,
+  getStoredPitch,
   isNextUpVisible,
   isProgressVisible,
   nextProgressState,
@@ -82,6 +83,19 @@ describe('playerDisplay', () => {
     expect(formatPitch(0)).toBe('0 st')
     expect(formatPitch(2)).toBe('+2 st')
     expect(formatPitch(-2)).toBe('-2 st')
+  })
+
+  it('resolves the pitch a queue item starts at', () => {
+    // singer's own saved preference wins over the media default
+    expect(getStoredPitch({ pitch: 4, userPitch: 2 })).toBe(2)
+    // a saved 0 is a preference, not the absence of one
+    expect(getStoredPitch({ pitch: 4, userPitch: 0 })).toBe(0)
+    expect(getStoredPitch({ pitch: 4, userPitch: null })).toBe(4)
+    expect(getStoredPitch({ pitch: null, userPitch: null })).toBe(0)
+    // optimistic items have no media yet; gone items resolve to 0
+    expect(getStoredPitch({ isOptimistic: true })).toBe(0)
+    expect(getStoredPitch(undefined)).toBe(0)
+    expect(getStoredPitch(null)).toBe(0)
   })
 
   it('cycles through the five canonical progress states', () => {

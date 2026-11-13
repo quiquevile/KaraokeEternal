@@ -5,6 +5,7 @@ import { CANCEL } from 'redux-throttle'
 import getWebGLSupport from 'lib/getWebGLSupport'
 import socket from 'lib/socket'
 import { EQ_FREQUENCIES, EQ_PRESETS, clampEqGain } from '../lib/equalizer'
+import { getStoredPitch } from '../lib/playerDisplay'
 import { roomSwitched } from 'store/modules/status'
 import { pitchShifterEngine } from 'lib/pitchShifter'
 import { PITCH_SEMITONES_MAX, PITCH_SEMITONES_MIN } from 'shared/types'
@@ -106,10 +107,9 @@ export function playerStatus (status: Partial<PlayerState> = {}, isImmediate = f
 }
 
 /**
- * Apply the stored pitch for the item being loaded: the singer's own preference
- * for the media if they've saved one, else the media's default. Derived here
- * rather than passed in so both callers agree, and so neither has to take the
- * queue as a dependency (see useMediaSource).
+ * Apply the stored pitch for the item being loaded (see getStoredPitch).
+ * Derived here rather than passed in so both callers agree, and so neither
+ * has to take the queue as a dependency (see useMediaSource).
  */
 export function playerLoadCurrent (): AppThunk {
   return (dispatch, getState) => {
@@ -118,9 +118,7 @@ export function playerLoadCurrent (): AppThunk {
 
     dispatch(playerLoad({
       queueId: player.queueId,
-      pitch: queueItem && queueItem.isOptimistic !== true
-        ? queueItem.userPitch ?? queueItem.pitch ?? 0
-        : 0,
+      pitch: getStoredPitch(queueItem),
     }))
   }
 }

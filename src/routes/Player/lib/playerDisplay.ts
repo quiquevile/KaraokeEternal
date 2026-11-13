@@ -27,6 +27,22 @@ export function clampPitch (value: number): number {
   return Math.min(PITCH_SEMITONES_MAX, Math.max(PITCH_SEMITONES_MIN, Math.round(value)))
 }
 
+/**
+ * The pitch a queue item starts at: the singer's own stored preference for the
+ * media if they've saved one, else the media's default, else none. Optimistic
+ * items and missing entries resolve to 0 (no stored values yet). The optional
+ * fields also keep the signature accepting optimistic queue items.
+ */
+export function getStoredPitch (
+  item: {
+    pitch?: number | null
+    userPitch?: number | null
+    isOptimistic?: boolean
+  } | null | undefined,
+): number {
+  return item?.userPitch ?? item?.pitch ?? 0
+}
+
 export function getPlayerDisplayPrefs (stored?: Partial<PlayerDisplayPrefs> | null): PlayerDisplayPrefs {
   return {
     nextUpLeadMs: asNonNegativeInt(stored?.nextUpLeadMs, PLAYER_DISPLAY_DEFAULTS.nextUpLeadMs),

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { ensureState } from 'redux-optimistic-ui'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import {
   requestOptions,
@@ -10,7 +11,7 @@ import {
 } from 'store/modules/status'
 import { hasPermission } from 'store/modules/user'
 import { updateCurrentRoomOptions } from 'store/modules/rooms'
-import { clampPitch, nextProgressState } from 'routes/Player/lib/playerDisplay'
+import { clampPitch, getStoredPitch, nextProgressState } from 'routes/Player/lib/playerDisplay'
 import screenfull from 'screenfull'
 
 const VOLUME_STEP = 0.05
@@ -28,6 +29,7 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
 
 // global shortcuts for playback controllers (same actions as the header
 // buttons and Player Options): space toggles play/pause, +/- adjust pitch,
+// 0 resets pitch to zero, * restores the current song's stored default,
 // up/down adjust volume, arrows skip next / replay, Q toggles the room QR,
 // B toggles the progress bar, F enters player fullscreen.
 // Inert while typing, with modifiers, or without playback-control
@@ -41,6 +43,13 @@ const usePlaybackShortcuts = () => {
       ? state.rooms.entities[state.user.roomId]?.prefs
       : undefined),
   )
+  // stored default pitch of the song being played (* restores it)
+  const storedPitch = useAppSelector((state) => {
+    if (state.status.isAtQueueEnd) return null
+    const item = ensureState(state.queue).entities[state.status.queueId]
+    if (!item || item.isOptimistic) return null
+    return getStoredPitch(item)
+  })
 
   useEffect(() => {
     if (!hasPermission(user, 'playerControls') || user.roomId === null) return
@@ -83,6 +92,13 @@ const usePlaybackShortcuts = () => {
           e.preventDefault()
           if (status.isPitchSupported !== false) {
             dispatch(requestOptions({ pitch: 0 }))
+          }
+          break
+        case '*':
+        case 'Multiply':
+          e.preventDefault()
+          if (status.isPitchSupported !== false && storedPitch !== null) {
+            dispatch(requestOptions({ pitch: storedPitch }))
           }
           break
         case 'ArrowUp':
@@ -150,7 +166,7 @@ const usePlaybackShortcuts = () => {
     window.addEventListener('keydown', onKeyDown)
 
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [dispatch, user, status, roomPrefs])
+  }, [dispatch, user, status, roomPrefs, storedPitch])
 }
 
 export default usePlaybackShortcuts

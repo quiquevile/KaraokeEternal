@@ -9,7 +9,7 @@ import PlayerQR from '../PlayerQR/PlayerQR'
 import getRoundRobinQueue from 'routes/Queue/selectors/getRoundRobinQueue'
 import { playerLeave, playerError, playerLoadCurrent, playerPlay, playerStatus, type PlayerState } from '../../modules/player'
 import getRoomPrefs from '../../selectors/getRoomPrefs'
-import { getPlayerDisplayPrefs, isNextUpVisible, isProgressVisible } from '../../lib/playerDisplay'
+import { getPlayerDisplayPrefs, getStoredPitch, isNextUpVisible, isProgressVisible } from '../../lib/playerDisplay'
 import { areKeysCached, evictMedia, mediaCacheKey, prefetchMedia, pruneExcept } from '../../lib/mediaCache'
 import { parseNumberArray } from 'lib/util'
 import socket from 'lib/socket'
@@ -118,15 +118,18 @@ const PlayerController = (props: PlayerControllerProps) => {
       isPlaying: true,
       isVideoKeyingEnabled: nextItem.isVideoKeyingEnabled,
       mediaType: nextItem.mediaType,
-      // pitch only applies to the current song: keep it on restart, reset on change
-      pitch: queueId !== player.queueId ? 0 : player.pitch,
+      // pitch only applies to the current song: keep it on restart, on a
+      // different song go straight to that song's stored default
+      pitch: queueId !== player.queueId
+        ? (player.isPitchSupported ? getStoredPitch(nextItem) : 0)
+        : player.pitch,
       position: 0,
       duration: 0,
       queueId: nextItem.queueId,
       nextUserId: null,
       _isReplayingQueueId: null,
     })
-  }, [handleStatus, player.historyJSON, player.pitch, player.queueId, queue.entities])
+  }, [handleStatus, player.historyJSON, player.isPitchSupported, player.pitch, player.queueId, queue.entities])
 
   // restore the room's persisted equalizer once (fresh page load): later
   // prefs arrivals (e.g. QR tweaks) must not clobber live adjustments,
@@ -183,14 +186,16 @@ const PlayerController = (props: PlayerControllerProps) => {
       isPlaying: true,
       isVideoKeyingEnabled: target.isVideoKeyingEnabled,
       mediaType: target.mediaType,
-      pitch: 0,
+      // go straight to the new song's stored default instead of flashing 0
+      // until the media load applies it (see playerLoadCurrent)
+      pitch: player.isPitchSupported ? getStoredPitch(target) : 0,
       position: 0,
       duration: 0,
       queueId: target.queueId,
       nextUserId: null,
       _isPlayingNext: false,
     })
-  }, [handleStatus, player.historyJSON, queueItem])
+  }, [handleStatus, player.historyJSON, player.isPitchSupported, queueItem])
 
   // offline: the show only moves through fully cached songs; upcoming
   // ones that aren't cached are skipped (still marked played, so they

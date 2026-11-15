@@ -235,6 +235,7 @@
   "playerOptions.showProgressTime": "Tiempo restante",
   "playerOptions.showProgressTitle": "Artista - Título",
   "playerOptions.progressInfo": "Mostrar Información",
+  "playerOptions.progressEnable": "Activar",
   "equalizer.saveSlot": "Guardar ecualizador actual como {name}",
   "equalizer.raiseBand": "Subir {freq} Hz {step} dB",
   "equalizer.resetHint": "Doble toque para restablecer a 0 dB",

@@ -79,6 +79,31 @@ describe('playerDisplay', () => {
     ).toBe(false)
   })
 
+  it('hides the whole readout while the master switch is off', () => {
+    // off: nothing shows even with every element enabled
+    expect(
+      isProgressVisible(
+        true,
+        false,
+        210,
+        { isActive: false, isEnabled: true, showTitle: true, showSinger: true, showTime: true },
+        true,
+      ),
+    ).toBe(false)
+    expect(isProgressVisible(true, false, 210, { isActive: false }, true)).toBe(false)
+    // on (or absent, as in prefs predating the switch): elements decide as usual
+    expect(isProgressVisible(true, false, 210, { isActive: true }, true)).toBe(true)
+    expect(
+      isProgressVisible(
+        true,
+        false,
+        210,
+        { isActive: true, isEnabled: false, showTitle: false, showSinger: false, showTime: false },
+        true,
+      ),
+    ).toBe(false)
+  })
+
   it('formats pitch with an explicit sign except zero', () => {
     expect(formatPitch(0)).toBe('0 st')
     expect(formatPitch(2)).toBe('+2 st')

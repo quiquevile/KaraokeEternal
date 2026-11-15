@@ -4,7 +4,6 @@ import Button from 'components/Button/Button'
 import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Slider from 'components/Slider/Slider'
 import Icon from 'components/Icon/Icon'
-import RoomOptions from './RoomOptions/RoomOptions'
 import styles from './DisplayCtrl.css'
 import { MediaType, PlaybackOptions } from 'shared/types'
 import { headerMessages } from '../../../messages'
@@ -181,8 +180,6 @@ const DisplayCtrl = ({
           )}
         </fieldset>
       </div>
-
-      <RoomOptions />
     </>
   )
 }

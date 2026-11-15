@@ -6,17 +6,25 @@ import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
 import DisplayCtrl from './DisplayCtrl/DisplayCtrl'
 import AudioCtrl from './AudioCtrl/AudioCtrl'
+import RoomOptions from './RoomOptions/RoomOptions'
 import styles from './PlayerOptions.css'
 import { MediaType, PlaybackOptions } from 'shared/types'
 import { commonMessages } from 'lib/messages'
+import { useAppSelector } from 'store/hooks'
 import { headerMessages } from '../../messages'
 
 const TABS = [
   { id: 'display', label: headerMessages.display, icon: 'TV' },
+  { id: 'progress', label: headerMessages.progressInfo, icon: 'PROGRESS_TITLE' },
+  { id: 'qr', label: headerMessages.qrCode, icon: 'QR_CODE' },
   { id: 'audio', label: headerMessages.audio, icon: 'MUSIC_NOTE' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
+
+// QR and progress are room prefs: they only exist while the room is open
+// (RoomOptions hides with them), so their tabs do too
+const ROOM_TAB_IDS: readonly TabId[] = ['progress', 'qr']
 
 let lastActiveTab: TabId = 'display'
 
@@ -72,10 +80,20 @@ const PlayerOptions = ({
   const [activeTab, setActiveTab] = useState<TabId>(lastActiveTab)
   const [animatingTab, setAnimatingTab] = useState<TabId | null>(null)
   const tabsRef = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({})
+  const isRoomOpen = useAppSelector(state =>
+    (typeof state.user.roomId === 'number'
+      ? state.rooms.entities[state.user.roomId]?.status
+      : undefined) === 'open',
+  )
+
+  const tabs = isRoomOpen ? TABS : TABS.filter(tab => !ROOM_TAB_IDS.includes(tab.id))
+  // the room can close under an open modal, hiding its tabs: fall back to
+  // the first one instead of leaving an unselectable panel on screen
+  const currentTab = tabs.some(tab => tab.id === activeTab) ? activeTab : tabs[0].id
 
   useEffect(() => {
-    lastActiveTab = activeTab
-  }, [activeTab])
+    lastActiveTab = currentTab
+  }, [currentTab])
 
   const selectTab = (id: TabId) => {
     if (id !== activeTab) setAnimatingTab(id)
@@ -85,9 +103,9 @@ const PlayerOptions = ({
   const handleTabKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
 
-    const curIdx = TABS.findIndex(tab => tab.id === activeTab)
+    const curIdx = tabs.findIndex(tab => tab.id === currentTab)
     const delta = e.key === 'ArrowRight' ? 1 : -1
-    const nextTab = TABS[(curIdx + delta + TABS.length) % TABS.length].id
+    const nextTab = tabs[(curIdx + delta + tabs.length) % tabs.length].id
 
     selectTab(nextTab)
     tabsRef.current[nextTab]?.focus()
@@ -101,7 +119,7 @@ const PlayerOptions = ({
       onClose={onClose}
       headingComponent={(
         <div className={styles.tabs} role='tablist' aria-label={intl.formatMessage(headerMessages.options)}>
-          {TABS.map(({ id, label, icon }) => (
+          {tabs.map(({ id, label, icon }) => (
             <button
               key={id}
               ref={(el) => { tabsRef.current[id] = el }}
@@ -110,7 +128,7 @@ const PlayerOptions = ({
               role='tab'
               id={`tab-${id}`}
               aria-label={intl.formatMessage(label)}
-              aria-selected={activeTab === id}
+              aria-selected={currentTab === id}
               aria-controls={`tabpanel-${id}`}
               onClick={() => selectTab(id)}
               onKeyDown={handleTabKeyDown}
@@ -125,7 +143,7 @@ const PlayerOptions = ({
     >
       <div className={styles.panels}>
         <div
-          className={clsx(styles.panel, activeTab !== 'display' && styles.panelHidden)}
+          className={clsx(styles.panel, currentTab !== 'display' && styles.panelHidden)}
           role='tabpanel'
           id='tabpanel-display'
           aria-labelledby='tab-display'
@@ -144,8 +162,30 @@ const PlayerOptions = ({
           />
         </div>
 
+        {isRoomOpen && (
+          <div
+            className={clsx(styles.panel, currentTab !== 'progress' && styles.panelHidden)}
+            role='tabpanel'
+            id='tabpanel-progress'
+            aria-labelledby='tab-progress'
+          >
+            <RoomOptions section='progress' />
+          </div>
+        )}
+
+        {isRoomOpen && (
+          <div
+            className={clsx(styles.panel, currentTab !== 'qr' && styles.panelHidden)}
+            role='tabpanel'
+            id='tabpanel-qr'
+            aria-labelledby='tab-qr'
+          >
+            <RoomOptions section='qr' />
+          </div>
+        )}
+
         <div
-          className={clsx(styles.panel, activeTab !== 'audio' && styles.panelHidden)}
+          className={clsx(styles.panel, currentTab !== 'audio' && styles.panelHidden)}
           role='tabpanel'
           id='tabpanel-audio'
           aria-labelledby='tab-audio'

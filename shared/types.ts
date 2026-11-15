@@ -67,6 +67,10 @@ export interface IRoomPrefs {
   }
   // song progress readout on the player screen (bar + remaining time)
   progress?: {
+    // master switch: while false nothing of the readout renders, though the
+    // element toggles below keep their state (absent means on, so stored
+    // prefs predating it stay valid)
+    isActive?: boolean
     isEnabled?: boolean
     showTitle?: boolean
     showSinger?: boolean

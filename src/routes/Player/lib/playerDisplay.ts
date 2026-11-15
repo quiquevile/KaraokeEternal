@@ -150,6 +150,11 @@ export function isProgressVisible (
 ): boolean {
   if (!isPlaying || isErrored || !hasQueueItem || !(durationS > 0)) return false
 
+  // master switch off: no readout at all, whatever the element toggles say
+  // (progressElements itself stays free of it — the B key still cycles the
+  // element settings while hidden)
+  if (progress?.isActive === false) return false
+
   const elements = progressElements(progress)
 
   return elements.bar || elements.title || elements.singer || elements.time

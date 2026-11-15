@@ -82,6 +82,15 @@ const icons: Record<string, IconDefinition> = {
   PLUS: { viewBox: '0 0 24 24', d: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z' },
   PERSON: { viewBox: '0 0 24 24', d: 'M12 5.9c1.16 0 2.1.94 2.1 2.1s-.94 2.1-2.1 2.1S9.9 9.16 9.9 8s.94-2.1 2.1-2.1m0 9c2.97 0 6.1 1.46 6.1 2.1v1.1H5.9V17c0-.64 3.13-2.1 6.1-2.1M12 4C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4m0 9c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4' },
   PHOTO_ADD: { viewBox: '0 0 24 24', d: 'M21 6h-3.17L16 4h-6v2h5.12l1.83 2H21v12H5v-9H3v9c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2M8 14c0 2.76 2.24 5 5 5s5-2.24 5-5-2.24-5-5-5-5 2.24-5 5m5-3c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3M5 6h3V4H5V1H3v3H0v2h3v3h2z' },
+  // the readout's title line above a progress bar (elapsed portion filled)
+  PROGRESS_TITLE: {
+    viewBox: '0 0 24 24',
+    paths: [
+      { d: 'M3 4h14v3.5H3z' },
+      { d: 'M2 12h20v8H2zm2 2v4h16v-4z', fillRule: 'evenodd' },
+      { d: 'M4 14h8v4H4z' },
+    ],
+  },
   QR_CODE: { viewBox: '0 0 24 24', d: 'M3 11h8V3H3zm2-6h4v4H5zM3 21h8v-8H3zm2-6h4v4H5zm8-12v8h8V3zm6 6h-4V5h4zm0 10h2v2h-2zm-6-6h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm0-4h2v2h-2zm2 2h2v2h-2z' },
   REFRESH: { viewBox: '0 0 24 24', d: 'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z' },
   REPLAY: { viewBox: '0 0 24 24', d: 'M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8' },

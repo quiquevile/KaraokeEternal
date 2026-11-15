@@ -56,10 +56,12 @@
 - Three custom EQ slots (P1-P3) stored per user; anyone with playback controls can recall and save their own
 - The QR code (player and display options) is only offered while the room is open; persisted options still apply to closed rooms
 - Song progress readout along the bottom of the player screen (bar, artist - title, current singer, remaining time): every element is shown or hidden independently per room (Player Options; B cycles through five preset states), and the title may use up to half the screen while the bar is hidden
+- The QR code and Show information settings get their own tabs in Player Options (alongside Display and Audio) instead of hiding inside the Display accordion
+- The Show information tab starts with an Enable switch (A): while off the player hides the whole readout and the element checkboxes go inert but keep their state, which applies again when enabled; B does nothing while it is off
 - Touch and mouse gestures on the player screen: vertical drags on the side zones control volume (right, with an on-screen percentage toast) and pitch (left), horizontal drags skip to the next song (left) or replay (right), and a double-tap toggles play/pause
 - The player pre-caches upcoming queue songs in the browser (up to 500 MB, least-recently-used eviction, finished songs freed as they leave playback) so playback keeps going through network hiccups: cached songs play locally, and anything not cached streams exactly as before
 - Playback now fully stops when the queue is exhausted: transport controls read Play, the progress readout hides, and songs queued afterwards wait for a manual start instead of auto-playing
-- Full offline mode in the player window: play/pause, next, replay, volume, pitch and the progress/QR display toggles (B/Q) apply locally while the connection is down and re-sync every controller on reconnect
+- Full offline mode in the player window: play/pause, next, replay, volume, pitch and the progress/QR display toggles (A/B/Q) apply locally while the connection is down and re-sync every controller on reconnect
 - A song interrupted by a network loss no longer errors out: playback moves on to the next fully cached song (uncached ones are skipped, still replayable later), silent freezes are treated as a song end after ten seconds, and playback stops at queue end when nothing cached is left to play
 - ReplayGain leveling moved from a global setting to a per-room toggle in the player options (Audio tab, below the equalizer), enabled by default
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP

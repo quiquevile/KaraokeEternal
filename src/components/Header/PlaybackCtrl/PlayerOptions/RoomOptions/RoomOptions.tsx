@@ -1,15 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import QRPrefs from './QRPrefs/QRPrefs'
+import ProgressPrefs from './ProgressPrefs/ProgressPrefs'
 import { roomDisplayUpdateOf, updateCurrentRoomOptions } from 'store/modules/rooms'
 import type { IRoomPrefs } from 'shared/types'
 
-// Room QR options for the current room (Display dialog). The sole editor
-// of QR prefs: no password box here, so non-admins can never touch keys.
-// Changes persist debounced (and flushed on unmount). Only the qr key is
-// ever sent: the local copy of the remaining prefs may be stale and must
-// not clobber them (e.g. a newer room EQ save).
-const RoomOptions = () => {
+// Room options for the current room (Player options), one section per tab:
+// QR and the progress readout. The sole editor of these prefs: no password
+// box, so non-admins can never touch keys. Changes persist debounced (and
+// flushed on unmount). Only the section's own key is ever sent: the local
+// copy of the remaining prefs may be stale and must not clobber them (e.g.
+// a newer room EQ save).
+interface RoomOptionsProps {
+  section: 'qr' | 'progress'
+}
+
+const RoomOptions = ({ section }: RoomOptionsProps) => {
   const roomId = useAppSelector(state => state.user.roomId)
   const roomPrefs = useAppSelector(state =>
     (typeof roomId === 'number' ? state.rooms.entities[roomId]?.prefs : undefined) as IRoomPrefs | undefined,
@@ -45,7 +51,11 @@ const RoomOptions = () => {
   const handleChange = (next: Partial<IRoomPrefs>) => {
     setPrefs(next as IRoomPrefs)
 
-    const queued = roomDisplayUpdateOf(next)
+    // each section instance holds a full copy of the prefs, but only its
+    // own key is fresh: sending the other section's copy would clobber
+    // edits made through its own tab
+    const own = section === 'qr' ? { qr: next.qr } : { progress: next.progress }
+    const queued = roomDisplayUpdateOf(own)
     if (!queued) return
 
     pending.current = queued
@@ -58,13 +68,17 @@ const RoomOptions = () => {
     }, 400)
   }
 
-  return (
-    <QRPrefs
-      prefs={prefs}
-      onChange={handleChange}
-      passwordPresent={roomHasPassword}
-    />
-  )
+  if (section === 'qr') {
+    return (
+      <QRPrefs
+        prefs={prefs}
+        onChange={handleChange}
+        passwordPresent={roomHasPassword}
+      />
+    )
+  }
+
+  return <ProgressPrefs prefs={prefs} onChange={handleChange} />
 }
 
 export default RoomOptions

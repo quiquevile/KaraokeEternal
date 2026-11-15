@@ -41,6 +41,7 @@ export const headerMessages: Record<string, MessageDescriptor> = {
   saveSlot: { id: 'equalizer.saveSlot', defaultMessage: 'Save current equalizer as {name}' },
   sensitivity: { id: 'playerOptions.sensitivity', defaultMessage: 'Sensitivity' },
   progressInfo: { id: 'playerOptions.progressInfo', defaultMessage: 'Show information' },
+  progressEnable: { id: 'playerOptions.progressEnable', defaultMessage: 'Enable' },
   showProgress: { id: 'playerOptions.showProgress', defaultMessage: 'Progress bar' },
   showProgressSinger: { id: 'playerOptions.showProgressSinger', defaultMessage: 'Current singer' },
   showProgressTime: { id: 'playerOptions.showProgressTime', defaultMessage: 'Remaining time' },

@@ -4,6 +4,11 @@
   gap: var(--space-s);
   cursor: pointer;
 
+  &:has(input:disabled) {
+    cursor: default;
+    opacity: 0.5;
+  }
+
   input[type="checkbox"] {
     -webkit-appearance: none;
     appearance: none;
@@ -36,6 +41,10 @@
 
     &:checked::before {
       transform: scale(1);
+    }
+
+    &:disabled {
+      cursor: default;
     }
   }
 }

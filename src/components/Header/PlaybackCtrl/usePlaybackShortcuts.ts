@@ -31,7 +31,9 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
 // buttons and Player Options): space toggles play/pause, +/- adjust pitch,
 // 0 resets pitch to zero, * restores the current song's stored default,
 // up/down adjust volume, arrows skip next / replay, Q toggles the room QR,
-// B toggles the progress bar, F enters player fullscreen.
+// B cycles the progress readout elements (inert while the readout's
+// master switch is off), A toggles that master switch, F enters player
+// fullscreen.
 // Inert while typing, with modifiers, or without playback-control
 // permission.
 const usePlaybackShortcuts = () => {
@@ -132,15 +134,35 @@ const usePlaybackShortcuts = () => {
           break
         case 'b':
         case 'B': {
+          // master switch off: the readout is hidden, so cycling it would
+          // only mutate the settings out of sight — inert, like the row
+          if (roomPrefs?.progress?.isActive === false) break
+
           e.preventDefault()
           const next = nextProgressState(roomPrefs?.progress)
           dispatch(updateCurrentRoomOptions({
             prefs: {
+              // spread keeps the master switch (and any future key) —
+              // the offline path replaces the whole object
               progress: {
+                ...roomPrefs?.progress,
                 isEnabled: next.bar,
                 showTime: next.time,
                 showTitle: next.title,
                 showSinger: next.singer,
+              },
+            },
+          }))
+          break
+        }
+        case 'a':
+        case 'A': {
+          e.preventDefault()
+          dispatch(updateCurrentRoomOptions({
+            prefs: {
+              progress: {
+                ...roomPrefs?.progress,
+                isActive: !(roomPrefs?.progress?.isActive ?? true),
               },
             },
           }))

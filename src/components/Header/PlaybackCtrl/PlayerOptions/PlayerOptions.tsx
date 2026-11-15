@@ -15,16 +15,15 @@ import { headerMessages } from '../../messages'
 
 const TABS = [
   { id: 'display', label: headerMessages.display, icon: 'TV' },
-  { id: 'progress', label: headerMessages.progressInfo, icon: 'PROGRESS_TITLE' },
   { id: 'qr', label: headerMessages.qrCode, icon: 'QR_CODE' },
   { id: 'audio', label: headerMessages.audio, icon: 'MUSIC_NOTE' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
 
-// QR and progress are room prefs: they only exist while the room is open
-// (RoomOptions hides with them), so their tabs do too
-const ROOM_TAB_IDS: readonly TabId[] = ['progress', 'qr']
+// QR is a room pref: it only exists while the room is open
+// (RoomOptions hides with it), so its tab does too
+const ROOM_TAB_IDS: readonly TabId[] = ['qr']
 
 let lastActiveTab: TabId = 'display'
 
@@ -160,18 +159,9 @@ const PlayerOptions = ({
             sensitivity={sensitivity}
             visualizerPresetName={visualizerPresetName}
           />
-        </div>
 
-        {isRoomOpen && (
-          <div
-            className={clsx(styles.panel, currentTab !== 'progress' && styles.panelHidden)}
-            role='tabpanel'
-            id='tabpanel-progress'
-            aria-labelledby='tab-progress'
-          >
-            <RoomOptions section='progress' />
-          </div>
-        )}
+          {isRoomOpen && <RoomOptions section='progress' />}
+        </div>
 
         {isRoomOpen && (
           <div

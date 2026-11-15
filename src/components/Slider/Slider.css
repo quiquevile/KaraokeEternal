@@ -3,6 +3,7 @@
   --handle-height: 3rem;
 
   height: var(--handle-height);
+  touch-action: none;
   
   &:global(.rc-slider) {
     position: relative;
@@ -64,7 +65,7 @@
   cursor: pointer;
   color: var(--btn-active-bg-color);
   position: absolute;
-  touch-action: pan-x;
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   outline: none;

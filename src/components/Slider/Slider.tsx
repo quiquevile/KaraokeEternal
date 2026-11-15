@@ -25,6 +25,7 @@ interface HandleProps {
   'aria-labelledby'?: string
   'className'?: string
   'onDragStart'?: React.DragEventHandler<HTMLDivElement>
+  'onTouchCancel'?: React.TouchEventHandler<HTMLDivElement>
   'onTouchEnd'?: React.TouchEventHandler<HTMLDivElement>
 }
 
@@ -43,6 +44,7 @@ const Slider = ({
   ...rest
 }: SliderProps) => {
   const [tempVal, setTempVal] = useState<number | null>(null)
+  const [instanceKey, setInstanceKey] = useState(0)
   const timerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => () => {
@@ -86,6 +88,11 @@ const Slider = ({
       'className': styles.handle,
       // prevent drag of a handleComponent's text instead of moving the handle
       'onDragStart': (e: React.DragEvent<HTMLDivElement>) => e.preventDefault(),
+      'onTouchCancel': () => {
+        lockScrolling(false)
+        setTempVal(null)
+        setInstanceKey(key => key + 1)
+      },
       'onTouchEnd': (e: React.TouchEvent<HTMLDivElement>) => {
         // Prevent focus outline on touch in mobile Safari
         (e.currentTarget as HTMLDivElement).blur()
@@ -97,6 +104,7 @@ const Slider = ({
 
   return (
     <RCSlider
+      key={instanceKey}
       className={clsx(styles.container, className)}
       handleRender={defaultHandle}
       max={max}

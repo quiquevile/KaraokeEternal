@@ -66,6 +66,7 @@
 - ReplayGain leveling moved from a global setting to a per-room toggle in the player options (Audio tab, below the equalizer), enabled by default
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted
+- On touch devices, an interrupted slider drag can no longer make the handle jump to an unrelated value (and save it as the song's default) on the next tap; the singer's own pitch is saved reliably again so Reset lands where expected
 
 ### Loudness leveling
 

@@ -61,6 +61,13 @@
   height: 1.5rem;
 }
 
+.caseBtn:disabled,
+.clearBtn:disabled,
+.swap:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .swap {
   flex: 0 0 auto;
   align-self: center;

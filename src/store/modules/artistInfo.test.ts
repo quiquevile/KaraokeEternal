@@ -21,12 +21,12 @@ describe('artistInfo editor', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'Content-Type': 'application/json' }),
-      json: async () => ({ artistId: 8, skipped: ['Blocked'] }),
+      json: async () => ({ artistId: 8, changed: 2, skipped: ['Blocked'] }),
     }))
     const store = makeStore()
     store.dispatch(showArtistEditor(7))
     const result = await store.dispatch(updateArtist({ artistId: 7, artist: 'Target' })).unwrap()
-    expect(result).toEqual({ artistId: 8, skipped: ['Blocked'] })
+    expect(result).toEqual({ artistId: 8, changed: 2, skipped: ['Blocked'] })
     expect(store.getState().artistInfo.editorArtistId).toBeNull()
   })
 
@@ -34,7 +34,7 @@ describe('artistInfo editor', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'Content-Type': 'application/json' }),
-      json: async () => ({ artistId: 8, skipped: [] as string[] }),
+      json: async () => ({ artistId: 8, changed: 1, skipped: [] as string[] }),
     }))
     const store = makeStore()
     store.dispatch(showArtistEditor(7))

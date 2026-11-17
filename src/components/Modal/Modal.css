@@ -51,6 +51,11 @@
   }
 }
 
+.btnClose:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .content {
   flex: 1;
 

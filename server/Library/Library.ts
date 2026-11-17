@@ -475,7 +475,7 @@ class Library {
     artistId: number,
     artist: string,
     locale: LocaleCode = DEFAULT_LOCALE,
-  ): { artistId: number, skipped: string[] } {
+  ): { artistId: number, changed: number, skipped: string[] } {
     if (!Number.isInteger(artistId)) {
       throw new ValidationError(t(locale, 'server.library.invalidArtistId', 'Invalid artistId'))
     }
@@ -493,7 +493,7 @@ class Library {
       throw new NotFoundError(t(locale, 'server.library.artistNotFound', 'artistId {artistId} not found', { artistId }))
     }
 
-    if (existing.name === name) return { artistId, skipped: [] }
+    if (existing.name === name) return { artistId, changed: 0, skipped: [] }
 
     // derive the norm through the same parser path songs use when they
     // create the artist, feeding it a title the artist already has
@@ -564,7 +564,7 @@ class Library {
       plans.push({ songId, targetSongId, renames })
     }
 
-    if (!plans.length && songs.length) return { artistId: targetArtistId ?? artistId, skipped }
+    if (!plans.length && songs.length) return { artistId: targetArtistId ?? artistId, changed: 0, skipped }
 
     const renames = plans.flatMap(plan => plan.renames)
     // rename files (asserted clash-free above, rolls back on failure)
@@ -623,7 +623,7 @@ class Library {
     Library.cache.version = null
 
     log.debug('updated artist %s: %s', artistId, name)
-    return { artistId: resultingArtistId, skipped }
+    return { artistId: resultingArtistId, changed: plans.length, skipped }
   }
 
   /**

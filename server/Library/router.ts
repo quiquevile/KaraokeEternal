@@ -71,7 +71,7 @@ export async function handleUpdateArtist (ctx) {
 
   const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
 
-  let result: { artistId: number, skipped: string[] }
+  let result: { artistId: number, changed: number, skipped: string[] }
   try {
     result = Library.updateArtist(artistId, artist, ctxLocale(ctx))
   } catch (err) {

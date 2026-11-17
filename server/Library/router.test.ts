@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('./Library.js', () => ({
   default: {
     updateSong: vi.fn((songId: number) => songId),
-    updateArtist: vi.fn((artistId: number) => ({ artistId, skipped: [] })),
+    updateArtist: vi.fn((artistId: number) => ({ artistId, changed: 1, skipped: [] })),
     findArtist: vi.fn(() => null),
     deleteSong: vi.fn(),
     findSong: vi.fn(() => null),
@@ -180,16 +180,16 @@ describe('handleUpdateArtist', () => {
 
     expect(Library.updateArtist).toHaveBeenCalledWith(1, 'New Name', 'en')
     expect(ctx.status).toBe(200)
-    expect(ctx.body).toEqual({ artistId: 1, skipped: [] })
+    expect(ctx.body).toEqual({ artistId: 1, changed: 1, skipped: [] })
     expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
     expect(emitted).toEqual([])
   })
 
   it('returns songs left behind by path conflicts', async () => {
-    vi.mocked(Library.updateArtist).mockReturnValueOnce({ artistId: 4, skipped: ['Song A', 'Song B'] })
+    vi.mocked(Library.updateArtist).mockReturnValueOnce({ artistId: 4, changed: 3, skipped: ['Song A', 'Song B'] })
     const { ctx } = makeCtx({ isAdmin: true }, { artistId: '1' }, { artist: 'Existing' })
     await handleUpdateArtist(ctx)
-    expect(ctx.body).toEqual({ artistId: 4, skipped: ['Song A', 'Song B'] })
+    expect(ctx.body).toEqual({ artistId: 4, changed: 3, skipped: ['Song A', 'Song B'] })
     expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
   })
 

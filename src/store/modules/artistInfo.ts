@@ -23,7 +23,7 @@ export const updateArtist = createAsyncThunk(
     artistId: number
     artist: string
   }, thunkAPI) => {
-    const result = await api.put<{ artistId: number, skipped: string[] }>(`artist/${artistId}`, {
+    const result = await api.put<{ artistId: number, changed: number, skipped: string[] }>(`artist/${artistId}`, {
       body: { artist },
     })
     thunkAPI.dispatch(closeArtistEditor())

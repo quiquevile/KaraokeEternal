@@ -10,6 +10,7 @@ export type ModalProps = {
   buttons?: React.ReactNode
   className?: string
   children?: React.ReactNode
+  closeDisabled?: boolean
   /* styles the heading row, which contains the title/headingComponent and the close button */
   headingClassName?: string
   onClose: () => void
@@ -20,7 +21,7 @@ export type ModalProps = {
   | { 'title'?: never, 'headingComponent': React.ReactElement, 'aria-label': string }
 )
 
-const Modal = ({ 'aria-label': ariaLabel, buttons, className, children, headingClassName, headingComponent, visible = true, onClose, scrollable, title }: ModalProps) => {
+const Modal = ({ 'aria-label': ariaLabel, buttons, className, children, closeDisabled = false, headingClassName, headingComponent, visible = true, onClose, scrollable, title }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const isOutsideClickRef = useRef(false)
   const intl = useIntl()
@@ -58,7 +59,7 @@ const Modal = ({ 'aria-label': ariaLabel, buttons, className, children, headingC
   }
 
   const handleMouseUp = (event: React.MouseEvent<HTMLDialogElement>) => {
-    if (isOutsideClickRef.current && event.target === dialogRef.current) {
+    if (!closeDisabled && isOutsideClickRef.current && event.target === dialogRef.current) {
       onClose()
     }
     isOutsideClickRef.current = false
@@ -66,7 +67,7 @@ const Modal = ({ 'aria-label': ariaLabel, buttons, className, children, headingC
 
   const handleCancel = (e: React.SyntheticEvent) => {
     e.preventDefault()
-    onClose()
+    if (!closeDisabled) onClose()
   }
 
   if (!visible) return null
@@ -89,6 +90,7 @@ const Modal = ({ 'aria-label': ariaLabel, buttons, className, children, headingC
           icon='CLEAR'
           className={styles.btnClose}
           onClick={onClose}
+          disabled={closeDisabled}
           aria-label={intl.formatMessage(sharedMessages.close)}
         />
       </div>

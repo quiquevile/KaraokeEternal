@@ -485,7 +485,7 @@ describe('Library.updateArtist', () => {
     writeFileSync(abs('set1', 'Blocker - Song One.mp3'), 'blocking file')
     writeFileSync(abs('set2', 'Blocker - Song Two.mp4'), 'blocking file')
 
-    expect(Library.updateArtist(artistId, 'Blocker')).toEqual({ artistId, skipped: ['Song One', 'Song Two'] })
+    expect(Library.updateArtist(artistId, 'Blocker')).toEqual({ artistId, changed: 0, skipped: ['Song One', 'Song Two'] })
 
     expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
       .toBe('NEWNAME')
@@ -551,7 +551,7 @@ describe('Library.updateArtist merging', () => {
     writeFileSync(abs('accent-merge', 'Accent Source - Other.mp3'), 'audio')
 
     try {
-      expect(Library.updateArtist(sourceId, 'Accent Target')).toEqual({ artistId: targetId, skipped: ['Canción'] })
+      expect(Library.updateArtist(sourceId, 'Accent Target')).toEqual({ artistId: targetId, changed: 1, skipped: ['Canción'] })
       expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [accentSongId])?.artistId).toBe(sourceId)
       expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [otherSongId])?.artistId).toBe(targetId)
       expect(existsSync(abs('accent-merge', 'Accent Source - Canción.mp3'))).toBe(true)
@@ -580,7 +580,7 @@ describe('Library.updateArtist merging', () => {
     writeFileSync(abs('complete-merge', 'Complete Source - Solo.mp3'), 'audio')
 
     try {
-      expect(Library.updateArtist(sourceId, 'Complete Target')).toEqual({ artistId: targetId, skipped: [] })
+      expect(Library.updateArtist(sourceId, 'Complete Target')).toEqual({ artistId: targetId, changed: 1, skipped: [] })
       expect(db.get('SELECT artistId FROM artists WHERE artistId = ?', [sourceId])).toBeUndefined()
       expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [songId])?.artistId).toBe(targetId)
     } finally {
@@ -610,6 +610,7 @@ describe('Library.updateArtist merging', () => {
 
     try {
       const result = Library.updateArtist(oldId, 'Partial New')
+      expect(result.changed).toBe(1)
       expect(result.skipped).toEqual(['Blocked'])
       expect(result.artistId).not.toBe(oldId)
       expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [songIds[0]])?.artistId).toBe(result.artistId)
@@ -655,7 +656,7 @@ describe('Library.updateArtist merging', () => {
     try {
       expect(Library.findArtist('Mérge Target', sourceId)).toBe(targetId)
       expect(Library.updateArtist(sourceId, 'Merge Target')).toEqual({
-        artistId: targetId, skipped: ['Blocked', 'Disk'],
+        artistId: targetId, changed: 2, skipped: ['Blocked', 'Disk'],
       })
       expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [sourceOnly])?.artistId).toBe(targetId)
       expect(db.get('SELECT songId FROM songs WHERE songId = ?', [sourceRepeat])).toBeUndefined()

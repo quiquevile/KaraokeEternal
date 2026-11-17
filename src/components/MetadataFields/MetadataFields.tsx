@@ -7,14 +7,16 @@ import { sharedMessages } from '../messages'
 
 interface MetadataFieldsProps {
   artist: CaseField
+  disabled?: boolean
   // optional: the artist editor only retags the artist
   title?: CaseField
 }
 
-const ClearableInput = ({ field, label, clearLabel }: {
+const ClearableInput = ({ field, label, clearLabel, disabled }: {
   field: CaseField
   label: string
   clearLabel: string
+  disabled: boolean
 }) => {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -29,6 +31,7 @@ const ClearableInput = ({ field, label, clearLabel }: {
         ref={inputRef}
         type='text'
         value={field.value}
+        disabled={disabled}
         onChange={e => field.set(e.currentTarget.value)}
         aria-label={label}
       />
@@ -38,6 +41,7 @@ const ClearableInput = ({ field, label, clearLabel }: {
               icon='CLEAR'
               className={styles.clearBtn}
               onClick={handleClear}
+              disabled={disabled}
               aria-label={clearLabel}
             />
           )
@@ -48,7 +52,7 @@ const ClearableInput = ({ field, label, clearLabel }: {
   )
 }
 
-const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
+const MetadataFields = ({ artist, disabled = false, title }: MetadataFieldsProps) => {
   const intl = useIntl()
 
   const handleSwap = () => {
@@ -70,6 +74,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
           <Button
             className={styles.caseBtn}
             onClick={artist.cycleCase}
+            disabled={disabled}
             aria-label={intl.formatMessage(sharedMessages.artistCase)}
           >
             {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
@@ -81,6 +86,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
           field={artist}
           label={artistLabel}
           clearLabel={intl.formatMessage(sharedMessages.clearArtist)}
+          disabled={disabled}
         />
       </label>
 
@@ -92,6 +98,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
             variant='default'
             className={styles.swap}
             onClick={handleSwap}
+            disabled={disabled}
             aria-label={intl.formatMessage(sharedMessages.swap)}
           />
 
@@ -101,6 +108,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
               <Button
                 className={styles.caseBtn}
                 onClick={title.cycleCase}
+                disabled={disabled}
                 aria-label={intl.formatMessage(sharedMessages.titleCase)}
               >
                 {/* eslint-disable formatjs/no-literal-string-in-jsx -- case-cycling glyph, not prose */}
@@ -112,6 +120,7 @@ const MetadataFields = ({ artist, title }: MetadataFieldsProps) => {
               field={title}
               label={titleLabel}
               clearLabel={intl.formatMessage(sharedMessages.clearTitle)}
+              disabled={disabled}
             />
           </label>
         </>

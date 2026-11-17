@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { RootState } from 'store/store'
 import getSearchTree from './getSearchResults'
 import { getSearchResults } from './getSearchResults'
+import type { TagFilter } from '../modules/library'
 
 // Aitana: 10 Superestrella (star), 11 Vas a quedarte
 // Fito: 20 La casa por el tejado (star)
@@ -30,15 +31,16 @@ const state = {
       30: { songId: 30, artistId: 3, title: 'Tarzan y Jane', folders: ['1:new'], numMedia: 3, isPreferred: false },
       40: { songId: 40, artistId: 4, title: 'Me cole en una fiesta', folders: ['1:cds', '1:new'], numMedia: 2, isPreferred: true },
       41: { songId: 41, artistId: 4, title: 'Barco super', folders: ['1:new'], numMedia: 1, isPreferred: false },
-      42: { songId: 42, artistId: 4, title: 'Voy a quedarme', folders: ['1:cds'], numMedia: 2, isPreferred: false },
+      42: { songId: 42, artistId: 4, title: 'Voy a quedarme', folders: ['1:cds'], numMedia: 2, isPreferred: false, hasDefaultPitch: true },
       50: { songId: 50, artistId: 5, title: 'Big love', folders: ['1:cds'], numMedia: 1, isPreferred: true },
       51: { songId: 51, artistId: 5, title: 'Super Crash', folders: ['1:new'], numMedia: 2, isPreferred: false },
       52: { songId: 52, artistId: 5, title: 'Acme', folders: ['1:new'], numMedia: 1, isPreferred: false },
     },
   },
-  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterFolder: null, filterMultiVersion: false, filterPreferred: null },
+  library: { filterStr: '', filterStarred: false, filterTags: [], filterFolder: null },
+  tags: { tags: [{ tagId: 1, name: 'error', visibility: 'admin' }, { tagId: 2, name: 'duet', visibility: 'manager' }], songTags: { 30: [1, 2], 42: [1], 52: [1, 2] } },
+  user: { isAdmin: true },
   userStars: { starredArtists: [], starredSongs: [10, 20, 40, 50, 52] },
-  userFlaws: { userId: null, flawedSongs: [30, 42, 52] },
 } as unknown as RootState
 
 const search = (
@@ -50,7 +52,11 @@ const search = (
   filterPreferred: 'without' | 'with' | null = null,
 ): RootState => ({
   ...state,
-  library: { filterStr, filterStarred, filterFlawed, filterFolder, filterMultiVersion, filterPreferred },
+  library: { filterStr, filterStarred, filterTags: [
+    ...(filterFlawed ? ['tag:1'] : []),
+    ...(filterMultiVersion ? ['multi'] : []),
+    ...(filterPreferred === 'with' ? ['preferred'] : filterPreferred === 'without' ? ['noPreferred'] : []),
+  ] as TagFilter[], filterFolder },
 } as unknown as RootState)
 
 describe('getSearchTree', () => {
@@ -100,7 +106,7 @@ describe('getSearchTree', () => {
     ])
   })
 
-  it('7. flawed: only defective songs, artists expanded', () => {
+  it('7. tag: only tagged songs, artists expanded', () => {
     expect(getSearchTree(search('', false, true))).toEqual([
       { artistId: 3, songIds: [30], autoExpanded: true },
       { artistId: 4, songIds: [42], autoExpanded: true },
@@ -108,7 +114,7 @@ describe('getSearchTree', () => {
     ])
   })
 
-  it('8. starred and flawed', () => {
+  it('8. starred and tagged', () => {
     expect(getSearchTree(search('', true, true))).toEqual([
       { artistId: 5, songIds: [52], autoExpanded: true },
     ])
@@ -181,6 +187,18 @@ describe('getSearchTree', () => {
   it('17. text "&": no letters, matches nothing in the main fixture', () => {
     expect(getSearchTree(search('&'))).toEqual([])
   })
+
+  it('intersects multiple real tags with special filters', () => {
+    const filtered = search('', false, true)
+    filtered.library.filterTags = ['tag:1', 'tag:2', 'multi']
+    expect(getSearchTree(filtered)).toEqual([{ artistId: 3, songIds: [30], autoExpanded: true }])
+  })
+
+  it('finds a saved nonzero default pitch on any version', () => {
+    const filtered = search('')
+    filtered.library.filterTags = ['pitch']
+    expect(getSearchTree(filtered)).toEqual([{ artistId: 4, songIds: [42], autoExpanded: true }])
+  })
 })
 
 // symbol fixture: fast-fuzzy drops symbols from queries and keys, so
@@ -203,9 +221,10 @@ const symbolState = {
       20: { songId: 20, artistId: 2, title: 'You Shook Me All Night Long', folders: ['1:new'], numMedia: 1, isPreferred: false },
     },
   },
-  library: { filterStr: '', filterStarred: false, filterFlawed: false, filterFolder: null, filterMultiVersion: false, filterPreferred: null },
+  library: { filterStr: '', filterStarred: false, filterTags: [], filterFolder: null },
+  tags: { tags: [], songTags: {} },
+  user: { isAdmin: true },
   userStars: { starredArtists: [], starredSongs: [] },
-  userFlaws: { userId: null, flawedSongs: [] },
 } as unknown as RootState
 
 const searchSymbols = (filterStr: string): RootState => ({

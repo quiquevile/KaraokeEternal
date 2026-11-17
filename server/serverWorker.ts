@@ -19,6 +19,7 @@ import koaStatic from 'koa-static'
 import Media from './Media/Media.js'
 import Prefs from './Prefs/Prefs.js'
 import libraryRouter from './Library/router.js'
+import tagsRouter from './Tags/router.js'
 import mediaRouter from './Media/router.js'
 import prefsRouter from './Prefs/router.js'
 import providersRouter from './Providers/router.js'
@@ -372,6 +373,7 @@ async function serverWorker ({ env, startPathScanner, startFileScanner, stopPath
   })
 
   baseRouter.use(libraryRouter.routes())
+  baseRouter.use(tagsRouter.routes())
   baseRouter.use(mediaRouter.routes())
   baseRouter.use(prefsRouter.routes())
   baseRouter.use(providersRouter.routes())

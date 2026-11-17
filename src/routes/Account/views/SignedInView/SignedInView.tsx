@@ -37,7 +37,7 @@ const SignedInView = () => {
       {canManageUsers
         && <Users />}
 
-      {user.isAdmin
+      {(user.isAdmin || hasPermission(user, 'manageTags'))
         && <Prefs />}
 
       <Account />

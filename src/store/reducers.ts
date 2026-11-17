@@ -13,7 +13,7 @@ import starCounts from 'routes/Library/modules/starCounts'
 import status from './modules/status'
 import ui from './modules/ui'
 import user from './modules/user'
-import userFlaws from './modules/userFlaws'
+import tags from './modules/tags'
 import userStars from './modules/userStars'
 import youtube from './modules/youtube'
 
@@ -32,7 +32,7 @@ const combinedReducer = combineSlices({
   status,
   ui,
   user,
-  userFlaws: optimistic(userFlaws),
+  tags,
   userStars: optimistic(userStars),
   youtube,
 }).withLazyLoadedSlices<LazyLoadedSlices>()

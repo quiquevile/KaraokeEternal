@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
@@ -289,7 +289,8 @@ describe('Library.deleteMedia', () => {
     db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)',
       [1, songIdOf(), 1, null])
     db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?)', [1, songIdOf()])
-    db.run('INSERT INTO songFlaws (userId, songId) VALUES (?, ?)', [1, songIdOf()])
+    const tagId = Number(db.run('INSERT INTO tags (name, visibility) VALUES (?, ?)', ['Purge test', 'admin']).lastID)
+    db.run('INSERT INTO songTags (songId, tagId) VALUES (?, ?)', [songIdOf(), tagId])
     const mediaId = Number(db.get<{ mediaId: number }>(
       'SELECT mediaId FROM media WHERE songId = ?', [songIdOf()],
     )?.mediaId)
@@ -300,7 +301,8 @@ describe('Library.deleteMedia', () => {
     expect(db.get('SELECT songId FROM songs WHERE songId = ?', [songIdOf()])).toBeUndefined()
     expect(db.get('SELECT * FROM queue WHERE songId = ?', [songIdOf()])).toBeUndefined()
     expect(db.get('SELECT * FROM songStars WHERE songId = ?', [songIdOf()])).toBeUndefined()
-    expect(db.get('SELECT * FROM songFlaws WHERE songId = ?', [songIdOf()])).toBeUndefined()
+    expect(db.get('SELECT * FROM songTags WHERE songId = ?', [songIdOf()])).toBeUndefined()
+    db.run('DELETE FROM tags WHERE tagId = ?', [tagId])
     expect(db.get('SELECT artistId FROM artists WHERE nameNorm = ?', ['Multiversion'])).toBeUndefined()
   })
 
@@ -370,30 +372,25 @@ describe('Library.get folders and preferred flag', () => {
       Library.cache.version = null
     }
   })
-})
 
-describe('Library song flaws', () => {
-  afterEach(() => {
-    db.run('DELETE FROM songFlaws')
-  })
+  it('flags a saved default pitch when any version has a nonzero value', () => {
+    const mediaId = Number(db.get<{ mediaId: number }>(
+      'SELECT mediaId FROM media WHERE songId = 1 ORDER BY mediaId DESC LIMIT 1',
+    )?.mediaId)
 
-  it('flaws a song once and lists it per user', () => {
-    expect(Library.flawSong(2, 1)).toBe(1)
-    // idempotent
-    expect(Library.flawSong(2, 1)).toBe(0)
+    try {
+      db.run('UPDATE media SET pitch = 2 WHERE mediaId = ?', [mediaId])
+      Library.cache.version = null
+      expect(Library.get().songs.entities[1].hasDefaultPitch).toBe(true)
+      expect(Library.getSong(1)[1].hasDefaultPitch).toBe(true)
 
-    expect(Library.getUserFlaws(1)).toEqual({ flawedSongs: [2] })
-    // other users are unaffected
-    expect(Library.getUserFlaws(99)).toEqual({ flawedSongs: [] })
-  })
-
-  it('unflaws a song', () => {
-    Library.flawSong(2, 1)
-
-    expect(Library.unflawSong(2, 1)).toBe(1)
-    // idempotent
-    expect(Library.unflawSong(2, 1)).toBe(0)
-    expect(Library.getUserFlaws(1)).toEqual({ flawedSongs: [] })
+      db.run('UPDATE media SET pitch = 0 WHERE mediaId = ?', [mediaId])
+      Library.cache.version = null
+      expect(Library.get().songs.entities[1].hasDefaultPitch).toBe(false)
+    } finally {
+      db.run('UPDATE media SET pitch = NULL WHERE mediaId = ?', [mediaId])
+      Library.cache.version = null
+    }
   })
 })
 
@@ -578,11 +575,12 @@ describe('Library.updateSong merging a retag onto an existing song', () => {
     writeFileSync(abs('set1', 'Merge Src - Shared Song.cdg'), 'graphics')
     writeFileSync(abs('set2', 'Merge Tgt - Shared Song.mp4'), 'video')
 
-    // stars/flaws on both songs (user 1 has both, so the unique
+    // stars/tags on both songs (user 1 has both, so the unique
     // indexes must survive the merge) and a queued source song
     db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?), (?, ?), (?, ?)',
       [1, sourceSongId, 1, targetSongId, secondUserId, sourceSongId])
-    db.run('INSERT INTO songFlaws (userId, songId) VALUES (?, ?)', [secondUserId, sourceSongId])
+    const tagId = Number(db.run('INSERT INTO tags (name, visibility) VALUES (?, ?)', ['Merge test', 'manager']).lastID)
+    db.run('INSERT INTO songTags (songId, tagId) VALUES (?, ?)', [sourceSongId, tagId])
     db.run('INSERT INTO queue (roomId, songId, userId, prevQueueId) VALUES (?, ?, ?, ?)',
       [1, sourceSongId, 1, null])
     db.run('INSERT INTO artistStars (userId, artistId) VALUES (?, ?)', [1, sourceArtistId])
@@ -591,7 +589,8 @@ describe('Library.updateSong merging a retag onto an existing song', () => {
   afterAll(() => {
     db.run('DELETE FROM queue WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
     db.run('DELETE FROM songStars WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
-    db.run('DELETE FROM songFlaws WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM songTags WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
+    db.run('DELETE FROM tags WHERE name = ?', ['Merge test'])
     db.run('DELETE FROM media WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
     db.run('DELETE FROM songs WHERE songId IN (?, ?)', [sourceSongId, targetSongId])
     db.run('DELETE FROM artistStars WHERE artistId IN (?, ?)', [sourceArtistId, targetArtistId])
@@ -624,7 +623,7 @@ describe('Library.updateSong merging a retag onto an existing song', () => {
     expect(existsSync(abs('set1', 'Merge Src - Shared Song.mp3'))).toBe(false)
     expect(existsSync(abs('set2', 'Merge Tgt - Shared Song.mp4'))).toBe(true)
 
-    // stars/flaws/queue move over; user 1 keeps the target's star only
+    // stars/tags/queue move over; user 1 keeps the target's star only
     expect(db.get<{ count: number }>(
       'SELECT COUNT(*) AS count FROM songStars WHERE songId = ?', [targetSongId],
     )?.count).toBe(2)
@@ -632,7 +631,7 @@ describe('Library.updateSong merging a retag onto an existing song', () => {
       'SELECT COUNT(*) AS count FROM songStars WHERE songId = ?', [sourceSongId],
     )?.count).toBe(0)
     expect(db.get<{ count: number }>(
-      'SELECT COUNT(*) AS count FROM songFlaws WHERE songId = ?', [targetSongId],
+      'SELECT COUNT(*) AS count FROM songTags WHERE songId = ?', [targetSongId],
     )?.count).toBe(1)
     expect(db.get<{ count: number }>(
       'SELECT COUNT(*) AS count FROM queue WHERE songId = ?', [targetSongId],

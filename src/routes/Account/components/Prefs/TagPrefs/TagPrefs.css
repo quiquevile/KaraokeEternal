@@ -1,0 +1,11 @@
+.heading button { display: flex; align-items: center; gap: var(--space-s); padding: var(--space-s); font-size: var(--font-size-m); }
+.heading svg { height: var(--icon-size-l); }
+.content { display: flex; flex-direction: column; gap: var(--space-s); padding: var(--container-padding); }
+.content p { margin: 0; }
+.table { width: 100%; text-align: left; }
+.table th { color: hsl(var(--hue-blue), 10%, 60%); font-weight: normal; }
+.table td { padding: var(--space-xs) 0; }
+.form, .form label { display: flex; flex-direction: column; gap: var(--space-s); }
+.form { min-width: min(320px, 75vw); }
+.buttons { display: flex; flex-wrap: wrap; gap: var(--space-s); margin-top: var(--space-m); }
+.error { color: var(--btn-danger-bg-color); overflow-wrap: anywhere; }

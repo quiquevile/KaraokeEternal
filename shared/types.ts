@@ -12,8 +12,17 @@ export interface Song {
   numMedia: number
   // whether any version is marked as preferred
   isPreferred: boolean
+  hasDefaultPitch: boolean
   // media folders as "pathId:relative dir" entries (dir '' = path root)
   folders: string[]
+}
+
+export type TagVisibility = 'public' | 'admin' | 'manager'
+
+export interface Tag {
+  tagId: number
+  name: string
+  visibility: TagVisibility
 }
 
 export interface ParsedSongMeta {
@@ -211,7 +220,7 @@ export type Permission
     | 'setSongPitch'
     | 'youtubeDownload'
     | 'downloadForOthers'
-    | 'songFlaws'
+    | 'manageTags'
 
 export interface User {
   userId: number

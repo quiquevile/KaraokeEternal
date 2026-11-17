@@ -16,7 +16,7 @@
 
 ### Library management (admin)
 
-- Songs can be retagged from the library or the queue, with media files renamed automatically to match; retagging onto an artist/title that already exists in another folder merges both songs into that one (media, queue entries, stars and flaws move over), while sharing a folder is rejected without changing anything
+- Songs can be retagged from the library or the queue, with media files renamed automatically to match; retagging onto an artist/title that already exists in another folder merges both songs into that one (media, queue entries, stars and tags move over), while sharing a folder is rejected without changing anything
 - The download and retag dialogs warn when a version of the song already exists in the library (checked as you type, without blocking the action)
 - Artists can be renamed by admins with a swipe on their row; the name is updated everywhere and every matching media file is renamed automatically, and name clashes are rejected without changing anything
 - Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
@@ -29,11 +29,12 @@
 - Admins get a "Clean up" button in the Users panel that removes every guest and ghost account (with their queued songs) in a single confirmed step
 - Admins get a "Clean up" button in the Rooms panel that removes every closed room together with its queue, in a single confirmed step
 
-### Defective song marks
+### Song tags and library filters
 
-- Users with the new "mark songs as defective" capability (or admins) can flag a song version from its row with a broken-star icon; marks are per user and pushed live to every connected client
-- The library header gains a "only defective songs" filter (swipe the filter group left, next to the starred filter) showing only the songs the current user marked
-- The capability appears in the account editor next to the other granular permissions
+- Admins can create, edit and delete song tags with public, admin or manager visibility; users with the new "Can manage tags" permission can manage and assign manager tags
+- The song menu assigns several tags at once, and the library filter matches songs carrying every selected tag; public and manager tags are visible to everyone, while admin tags are visible only to admins
+- The tag filter also groups admin-only shortcuts for multiple versions, a favorite version, no favorite version and a saved default pitch
+- Existing per-user defective marks are combined into an admin-only "error" tag during migration; the broken-star controls and separate version/favorite filters are removed
 
 ### Permissions
 

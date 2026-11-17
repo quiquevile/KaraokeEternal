@@ -10,13 +10,13 @@ import { fetchQueueUsers } from 'store/modules/youtube'
 import { queueSong } from 'routes/Queue/modules/queue'
 import { markLocateBlinked } from '../../modules/library'
 import Button from 'components/Button/Button'
-import ButtonFlawed from 'components/ButtonFlawed/ButtonFlawed'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
 import useToggleAnimation from 'lib/useToggleAnimation'
 import Highlight from '../Highlight/Highlight'
+import SongTagDialog from '../SongTagDialog/SongTagDialog'
 import { formatDuration } from 'lib/dateTime'
 import styles from './SongItem.css'
 import { commonMessages } from '../../../../lib/messages'
@@ -38,13 +38,11 @@ interface SongItemProps {
   duration: number
   onSongQueue(songId: number): void
   onSongStarClick(songId: number): void
-  onSongFlawClick(songId: number): void
   onSongInfo(songId: number): void
   onSongEdit(songId: number): void
   onSongDelete(songId: number): void
   isPlayed: boolean
   isStarred: boolean
-  isFlawed: boolean
   isUpcoming: boolean
   isHighlighted?: boolean
   isAdmin: boolean
@@ -60,13 +58,11 @@ const SongItem = ({
   duration,
   onSongQueue,
   onSongStarClick,
-  onSongFlawClick,
   onSongInfo,
   onSongEdit,
   onSongDelete,
   isPlayed,
   isStarred,
-  isFlawed,
   isUpcoming,
   isHighlighted,
   isAdmin,
@@ -77,6 +73,7 @@ const SongItem = ({
   const [expanded, setExpanded] = useState(false)
   const glow = useToggleAnimation(isUpcoming, styles.animateGlow)
   const [queuePickerOpen, setQueuePickerOpen] = useState(false)
+  const [tagDialogOpen, setTagDialogOpen] = useState(false)
   const [pickerPos, setPickerPos] = useState<{ top: number, left: number, right: number, flip: boolean } | null>(null)
   const longPressActiveRef = useRef(false)
   const songRef = useRef<HTMLDivElement>(null)
@@ -87,7 +84,9 @@ const SongItem = ({
   const queueUsers = useAppSelector(state => state.youtube.queueUsers)
 
   const canQueueForOthers = user.isAdmin || hasPermission(user, 'queueForOthers') || hasPermission(user, 'ghostUsers')
-  const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
+  const tags = useAppSelector(state => state.tags.tags)
+  const canAssignTags = (user.isAdmin || hasPermission(user, 'manageTags'))
+    && tags.some(tag => user.isAdmin || tag.visibility === 'manager')
 
   // tapping outside the picker (including on the song row itself, so a
   // tap that queues for you also dismisses the list; or scrolling away,
@@ -133,7 +132,7 @@ const SongItem = ({
   }
   // arrow keys are the keyboard equivalent of swiping
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'ArrowLeft') setExpanded(isAdmin)
+    if (e.key === 'ArrowLeft') setExpanded(isAdmin || canAssignTags)
     else if (e.key === 'ArrowRight') setExpanded(false)
     else if ((e.key === 'Enter' || e.key === ' ') && !isUpcoming) onSongQueue(songId)
     else return
@@ -143,7 +142,6 @@ const SongItem = ({
   const handleEditClick = () => onSongEdit(songId)
   const handleDeleteClick = () => onSongDelete(songId)
   const handleStarClick = () => onSongStarClick(songId)
-  const handleFlawClick = () => onSongFlawClick(songId)
 
   // the blink plays once: after it, drop the highlight so remounts
   // (e.g. scrolling the song out and back in) don't replay it
@@ -154,9 +152,7 @@ const SongItem = ({
   const swipeHandlers = useSwipeable({
     onSwipedLeft: ({ event }) => {
       ignoreMouseup = event.type === 'mouseup'
-      // the flaw action lives in the expanded menu now, so anyone
-      // holding the capability needs to be able to expand the row
-      setExpanded(isAdmin || canMarkFlaws)
+      setExpanded(isAdmin || canAssignTags)
     },
     onSwipedRight: ({ event }) => {
       ignoreMouseup = event.type === 'mouseup'
@@ -272,18 +268,16 @@ const SongItem = ({
           isStarred={isStarred}
           count={numStars}
         />
-        {canMarkFlaws && (
-          <ButtonFlawed
-            data-hide
-            className={styles.btn}
-            onClick={handleFlawClick}
-            isFlawed={isFlawed}
-            aria-label={intl.formatMessage(isFlawed ? libraryMessages.flawUnmark : libraryMessages.flawMark)}
-          />
+        {canAssignTags && (
+          <Button onClick={() => setTagDialogOpen(true)} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(libraryMessages.tagAssign)}>
+            <Icon icon='LABEL' />
+          </Button>
         )}
-        <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(commonMessages.songInfo)}>
-          <Icon icon='INFO_OUTLINE' />
-        </Button>
+        {isAdmin && (
+          <Button onClick={handleInfoClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(commonMessages.songInfo)}>
+            <Icon icon='INFO_OUTLINE' />
+          </Button>
+        )}
         {isAdmin && (
           <Button onClick={handleEditClick} className={clsx(styles.btn, styles.info)} data-hide aria-label={intl.formatMessage(commonMessages.editSong)}>
             <Icon icon='EDIT' />
@@ -295,6 +289,7 @@ const SongItem = ({
           </Button>
         )}
       </Buttons>
+      {tagDialogOpen && <SongTagDialog songId={songId} onClose={() => setTagDialogOpen(false)} />}
       {queuePickerOpen && pickerPos && createPortal(
         <div
           ref={pickerRef}

@@ -21,12 +21,11 @@ const getArtists = (state: RootState) => state.artists
 const getSongs = (state: RootState) => state.songs
 const getFilterStr = (state: RootState) => state.library.filterStr.trim().toLowerCase()
 const getFilterStarred = (state: RootState) => state.library.filterStarred
-const getFilterFlawed = (state: RootState) => state.library.filterFlawed
+const getFilterTags = (state: RootState) => state.library.filterTags
 const getFilterFolder = (state: RootState) => state.library.filterFolder
-const getFilterMultiVersion = (state: RootState) => state.library.filterMultiVersion
-const getFilterPreferred = (state: RootState) => state.library.filterPreferred
 const getStarredSongs = (state: RootState) => ensureState(state.userStars).starredSongs
-const getFlawedSongs = (state: RootState) => ensureState(state.userFlaws).flawedSongs
+const getTagSnapshot = (state: RootState) => state.tags
+const getIsAdmin = (state: RootState) => state.user.isAdmin
 
 const getArtistSearcher = createSelector(
   [getArtists],
@@ -71,8 +70,8 @@ export interface SearchTreeNode {
 // the flag/folder/version filters); a name-matching artist lists all its
 // passing songs, otherwise only the title-matching ones
 const getSearchTree = createSelector(
-  [getArtists, getSongs, getArtistSearcher, getTreeSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterFlawed, getFlawedSongs, getFilterFolder, getFilterMultiVersion, getFilterPreferred],
-  (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterFlawed, flawedSongs, filterFolder, filterMultiVersion, filterPreferred) => {
+  [getArtists, getSongs, getArtistSearcher, getTreeSongSearcher, getFilterStr, getFilterStarred, getStarredSongs, getFilterTags, getTagSnapshot, getIsAdmin, getFilterFolder],
+  (artists, songs, artistSearcher, songSearcher, str, filterStarred, starredSongs, filterTags, tagSnapshot, isAdmin, filterFolder) => {
     const hasText = str.length > 0
     // fast-fuzzy ignores symbols by default, so a query with no letters
     // or digits at all ("&", "!!!") normalizes to an empty string and
@@ -94,11 +93,18 @@ const getSearchTree = createSelector(
       const song = songs.entities[songId]
 
       if (filterStarred && !starredSongs.includes(songId)) return false
-      if (filterFlawed && !flawedSongs.includes(songId)) return false
       if (filterFolder !== null && !song?.folders.includes(filterFolder)) return false
-      if (filterMultiVersion && (song?.numMedia ?? 0) < 2) return false
-      if (filterPreferred === 'with' && !song?.isPreferred) return false
-      if (filterPreferred === 'without' && !!song?.isPreferred) return false
+      for (const filter of filterTags) {
+        if (filter.startsWith('tag:')) {
+          const tagId = Number(filter.slice(4))
+          if (!tagSnapshot.tags.some(tag => tag.tagId === tagId) || !tagSnapshot.songTags[songId]?.includes(tagId)) return false
+        } else if (!isAdmin) {
+          return false
+        } else if (filter === 'multi' && (song?.numMedia ?? 0) < 2) return false
+        else if (filter === 'preferred' && !song?.isPreferred) return false
+        else if (filter === 'noPreferred' && !!song?.isPreferred) return false
+        else if (filter === 'pitch' && !song?.hasDefaultPitch) return false
+      }
       return true
     }
 

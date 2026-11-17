@@ -10,11 +10,12 @@ import {
   LIBRARY_FILTER_STRING,
   LIBRARY_FILTER_STRING_RESET,
   LIBRARY_FILTER_TOGGLE_STARRED,
-  LIBRARY_FILTER_TOGGLE_FLAWED,
+  LIBRARY_FILTER_TAGS,
   LIBRARY_FILTER_FOLDER,
-  LIBRARY_FILTER_MULTI,
-  LIBRARY_FILTER_PREFERRED,
   LIBRARY_PUSH,
+  TAGS_PUSH,
+  ACCOUNT_RECEIVE,
+  LOGOUT,
   LOCATE_BLINKED,
   LOCATE_SONG,
   TOGGLE_ARTIST_EXPANDED,
@@ -45,21 +46,16 @@ export const scrollSearchResults = createAction<number>(SCROLL_SEARCH_RESULTS)
 export const toggleArtistExpanded = createAction<number>(TOGGLE_ARTIST_EXPANDED)
 export const toggleArtistResultExpanded = createAction<{ artistId: number, isExpanded: boolean }>(TOGGLE_ARTIST_RESULT_EXPANDED)
 const libraryPush = createAction<LibraryState>(LIBRARY_PUSH)
+const tagsPush = createAction<{ tags: { tagId: number }[] }>(TAGS_PUSH)
+const accountReceive = createAction<{ isAdmin?: boolean }>(ACCOUNT_RECEIVE)
+const logout = createAction(LOGOUT)
 
 export const resetFilterStr = createAction(LIBRARY_FILTER_STRING_RESET)
 export const toggleFilterStarred = createAction<void>(LIBRARY_FILTER_TOGGLE_STARRED)
-export const toggleFilterFlawed = createAction<void>(LIBRARY_FILTER_TOGGLE_FLAWED)
+export type TagFilter = `tag:${number}` | 'multi' | 'preferred' | 'noPreferred' | 'pitch'
+export const setFilterTags = createAction<TagFilter[]>(LIBRARY_FILTER_TAGS)
 // null = no folder filter; payload is a song folder entry ("pathId:dir")
 export const setFilterFolder = createAction<string | null>(LIBRARY_FILTER_FOLDER)
-export const toggleFilterMultiVersion = createAction<void>(LIBRARY_FILTER_MULTI)
-// null = any; 'without'/'with' = only songs with no/preferred version marked
-export const setFilterPreferred = createAction<'without' | 'with' | null>(LIBRARY_FILTER_PREFERRED)
-// off → without → with → off, shared by the header cycle and any reset
-export const nextPreferred = (current: 'without' | 'with' | null): 'without' | 'with' | null => {
-  if (current === null) return 'without'
-  if (current === 'without') return 'with'
-  return null
-}
 export const setFilterStr = createAction(LIBRARY_FILTER_STRING, (payload: string) => ({
   payload,
   meta: {
@@ -116,10 +112,8 @@ export interface LibraryState {
   version: number
   filterStr: string
   filterStarred: boolean
-  filterFlawed: boolean
+  filterTags: TagFilter[]
   filterFolder: string | null
-  filterMultiVersion: boolean
-  filterPreferred: 'without' | 'with' | null
   scrollRow: number
   locateSongId: number | null
   locateBlinked: boolean
@@ -139,10 +133,8 @@ const initialState: LibraryState = {
   version: 0,
   filterStr: '',
   filterStarred: false,
-  filterFlawed: false,
+  filterTags: [],
   filterFolder: null,
-  filterMultiVersion: false,
-  filterPreferred: null,
   scrollRow: 0,
   locateSongId: null,
   locateBlinked: false,
@@ -188,20 +180,22 @@ const libraryReducer = createReducer(initialState, (builder) => {
       state.locateSongId = null
       state.searchScrollOffset = 0
     })
-    .addCase(toggleFilterFlawed, (state) => {
-      state.filterFlawed = !state.filterFlawed
+    .addCase(setFilterTags, (state, { payload }) => {
+      state.filterTags = payload
       state.locateSongId = null
+    })
+    .addCase(tagsPush, (state, { payload }) => {
+      const visible = new Set(payload.tags.map(tag => tag.tagId))
+      state.filterTags = state.filterTags.filter(filter => !filter.startsWith('tag:') || visible.has(Number(filter.slice(4))))
+    })
+    .addCase(accountReceive, (state, { payload }) => {
+      if (!(payload as { isAdmin?: boolean }).isAdmin) state.filterTags = state.filterTags.filter(filter => filter.startsWith('tag:'))
+    })
+    .addCase(logout, (state) => {
+      state.filterTags = []
     })
     .addCase(setFilterFolder, (state, { payload }) => {
       state.filterFolder = payload
-      state.locateSongId = null
-    })
-    .addCase(toggleFilterMultiVersion, (state) => {
-      state.filterMultiVersion = !state.filterMultiVersion
-      state.locateSongId = null
-    })
-    .addCase(setFilterPreferred, (state, { payload }) => {
-      state.filterPreferred = payload
       state.locateSongId = null
     })
     .addCase(setLocateSongId, (state, { payload }) => {

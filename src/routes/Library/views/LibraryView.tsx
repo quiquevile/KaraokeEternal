@@ -15,12 +15,12 @@ import { libraryMessages } from '../messages'
 const LibraryView = () => {
   const user = useAppSelector(state => state.user)
   const { isAdmin } = user
-  const { isLoading, filterStr, filterStarred, filterFlawed, filterFolder, filterMultiVersion, filterPreferred } = useAppSelector(state => state.library)
+  const { isLoading, filterStr, filterStarred, filterTags, filterFolder } = useAppSelector(state => state.library)
   const songsResult = useAppSelector(state => state.songs.result)
   const ui = useAppSelector(state => state.ui)
   const dispatch = useAppDispatch()
 
-  const isSearching = !!filterStr.trim().length || filterStarred || filterFlawed || filterFolder !== null || filterMultiVersion || filterPreferred !== null
+  const isSearching = !!filterStr.trim().length || filterStarred || filterTags.length > 0 || filterFolder !== null
   const canDownload = hasPermission(user, 'youtubeDownload')
   // shared memoized selector: SearchResults already computes this tree while
   // searching, and the plain -1 keeps the cost at zero when not searching

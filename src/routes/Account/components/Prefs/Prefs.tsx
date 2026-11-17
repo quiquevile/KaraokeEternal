@@ -5,11 +5,14 @@ import PathPrefs from './PathPrefs/PathPrefs'
 import PlayerPrefs from './PlayerPrefs/PlayerPrefs'
 import ProviderPrefs from './ProviderPrefs/ProviderPrefs'
 import YouTubePrefs from './YouTubePrefs/YouTubePrefs'
+import TagPrefs from './TagPrefs/TagPrefs'
+import { useAppSelector } from 'store/hooks'
 import styles from './Prefs.css'
 import { accountMessages } from '../../messages'
 
 const Prefs = () => {
   const intl = useIntl()
+  const isAdmin = useAppSelector(state => state.user.isAdmin)
 
   return (
     <Panel
@@ -17,10 +20,11 @@ const Prefs = () => {
       contentClassName={styles.content}
     >
       <>
-        <PathPrefs />
-        <PlayerPrefs />
-        <YouTubePrefs />
-        <ProviderPrefs />
+        {isAdmin && <PathPrefs />}
+        {isAdmin && <PlayerPrefs />}
+        {isAdmin && <YouTubePrefs />}
+        {isAdmin && <ProviderPrefs />}
+        <TagPrefs />
       </>
     </Panel>
   )

@@ -25,10 +25,8 @@ import {
   setLocateSongId,
   toggleArtistExpanded,
   setFilterFolder,
-  toggleFilterFlawed,
-  toggleFilterMultiVersion,
+  setFilterTags,
   toggleFilterStarred,
-  setFilterPreferred,
 } from 'routes/Library/modules/library'
 import { buildQueueTargets } from '../../selectors/buildQueueTargets'
 import styles from './QueueItem.css'
@@ -213,10 +211,8 @@ const QueueItem = ({
   const artistIds = useAppSelector(state => state.artists.result)
   const expandedArtists = useAppSelector(state => state.library.expandedArtists)
   const filterStarred = useAppSelector(state => state.library.filterStarred)
-  const filterFlawed = useAppSelector(state => state.library.filterFlawed)
+  const filterTags = useAppSelector(state => state.library.filterTags)
   const filterFolder = useAppSelector(state => state.library.filterFolder)
-  const filterMultiVersion = useAppSelector(state => state.library.filterMultiVersion)
-  const filterPreferred = useAppSelector(state => state.library.filterPreferred)
   const navigate = useNavigate()
   const locateXRef = useRef(0)
   const [locateX, setLocateX] = useState(0)
@@ -239,20 +235,9 @@ const QueueItem = ({
       dispatch(toggleFilterStarred())
     }
 
-    if (filterFlawed) {
-      dispatch(toggleFilterFlawed())
-    }
-
+    if (filterTags.length) dispatch(setFilterTags([]))
     if (filterFolder !== null) {
       dispatch(setFilterFolder(null))
-    }
-
-    if (filterMultiVersion) {
-      dispatch(toggleFilterMultiVersion())
-    }
-
-    if (filterPreferred !== null) {
-      dispatch(setFilterPreferred(null))
     }
 
     if (!expandedArtists.includes(artistId)) {

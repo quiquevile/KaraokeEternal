@@ -8,6 +8,10 @@ vi.mock('./Media.js', () => ({
   },
 }))
 
+vi.mock('../Library/Library.js', () => ({
+  default: { cache: { version: 1 }, get: vi.fn(() => ({ version: 2, songs: {}, artists: {} })) },
+}))
+
 vi.mock('../Rooms/Rooms.js', () => ({
   default: {
     getActive: vi.fn(() => []),
@@ -22,6 +26,7 @@ vi.mock('../Queue/Queue.js', () => ({
 
 import handlers from './socket.js'
 import Media from './Media.js'
+import Library from '../Library/Library.js'
 import Rooms from '../Rooms/Rooms.js'
 import { MEDIA_PITCH_SET, _ERROR, _SUCCESS } from '../../shared/actionTypes.js'
 
@@ -69,6 +74,7 @@ describe('Media socket auth: MEDIA_PITCH_SET', () => {
     expect(ack).toHaveBeenCalledWith({ type: MEDIA_PITCH_SET + _SUCCESS })
     expect(Media.setPitch).toHaveBeenCalledWith(10, 2)
     expect(Rooms.getActive).toHaveBeenCalledWith(sock.server)
+    expect(Library.get).toHaveBeenCalled()
   })
 
   it('allows admins regardless of permissions', () => {

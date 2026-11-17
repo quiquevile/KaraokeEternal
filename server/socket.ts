@@ -2,6 +2,7 @@ import getLogger from './lib/Log.js'
 import jsonWebToken from 'jsonwebtoken'
 import parseCookie from './lib/parseCookie.js'
 import Library from './Library/Library.js'
+import Tags from './Tags/Tags.js'
 import LibrarySocket from './Library/socket.js'
 import MediaSocket from './Media/socket.js'
 import PlayerSocket from './Player/socket.js'
@@ -21,7 +22,7 @@ import {
   QUEUE_PUSH,
   STARS_PUSH,
   STAR_COUNTS_PUSH,
-  FLAWS_PUSH,
+  TAGS_PUSH,
   PLAYER_STATUS,
   PLAYER_LEAVE,
   PREFS_PUSH,
@@ -162,10 +163,10 @@ export default function (io, jwtKey, getClientIp) {
         payload: Library.getUserStars(sock.user.userId),
       })
 
-      // push user's defective song marks
+      // Definitions and assignments are filtered to this user's visibility.
       io.to(sock.id).emit('action', {
-        type: FLAWS_PUSH,
-        payload: Library.getUserFlaws(sock.user.userId),
+        type: TAGS_PUSH,
+        payload: Tags.visible(sock.user),
       })
 
       // push star counts (only if client's is outdated)

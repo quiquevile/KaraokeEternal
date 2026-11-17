@@ -1,6 +1,7 @@
 import getLogger from '../lib/Log.js'
 import { can } from '../lib/permissions.js'
 import Media from './Media.js'
+import Library from '../Library/Library.js'
 import Queue from '../Queue/Queue.js'
 import Rooms from '../Rooms/Rooms.js'
 import { isValidReplayGain } from '../lib/ReplayGain.js'
@@ -10,6 +11,7 @@ import {
   MEDIA_RG_SET,
   MEDIA_USER_PITCH_SET,
   QUEUE_PUSH,
+  LIBRARY_PUSH,
   _ERROR,
   _SUCCESS,
 } from '../../shared/actionTypes.js'
@@ -68,6 +70,8 @@ const ACTION_HANDLERS = {
     log.info('mediaId %s: default pitch=%s (from %s)', mediaId, pitch, sock.user.name)
 
     pushQueuesWithMedia(sock.server, mediaId)
+    Library.cache.version = null
+    sock.server.emit('action', { type: LIBRARY_PUSH, payload: Library.get() })
   },
 
   [MEDIA_RG_SET]: (sock, { payload }, acknowledge) => {

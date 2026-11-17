@@ -66,19 +66,22 @@ class Library {
     {
       const query = sql`
         SELECT duration, songs.artistId AS artistId, songs.songId AS songId, songs.title AS title,
-          MAX(isPreferred) AS isPreferred, COUNT(DISTINCT media.mediaId) AS numMedia
+          MAX(isPreferred) AS isPreferred,
+          MAX(CASE WHEN media.pitch IS NOT NULL AND media.pitch <> 0 THEN 1 ELSE 0 END) AS hasDefaultPitch,
+          COUNT(DISTINCT media.mediaId) AS numMedia
         FROM media
           INNER JOIN songs USING (songId)
           INNER JOIN paths USING (pathId)
         GROUP BY songId
         ORDER BY songs.titleNorm, paths.priority ASC
       `
-      const rows = db.all<Omit<Song, 'isPreferred' | 'folders'> & { isPreferred: number }>(String(query), query.parameters)
+      const rows = db.all<Omit<Song, 'isPreferred' | 'hasDefaultPitch' | 'folders'> & { isPreferred: number, hasDefaultPitch: number }>(String(query), query.parameters)
 
       for (const row of rows) {
         songs.entities[row.songId] = {
           ...row,
           isPreferred: row.isPreferred === 1,
+          hasDefaultPitch: row.hasDefaultPitch === 1,
           folders: foldersBySong[row.songId] ?? [],
         }
         songs.result.push(row.songId)
@@ -154,6 +157,7 @@ class Library {
         title: media.title,
         numMedia: result.length,
         isPreferred: !!media.isPreferred,
+        hasDefaultPitch: result.some(mediaId => entities[mediaId].pitch != null && entities[mediaId].pitch !== 0),
         folders,
       },
     }
@@ -292,7 +296,7 @@ class Library {
   }
 
   /**
-  * Moves a song's media, queue items, stars and flaws onto another
+  * Moves a song's media, queue items, stars and tags onto another
   * song and removes it (its artist is dropped when left orphaned).
   * Used when a retag lands on an existing song living in other folders.
   * Runs inside the caller's transaction.
@@ -306,8 +310,8 @@ class Library {
     // below drops whatever is left of the source song's)
     db.run('UPDATE OR IGNORE songStars SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
     db.run('DELETE FROM songStars WHERE songId = ?', [fromSongId])
-    db.run('UPDATE OR IGNORE songFlaws SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
-    db.run('DELETE FROM songFlaws WHERE songId = ?', [fromSongId])
+    db.run('UPDATE OR IGNORE songTags SET songId = ? WHERE songId = ?', [toSongId, fromSongId])
+    db.run('DELETE FROM songTags WHERE songId = ?', [fromSongId])
 
     db.run('DELETE FROM songs WHERE songId = ?', [fromSongId])
 
@@ -319,7 +323,7 @@ class Library {
   * creating the artist as needed, and renames its media files to match
   * (`Artist - Title.ext`, same format as downloads). When another song
   * already has the resulting artist + title, the retag merges both
-  * songs into that one (media, queue items, stars and flaws move over)
+  * songs into that one (media, queue items, stars and tags move over)
   * as long as they live in different folders; sharing a folder throws
   * ConflictError (the renamed files would collide there), as does any
   * destination file that already exists (nothing is changed in those
@@ -630,8 +634,7 @@ class Library {
     const deleteSongStars = sql`DELETE FROM songStars WHERE songId = ${songId}`
     db.run(String(deleteSongStars), deleteSongStars.parameters)
 
-    const deleteSongFlaws = sql`DELETE FROM songFlaws WHERE songId = ${songId}`
-    db.run(String(deleteSongFlaws), deleteSongFlaws.parameters)
+    db.run('DELETE FROM songTags WHERE songId = ?', [songId])
 
     const deleteSong = sql`DELETE FROM songs WHERE songId = ${songId}`
     db.run(String(deleteSong), deleteSong.parameters)
@@ -828,50 +831,6 @@ class Library {
       // invalidate cache
       this.starCountsCache.version = null
     }
-
-    return res.changes
-  }
-
-  /**
-  * Gets a user's flawed songs (marked as defective)
-  */
-  static getUserFlaws (userId: number): { flawedSongs: number[] } {
-    const query = sql`
-      SELECT songId
-      FROM songFlaws
-      WHERE userId = ${userId}
-    `
-    const rows = db.all<{ songId: number }>(String(query), query.parameters)
-
-    return { flawedSongs: rows.map(row => row.songId) }
-  }
-
-  /**
-  * Add a user's defective mark to a song
-  */
-  static flawSong (songId: number, userId: number): number {
-    const fields = new Map()
-    fields.set('songId', songId)
-    fields.set('userId', userId)
-
-    const query = sql`
-      INSERT OR IGNORE INTO songFlaws ${sql.tuple(Array.from(fields.keys()).map(sql.column))}
-      VALUES ${sql.tuple(Array.from(fields.values()))}
-    `
-    const res = db.run(String(query), query.parameters)
-
-    return res.changes
-  }
-
-  /**
-  * Remove a user's defective mark from a song
-  */
-  static unflawSong (songId: number, userId: number): number {
-    const query = sql`
-      DELETE FROM songFlaws
-      WHERE userId = ${userId} AND songId = ${songId}
-    `
-    const res = db.run(String(query), query.parameters)
 
     return res.changes
   }

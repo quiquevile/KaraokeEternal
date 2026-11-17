@@ -4,14 +4,16 @@ import { useIntl } from 'react-intl'
 import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
-import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterFlawed, toggleFilterStarred, toggleFilterMultiVersion, setFilterPreferred, nextPreferred } from '../../modules/library'
+import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterStarred } from '../../modules/library'
 import { openYoutubeSearch } from '../../lib/youtubeSearch'
 import { hasPermission } from 'store/modules/user'
+import { fetchTags } from 'store/modules/tags'
 import Button from 'components/Button/Button'
 import Buttons from 'components/Buttons/Buttons'
 import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
 import FolderFilterDialog from '../FolderFilterDialog/FolderFilterDialog'
+import TagFilterDialog from '../TagFilterDialog/TagFilterDialog'
 import { filterRecentSearches, getHistoryLimit, getRecentSearches, pushRecentSearch } from 'lib/recentSearches'
 import styles from './LibraryHeader.css'
 import { commonMessages } from '../../../../lib/messages'
@@ -21,10 +23,15 @@ const LibraryHeader = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const intl = useIntl()
-  const { filterStr, filterStarred, filterFlawed, filterFolder, filterMultiVersion, filterPreferred } = useAppSelector(state => state.library)
+  const { filterStr, filterStarred, filterTags, filterFolder } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
+  const visibleTags = useAppSelector(state => state.tags.tags)
+  // Admins can still use the special tag filters when there are no real tags.
+  const hasMoreFilters = user.isAdmin || visibleTags.some(tag => tag.visibility !== 'admin')
   const canDownload = hasPermission(user, 'youtubeDownload')
-  const canMarkFlaws = user.isAdmin || hasPermission(user, 'songFlaws')
+  useEffect(() => {
+    void dispatch(fetchTags())
+  }, [dispatch])
 
   // a mouse swipe across the filter group also fires a click on whatever
   // button it ends over: swallow it (same dance as the song rows); if the
@@ -46,6 +53,7 @@ const LibraryHeader = () => {
   }
 
   const [folderDialogOpen, setFolderDialogOpen] = useState(false)
+  const [tagDialogOpen, setTagDialogOpen] = useState(false)
 
   // same guard as handleFilterClick, for the folder button: it either
   // opens the dialog or clears an active filter instead of dispatching
@@ -59,17 +67,6 @@ const LibraryHeader = () => {
     else dispatch(setFilterFolder(null))
   }
 
-  // the preferred filter cycles off → without → with → off instead of
-  // toggling: same guard as the other filters
-  const handlePreferredClick = () => {
-    if (ignoreMouseupRef.current) {
-      ignoreMouseupRef.current = false
-      return
-    }
-
-    dispatch(setFilterPreferred(nextPreferred(filterPreferred)))
-  }
-
   const searchInput = useRef<HTMLInputElement>(null)
   const searchWrap = useRef<HTMLDivElement>(null)
   const [value, setValue] = useState(filterStr)
@@ -79,17 +76,27 @@ const LibraryHeader = () => {
   // only the star filter shows by default: swipe the filter group left
   // (like the song row actions) to reveal the extra filters
   const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const [previousHasMoreFilters, setPreviousHasMoreFilters] = useState(hasMoreFilters)
+  if (hasMoreFilters !== previousHasMoreFilters) {
+    setPreviousHasMoreFilters(hasMoreFilters)
+    if (!hasMoreFilters) {
+      setFiltersExpanded(false)
+      setTagDialogOpen(false)
+    }
+  }
   const filterSwipeHandlers = useSwipeable({
     onSwipedLeft: ({ event }) => {
+      if (!hasMoreFilters) return
       ignoreMouseupRef.current = event.type === 'mouseup'
       setFiltersExpanded(true)
     },
     onSwipedRight: ({ event }) => {
+      if (!hasMoreFilters) return
       ignoreMouseupRef.current = event.type === 'mouseup'
       setFiltersExpanded(false)
     },
-    preventScrollOnSwipe: true,
-    trackMouse: true,
+    preventScrollOnSwipe: hasMoreFilters,
+    trackMouse: hasMoreFilters,
   })
   // react-swipeable passes its ref callback through the handlers object;
   // forward to it without reading it during render
@@ -211,13 +218,13 @@ const LibraryHeader = () => {
       <div
         className={clsx(
           styles.filters,
-          !filtersExpanded && (filterFlawed || filterFolder !== null || filterMultiVersion || filterPreferred !== null) && styles.filtersHint,
+          hasMoreFilters && !filtersExpanded && (filterTags.length > 0 || filterFolder !== null) && styles.filtersHint,
         )}
-        {...filterSwipeHandlers}
-        onMouseDown={handleFilterMousedown}
-        ref={setFiltersRef}
+        {...(hasMoreFilters ? filterSwipeHandlers : {})}
+        onMouseDown={hasMoreFilters ? handleFilterMousedown : undefined}
+        ref={hasMoreFilters ? setFiltersRef : undefined}
       >
-        <Buttons btnWidth={56} isExpanded={filtersExpanded}>
+        <Buttons btnWidth={56} isExpanded={hasMoreFilters && filtersExpanded}>
           <Button
             className={clsx(styles.btnFilter, filterStarred && styles.active)}
             icon='STAR_FULL'
@@ -225,14 +232,20 @@ const LibraryHeader = () => {
             aria-label={intl.formatMessage(libraryMessages.starredOnly)}
             aria-pressed={filterStarred}
           />
-          {canMarkFlaws && (
+          {hasMoreFilters && (
             <Button
               data-hide
-              className={clsx(styles.btnFilter, styles.btnFilterFlawed, filterFlawed && styles.active)}
-              icon='STAR_BROKEN'
-              onClick={() => handleFilterClick(toggleFilterFlawed())}
-              aria-label={intl.formatMessage(libraryMessages.flawedOnly)}
-              aria-pressed={filterFlawed}
+              className={clsx(styles.btnFilter, filterTags.length > 0 && styles.active)}
+              icon='LABEL'
+              onClick={() => {
+                if (ignoreMouseupRef.current) {
+                  ignoreMouseupRef.current = false
+                  return
+                }
+                setTagDialogOpen(true)
+              }}
+              aria-label={intl.formatMessage(libraryMessages.tagFilterTitle)}
+              aria-pressed={filterTags.length > 0}
             />
           )}
           {user.isAdmin && (
@@ -245,37 +258,12 @@ const LibraryHeader = () => {
               aria-pressed={filterFolder !== null}
             />
           )}
-          {user.isAdmin && (
-            <Button
-              data-hide
-              className={clsx(styles.btnFilter, filterMultiVersion && styles.active)}
-              icon='NOTE_DUO'
-              onClick={() => handleFilterClick(toggleFilterMultiVersion())}
-              aria-label={intl.formatMessage(libraryMessages.multiVersionOnly)}
-              aria-pressed={filterMultiVersion}
-            />
-          )}
-          {user.isAdmin && (
-            <Button
-              data-hide
-              className={clsx(styles.btnFilter, filterPreferred !== null && styles.active)}
-              icon={filterPreferred === 'without' ? 'HEART_X' : filterPreferred === 'with' ? 'HEART_CHECK' : 'HEART'}
-              onClick={handlePreferredClick}
-              aria-label={intl.formatMessage(
-                filterPreferred === 'without'
-                  ? libraryMessages.preferredWithout
-                  : filterPreferred === 'with'
-                    ? libraryMessages.preferredWith
-                    : libraryMessages.preferredAny,
-              )}
-              aria-pressed={filterPreferred !== null}
-            />
-          )}
         </Buttons>
       </div>
       {folderDialogOpen && (
         <FolderFilterDialog onClose={() => setFolderDialogOpen(false)} />
       )}
+      {tagDialogOpen && <TagFilterDialog onClose={() => setTagDialogOpen(false)} />}
     </div>
   )
 }

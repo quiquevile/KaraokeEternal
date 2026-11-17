@@ -26,6 +26,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
   - Granular per-user permissions, queue-for-others included
   - Bilingual interface (English / Español)
   - Admin library tools (retag, rename, delete) with live updates on every client
+  - Song tags with visibility controls, delegated tag management and combined library filters
   - Ten-band equalizer and instant pitch control
 
 Microphones are *not* required since the player itself only outputs music - this allows your audio setup to be as simple or complex as you like. See the [F.A.Q.](https://www.karaoke-eternal.com/faq/#recommended-audio-microphone-setup) for more information.

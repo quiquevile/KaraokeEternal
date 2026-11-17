@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('./Library.js', () => ({
   default: {
     updateSong: vi.fn((songId: number) => songId),
-    updateArtist: vi.fn(),
+    updateArtist: vi.fn((artistId: number) => ({ artistId, skipped: [] })),
+    findArtist: vi.fn(() => null),
     deleteSong: vi.fn(),
     findSong: vi.fn(() => null),
     getSong: vi.fn((songId: number) => ({ [songId]: { songId, title: 'New Title' } })),
@@ -27,7 +28,7 @@ vi.mock('../Youtube/metadata.js', () => ({
   })),
 }))
 
-import { handleUpdateSong, handleUpdateArtist, handleDeleteSong, handleFindSong } from './router.js'
+import { handleUpdateSong, handleUpdateArtist, handleFindArtist, handleDeleteSong, handleFindSong } from './router.js'
 import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
@@ -179,9 +180,17 @@ describe('handleUpdateArtist', () => {
 
     expect(Library.updateArtist).toHaveBeenCalledWith(1, 'New Name', 'en')
     expect(ctx.status).toBe(200)
-    expect(ctx.body).toEqual({ artistId: 1 })
+    expect(ctx.body).toEqual({ artistId: 1, skipped: [] })
     expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
     expect(emitted).toEqual([])
+  })
+
+  it('returns songs left behind by path conflicts', async () => {
+    vi.mocked(Library.updateArtist).mockReturnValueOnce({ artistId: 4, skipped: ['Song A', 'Song B'] })
+    const { ctx } = makeCtx({ isAdmin: true }, { artistId: '1' }, { artist: 'Existing' })
+    await handleUpdateArtist(ctx)
+    expect(ctx.body).toEqual({ artistId: 4, skipped: ['Song A', 'Song B'] })
+    expect(pushQueuesAndLibrary).toHaveBeenCalledWith(ctx.io)
   })
 
   it('rejects non-admins with 401 without touching the library', async () => {
@@ -223,6 +232,21 @@ describe('handleUpdateArtist', () => {
     const { ctx } = makeCtx({ isAdmin: true }, { artistId: '1' }, { artist: 'A' })
 
     await expect(handleUpdateArtist(ctx)).rejects.toMatchObject({ status: 404 })
+  })
+})
+
+describe('handleFindArtist', () => {
+  it('finds a matching artist for the merge warning', async () => {
+    vi.mocked(Library.findArtist).mockReturnValueOnce(5)
+    const { ctx } = makeCtx({ isAdmin: true }, {}, { artist: 'Queen', excludeArtistId: 2 })
+    await handleFindArtist(ctx)
+    expect(Library.findArtist).toHaveBeenCalledWith('Queen', 2)
+    expect(ctx.body).toEqual({ artistId: 5 })
+  })
+
+  it('rejects non-admins', async () => {
+    const { ctx } = makeCtx({ isAdmin: false }, {}, { artist: 'Queen' })
+    await expect(handleFindArtist(ctx)).rejects.toMatchObject({ status: 401 })
   })
 })
 

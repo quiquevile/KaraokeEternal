@@ -5,7 +5,7 @@ import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
 import getCdgName from '../lib/getCdgName.js'
 import { assertNoRenameClash, atomicRenameAll } from '../lib/fsUtils.js'
-import { ConflictError, DUPLICATE_ARTIST_MESSAGE, DUPLICATE_SONG_MESSAGE, NotFoundError, ValidationError } from '../lib/Errors.js'
+import { ConflictError, DUPLICATE_SONG_MESSAGE, NotFoundError, ValidationError } from '../lib/Errors.js'
 import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
@@ -460,20 +460,22 @@ class Library {
     return songId
   }
 
-  /**
-  * Renames an artist (admin only): updates its name and renames every
-  * media file of each of its songs to match (`Artist - Title.ext`, same
-  * format as downloads). Throws ConflictError if another artist already
-  * has the resulting name (nameNorm match: case and accents included)
-  * or if any destination file already exists (nothing is changed in
-  * that case). The artistId is kept, so stars, queue items and songs
-  * are untouched.
-  */
+  /** Rename or merge an artist, leaving songs with path conflicts in place. */
+  static findArtist (name: string, excludeArtistId?: number): number | null {
+    const title = excludeArtistId === undefined
+      ? ''
+      : db.get<{ title: string }>('SELECT title FROM songs WHERE artistId = ? LIMIT 1', [excludeArtistId])?.title ?? ''
+    const artistNorm = deriveNorms(name.trim(), title).artistNorm
+    const query = sql`SELECT artistId FROM artists WHERE nameNorm = ${artistNorm}`
+    const row = db.get<{ artistId: number }>(String(query), query.parameters)
+    return row && row.artistId !== excludeArtistId ? row.artistId : null
+  }
+
   static updateArtist (
     artistId: number,
     artist: string,
     locale: LocaleCode = DEFAULT_LOCALE,
-  ): void {
+  ): { artistId: number, skipped: string[] } {
     if (!Number.isInteger(artistId)) {
       throw new ValidationError(t(locale, 'server.library.invalidArtistId', 'Invalid artistId'))
     }
@@ -491,7 +493,7 @@ class Library {
       throw new NotFoundError(t(locale, 'server.library.artistNotFound', 'artistId {artistId} not found', { artistId }))
     }
 
-    if (existing.name === name) return
+    if (existing.name === name) return { artistId, skipped: [] }
 
     // derive the norm through the same parser path songs use when they
     // create the artist, feeding it a title the artist already has
@@ -499,34 +501,35 @@ class Library {
     const song = db.get<{ title: string }>(String(titleQuery), titleQuery.parameters)
     const artistNorm = deriveNorms(name, song?.title ?? '').artistNorm
 
-    // another artist with the same norm (nameNorm is case- and
-    // accent-insensitive): refuse without changing anything (no merge)
-    const clashQuery = sql`
-      SELECT artistId FROM artists
-      WHERE nameNorm = ${artistNorm} AND artistId != ${artistId}
-    `
-    const clash = db.get<{ artistId: number }>(String(clashQuery), clashQuery.parameters)
+    const targetArtistId = Library.findArtist(name, artistId)
+    const destinationName = targetArtistId === null
+      ? name
+      : db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [targetArtistId])!.name
+    const songsQuery = sql`SELECT songId, title, titleNorm FROM songs WHERE artistId = ${artistId} ORDER BY songId`
+    const songs = db.all<{ songId: number, title: string, titleNorm: string }>(String(songsQuery), songsQuery.parameters)
+    const plans: Array<{ songId: number, targetSongId: number | null, renames: Array<{ mediaId: number, from: string, to: string, newRelPath: string }> }> = []
+    const skipped: string[] = []
+    const destinations = new Set<string>()
+    const plannedSongs = new Map<string, { songId: number, folders: Set<string> }>()
 
-    if (clash) {
-      throw new ConflictError(t(locale, 'server.common.duplicateArtist', DUPLICATE_ARTIST_MESSAGE))
-    }
-
-    // resolve media files and their new names for every song
-    const renames: Array<{ mediaId: number, from: string, to: string, newRelPath: string }> = []
-    const songsQuery = sql`SELECT songId, title FROM songs WHERE artistId = ${artistId}`
-    const songs = db.all<{ songId: number, title: string }>(String(songsQuery), songsQuery.parameters)
-
-    for (const { songId, title } of songs) {
+    for (const { songId, title, titleNorm } of songs) {
+      const targetQuery = sql`SELECT songId FROM songs WHERE artistId = ${targetArtistId} AND titleNorm = ${titleNorm}`
+      const existingTargetId = targetArtistId === null ? null : db.get<{ songId: number }>(String(targetQuery), targetQuery.parameters)?.songId ?? null
+      const plannedTarget = plannedSongs.get(titleNorm)
+      const targetSongId = plannedTarget?.songId ?? existingTargetId
       const { result, entities } = Media.search({ songId })
+      const renames: Array<{ mediaId: number, from: string, to: string, newRelPath: string }> = []
+      const ownFolders = new Set<string>()
 
       for (const mediaId of result) {
         const media = entities[mediaId]
         const from = path.join(media.path, ...media.relPath.split('/'))
         const dir = path.posix.dirname(media.relPath)
         const newRelPath = (dir === '.' ? '' : `${dir}/`)
-          + toFilename(name, title)
+          + toFilename(destinationName, title)
           + path.posix.extname(media.relPath)
         const to = path.join(media.path, ...newRelPath.split('/'))
+        ownFolders.add(path.resolve(path.dirname(from)))
 
         if (!fs.existsSync(from)) {
           throw new Error(t(locale, 'server.library.mediaFileNotFound', 'media file not found: {path}', { path: from }))
@@ -542,8 +545,28 @@ class Library {
           renames.push({ mediaId, from: cdg, to: cdgTo, newRelPath: '' })
         }
       }
+
+      // Matching titles become versions unless their media share a folder.
+      const targetFolders = plannedTarget?.folders ?? (targetSongId === null ? new Set<string>() : new Set(Library.songFolders(targetSongId)))
+      const folderClash = [...targetFolders].some(folder => ownFolders.has(folder))
+      const fileClash = renames.some(({ from, to }) => to !== from && (fs.existsSync(to) || destinations.has(to)))
+      const withinSongClash = new Set(renames.filter(({ from, to }) => from !== to).map(({ to }) => to)).size
+        !== renames.filter(({ from, to }) => from !== to).length
+
+      if (folderClash || fileClash || withinSongClash) {
+        skipped.push(title)
+        continue
+      }
+
+      for (const { from, to } of renames) if (from !== to) destinations.add(to)
+      for (const folder of ownFolders) targetFolders.add(folder)
+      plannedSongs.set(titleNorm, { songId: targetSongId ?? songId, folders: targetFolders })
+      plans.push({ songId, targetSongId, renames })
     }
 
+    if (!plans.length && songs.length) return { artistId: targetArtistId ?? artistId, skipped }
+
+    const renames = plans.flatMap(plan => plan.renames)
     // rename files (asserted clash-free above, rolls back on failure)
     assertNoRenameClash(renames)
     atomicRenameAll(renames)
@@ -552,26 +575,44 @@ class Library {
       atomicRenameAll(renames.map(({ from, to }) => ({ from: to, to: from })))
     }
 
+    let resultingArtistId = targetArtistId ?? artistId
+
     // update db in a single transaction
     try {
       db.transaction(() => {
-        const updateArtistQuery = sql`
-          UPDATE artists
-          SET name = ${name}, nameNorm = ${artistNorm}
-          WHERE artistId = ${artistId}
-        `
-        db.run(String(updateArtistQuery), updateArtistQuery.parameters)
-
-        for (const { mediaId, newRelPath } of renames) {
-          if (!newRelPath) continue // sidecar: no db row
-
-          const mediaQuery = sql`
-            UPDATE media
-            SET relPath = ${newRelPath}
-            WHERE mediaId = ${mediaId}
-          `
-          db.run(String(mediaQuery), mediaQuery.parameters)
+        let destinationId = targetArtistId
+        if (destinationId === null && skipped.length) {
+          const insert = sql`INSERT INTO artists (name, nameNorm) VALUES (${name}, ${artistNorm})`
+          destinationId = db.run(String(insert), insert.parameters).lastID as number
+          resultingArtistId = destinationId
+        } else if (destinationId === null) {
+          const update = sql`UPDATE artists SET name = ${name}, nameNorm = ${artistNorm} WHERE artistId = ${artistId}`
+          db.run(String(update), update.parameters)
+          destinationId = artistId
         }
+
+        if (destinationId !== artistId) {
+          // The favorite artist remains favorited after a full merge; on a
+          // partial merge it remains on the old artist too.
+          db.run('INSERT OR IGNORE INTO artistStars (userId, artistId) SELECT userId, ? FROM artistStars WHERE artistId = ?', [destinationId, artistId])
+        }
+
+        for (const plan of plans) {
+          for (const { mediaId, newRelPath } of plan.renames) {
+            if (!newRelPath) continue // sidecar: no db row
+            const mediaQuery = sql`UPDATE media SET relPath = ${newRelPath} WHERE mediaId = ${mediaId}`
+            db.run(String(mediaQuery), mediaQuery.parameters)
+          }
+
+          if (plan.targetSongId !== null) {
+            Library.mergeSong(plan.songId, plan.targetSongId, artistId)
+          } else if (destinationId !== artistId) {
+            const move = sql`UPDATE songs SET artistId = ${destinationId} WHERE songId = ${plan.songId}`
+            db.run(String(move), move.parameters)
+          }
+        }
+
+        if (destinationId !== artistId) Library.dropOrphanArtist(artistId)
       })
     } catch (err) {
       rollbackFiles()
@@ -582,6 +623,7 @@ class Library {
     Library.cache.version = null
 
     log.debug('updated artist %s: %s', artistId, name)
+    return { artistId: resultingArtistId, skipped }
   }
 
   /**

@@ -18,7 +18,7 @@
 
 - Songs can be retagged from the library or the queue, with media files renamed automatically to match; retagging onto an artist/title that already exists in another folder merges both songs into that one (media, queue entries, stars and tags move over), while sharing a folder is rejected without changing anything
 - The download and retag dialogs warn when a version of the song already exists in the library (checked as you type, without blocking the action)
-- Artists can be renamed by admins with a swipe on their row; the name is updated everywhere and every matching media file is renamed automatically, and name clashes are rejected without changing anything
+- Artists can be renamed by admins with a swipe on their row; renaming to an existing artist combines their songs, matching titles become versions, and songs with folder or file conflicts stay with the original artist and are reported
 - Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
 - Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
 - Admins can move a version's file (mp3+g sidecar included) to another media folder from Song Info, with name-clash protection

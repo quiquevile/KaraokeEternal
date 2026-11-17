@@ -475,26 +475,17 @@ describe('Library.updateArtist', () => {
     expect(existsSync(abs('set2', 'NEWNAME - Song Two.mp4'))).toBe(true)
   })
 
-  it('throws ConflictError when another artist has that name (any case or accents), changing nothing', () => {
-    // 'Queen' and 'Roxette' exist from the shared fixture; nameNorm
-    // matching is case- and accent-insensitive
-    expect(() => Library.updateArtist(artistId, 'queen')).toThrowError(ConflictError)
-    expect(() => Library.updateArtist(artistId, 'Quéen')).toThrowError(ConflictError)
-    expect(() => Library.updateArtist(artistId, 'RÓXETTE')).toThrowError(ConflictError)
-
-    expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
-      .toBe('NEWNAME')
-    expect(relPaths(songOneId).map(p => p.split(sep).join('/'))).toEqual([
-      'set1/NEWNAME - Song One.mp3',
-    ])
-    expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
-    expect(existsSync(abs('set2', 'NEWNAME - Song Two.mp4'))).toBe(true)
+  it('finds existing artists by normalized name, excluding itself', () => {
+    expect(Library.findArtist('queen', artistId)).toBe(2)
+    expect(Library.findArtist('Quéen', artistId)).toBe(2)
+    expect(Library.findArtist('NEWNAME', artistId)).toBeNull()
   })
 
   it('throws ConflictError when a destination file exists, changing nothing', () => {
     writeFileSync(abs('set1', 'Blocker - Song One.mp3'), 'blocking file')
+    writeFileSync(abs('set2', 'Blocker - Song Two.mp4'), 'blocking file')
 
-    expect(() => Library.updateArtist(artistId, 'Blocker')).toThrowError(ConflictError)
+    expect(Library.updateArtist(artistId, 'Blocker')).toEqual({ artistId, skipped: ['Song One', 'Song Two'] })
 
     expect(db.get<{ name: string }>('SELECT name FROM artists WHERE artistId = ?', [artistId])?.name)
       .toBe('NEWNAME')
@@ -506,6 +497,7 @@ describe('Library.updateArtist', () => {
     expect(existsSync(abs('set2', 'NEWNAME - Song Two.mp4'))).toBe(true)
 
     rmSync(abs('set1', 'Blocker - Song One.mp3'))
+    rmSync(abs('set2', 'Blocker - Song Two.mp4'))
   })
 
   it('fails without renaming anything when a media file is missing', () => {
@@ -534,6 +526,160 @@ describe('Library.updateArtist', () => {
     // same name: no-op, files untouched
     expect(() => Library.updateArtist(artistId, 'NEWNAME')).not.toThrow()
     expect(existsSync(abs('set1', 'NEWNAME - Song One.mp3'))).toBe(true)
+  })
+})
+
+describe('Library.updateArtist merging', () => {
+  it('skips a song with accent-variant versions in one folder and moves the other songs', () => {
+    const folder = abs('accent-merge')
+    mkdirSync(folder)
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?), (?, ?)',
+      ['Accent Source', 'Accent Source', 'Accent Target', 'Accent Target'])
+    const sourceId = db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['Accent Source'])!.artistId
+    const targetId = db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['Accent Target'])!.artistId
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?), (?, ?, ?)',
+      [sourceId, 'Canción', 'cancion', sourceId, 'Other', 'other'])
+    const accentSongId = db.get<{ songId: number }>('SELECT songId FROM songs WHERE artistId = ? AND title = ?', [sourceId, 'Canción'])!.songId
+    const otherSongId = db.get<{ songId: number }>('SELECT songId FROM songs WHERE artistId = ? AND title = ?', [sourceId, 'Other'])!.songId
+    for (const filename of ['Accent Source - Canción.mp3', 'Accent Source - Cancion.mp3']) {
+      db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+        [accentSongId, 1, ['accent-merge', filename].join(sep), 100])
+      writeFileSync(abs('accent-merge', filename), 'audio')
+    }
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+      [otherSongId, 1, ['accent-merge', 'Accent Source - Other.mp3'].join(sep), 100])
+    writeFileSync(abs('accent-merge', 'Accent Source - Other.mp3'), 'audio')
+
+    try {
+      expect(Library.updateArtist(sourceId, 'Accent Target')).toEqual({ artistId: targetId, skipped: ['Canción'] })
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [accentSongId])?.artistId).toBe(sourceId)
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [otherSongId])?.artistId).toBe(targetId)
+      expect(existsSync(abs('accent-merge', 'Accent Source - Canción.mp3'))).toBe(true)
+      expect(existsSync(abs('accent-merge', 'Accent Source - Cancion.mp3'))).toBe(true)
+      expect(existsSync(abs('accent-merge', 'Accent Target - Other.mp3'))).toBe(true)
+    } finally {
+      db.run('DELETE FROM media WHERE songId IN (?, ?)', [accentSongId, otherSongId])
+      db.run('DELETE FROM songs WHERE songId IN (?, ?)', [accentSongId, otherSongId])
+      db.run('DELETE FROM artists WHERE artistId IN (?, ?)', [sourceId, targetId])
+      rmSync(folder, { recursive: true, force: true })
+      Library.cache.version = null
+    }
+  })
+
+  it('removes the source artist after a complete merge', () => {
+    const folder = abs('complete-merge')
+    mkdirSync(folder)
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?), (?, ?)',
+      ['Complete Source', 'Complete Source', 'Complete Target', 'Complete Target'])
+    const sourceId = db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['Complete Source'])!.artistId
+    const targetId = db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['Complete Target'])!.artistId
+    db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)', [sourceId, 'Solo', 'Solo'])
+    const songId = db.get<{ songId: number }>('SELECT last_insert_rowid() AS songId')!.songId
+    db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+      [songId, 1, ['complete-merge', 'Complete Source - Solo.mp3'].join(sep), 100])
+    writeFileSync(abs('complete-merge', 'Complete Source - Solo.mp3'), 'audio')
+
+    try {
+      expect(Library.updateArtist(sourceId, 'Complete Target')).toEqual({ artistId: targetId, skipped: [] })
+      expect(db.get('SELECT artistId FROM artists WHERE artistId = ?', [sourceId])).toBeUndefined()
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [songId])?.artistId).toBe(targetId)
+    } finally {
+      db.run('DELETE FROM media WHERE songId = ?', [songId])
+      db.run('DELETE FROM songs WHERE songId = ?', [songId])
+      db.run('DELETE FROM artists WHERE artistId IN (?, ?)', [sourceId, targetId])
+      rmSync(folder, { recursive: true, force: true })
+      Library.cache.version = null
+    }
+  })
+
+  it('creates a separate artist when a new name can only be applied to some songs', () => {
+    const folder = abs('partial-rename')
+    mkdirSync(folder)
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?)', ['Partial Old', 'Partial Old'])
+    const oldId = db.get<{ artistId: number }>('SELECT last_insert_rowid() AS artistId')!.artistId
+    const songIds: number[] = []
+    for (const title of ['Good', 'Blocked']) {
+      db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)', [oldId, title, title])
+      const id = db.get<{ songId: number }>('SELECT last_insert_rowid() AS songId')!.songId
+      songIds.push(id)
+      db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+        [id, 1, ['partial-rename', `Partial Old - ${title}.mp3`].join(sep), 100])
+      writeFileSync(abs('partial-rename', `Partial Old - ${title}.mp3`), 'audio')
+    }
+    writeFileSync(abs('partial-rename', 'Partial New - Blocked.mp3'), 'blocker')
+
+    try {
+      const result = Library.updateArtist(oldId, 'Partial New')
+      expect(result.skipped).toEqual(['Blocked'])
+      expect(result.artistId).not.toBe(oldId)
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [songIds[0]])?.artistId).toBe(result.artistId)
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [songIds[1]])?.artistId).toBe(oldId)
+      expect(existsSync(abs('partial-rename', 'Partial New - Good.mp3'))).toBe(true)
+      expect(existsSync(abs('partial-rename', 'Partial Old - Blocked.mp3'))).toBe(true)
+    } finally {
+      db.run('DELETE FROM media WHERE songId IN (?, ?)', songIds)
+      db.run('DELETE FROM songs WHERE songId IN (?, ?)', songIds)
+      db.run('DELETE FROM artists WHERE artistId IN (SELECT artistId FROM artists WHERE name IN (?, ?))', ['Partial Old', 'Partial New'])
+      rmSync(folder, { recursive: true, force: true })
+      Library.cache.version = null
+    }
+  })
+
+  it('merges matching titles as versions and leaves only conflicting songs behind', () => {
+    const sourceDir = abs('merge-source')
+    const targetDir = abs('merge-target')
+    mkdirSync(sourceDir)
+    mkdirSync(targetDir)
+    db.run('INSERT INTO artists (name, nameNorm) VALUES (?, ?), (?, ?)',
+      ['Merge Source', 'Merge Source', 'Merge Target', 'Merge Target'])
+    const sourceId = db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['Merge Source'])!.artistId
+    const targetId = db.get<{ artistId: number }>('SELECT artistId FROM artists WHERE name = ?', ['Merge Target'])!.artistId
+    const addSong = (owner: number, title: string, folder: string, filename: string): number => {
+      db.run('INSERT INTO songs (artistId, title, titleNorm) VALUES (?, ?, ?)', [owner, title, title])
+      const songId = db.get<{ songId: number }>('SELECT last_insert_rowid() AS songId')!.songId
+      db.run('INSERT INTO media (songId, pathId, relPath, duration) VALUES (?, ?, ?, ?)',
+        [songId, 1, [folder, filename].join(sep), 100])
+      writeFileSync(abs(folder, filename), 'media')
+      return songId
+    }
+    const targetRepeat = addSong(targetId, 'Repeat', 'merge-target', 'Merge Target - Repeat.mp3')
+    const sourceRepeat = addSong(sourceId, 'Repeat', 'merge-source', 'Merge Source - Repeat.mp4')
+    const sourceOnly = addSong(sourceId, 'Only', 'merge-source', 'Merge Source - Only.mp3')
+    addSong(targetId, 'Blocked', 'merge-source', 'Merge Target - Blocked.mp4')
+    const sourceBlocked = addSong(sourceId, 'Blocked', 'merge-source', 'Merge Source - Blocked.mp3')
+    const sourceFileClash = addSong(sourceId, 'Disk', 'merge-source', 'Merge Source - Disk.mp3')
+    writeFileSync(abs('merge-source', 'Merge Target - Disk.mp3'), 'blocker')
+    db.run('INSERT INTO songStars (userId, songId) VALUES (?, ?)', [1, sourceRepeat])
+    db.run('INSERT INTO artistStars (userId, artistId) VALUES (?, ?)', [1, sourceId])
+
+    try {
+      expect(Library.findArtist('Mérge Target', sourceId)).toBe(targetId)
+      expect(Library.updateArtist(sourceId, 'Merge Target')).toEqual({
+        artistId: targetId, skipped: ['Blocked', 'Disk'],
+      })
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [sourceOnly])?.artistId).toBe(targetId)
+      expect(db.get('SELECT songId FROM songs WHERE songId = ?', [sourceRepeat])).toBeUndefined()
+      expect(relPaths(targetRepeat).map(p => p.split(sep).join('/'))).toEqual([
+        'merge-source/Merge Target - Repeat.mp4',
+        'merge-target/Merge Target - Repeat.mp3',
+      ])
+      expect(db.get<{ songId: number }>('SELECT songId FROM songStars WHERE userId = 1 AND songId = ?', [targetRepeat])?.songId).toBe(targetRepeat)
+      expect(db.get('SELECT * FROM artistStars WHERE userId = 1 AND artistId = ?', [targetId])).toBeDefined()
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [sourceBlocked])?.artistId).toBe(sourceId)
+      expect(db.get<{ artistId: number }>('SELECT artistId FROM songs WHERE songId = ?', [sourceFileClash])?.artistId).toBe(sourceId)
+      expect(existsSync(abs('merge-source', 'Merge Source - Blocked.mp3'))).toBe(true)
+      expect(existsSync(abs('merge-source', 'Merge Source - Disk.mp3'))).toBe(true)
+      expect(existsSync(abs('merge-source', 'Merge Target - Only.mp3'))).toBe(true)
+    } finally {
+      db.run('DELETE FROM media WHERE songId IN (SELECT songId FROM songs WHERE artistId IN (?, ?))', [sourceId, targetId])
+      db.run('DELETE FROM songStars WHERE songId IN (SELECT songId FROM songs WHERE artistId IN (?, ?))', [sourceId, targetId])
+      db.run('DELETE FROM songs WHERE artistId IN (?, ?)', [sourceId, targetId])
+      db.run('DELETE FROM artistStars WHERE artistId IN (?, ?)', [sourceId, targetId])
+      db.run('DELETE FROM artists WHERE artistId IN (?, ?)', [sourceId, targetId])
+      rmSync(sourceDir, { recursive: true, force: true })
+      rmSync(targetDir, { recursive: true, force: true })
+      Library.cache.version = null
+    }
   })
 })
 

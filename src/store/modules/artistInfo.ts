@@ -23,10 +23,11 @@ export const updateArtist = createAsyncThunk(
     artistId: number
     artist: string
   }, thunkAPI) => {
-    await api.put(`artist/${artistId}`, {
+    const result = await api.put<{ artistId: number, skipped: string[] }>(`artist/${artistId}`, {
       body: { artist },
     })
     thunkAPI.dispatch(closeArtistEditor())
+    return result
   },
 )
 
@@ -35,25 +36,19 @@ export const updateArtist = createAsyncThunk(
 // ------------------------------------
 export interface ArtistInfoState {
   editorArtistId: number | null
-  error: string | null
 }
 
 const initialState: ArtistInfoState = {
   editorArtistId: null,
-  error: null,
 }
 
 const artistInfoReducer = createReducer(initialState, (builder) => {
   builder
     .addCase(showArtistEditor, (state, { payload }) => {
       state.editorArtistId = payload
-      state.error = null
     })
     .addCase(closeArtistEditor, (state) => {
       state.editorArtistId = null
-    })
-    .addCase(updateArtist.rejected, (state, action) => {
-      state.error = action.error.message ?? 'could not save artist'
     })
 })
 

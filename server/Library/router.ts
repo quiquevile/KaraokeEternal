@@ -71,14 +71,15 @@ export async function handleUpdateArtist (ctx) {
 
   const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
 
+  let result: { artistId: number, skipped: string[] }
   try {
-    Library.updateArtist(artistId, artist, ctxLocale(ctx))
+    result = Library.updateArtist(artistId, artist, ctxLocale(ctx))
   } catch (err) {
     mapDomainError(ctx, err)
   }
 
   ctx.status = 200
-  ctx.body = { artistId }
+  ctx.body = result
 
   // push the full library (the name and nameNorm-based ordering may
   // have changed) and queues to every client
@@ -86,6 +87,15 @@ export async function handleUpdateArtist (ctx) {
 }
 
 router.put('/artist/:artistId', handleUpdateArtist)
+
+export async function handleFindArtist (ctx) {
+  requireAdmin(ctx)
+  const artist = typeof ctx.request.body?.artist === 'string' ? ctx.request.body.artist : ''
+  const excludeArtistId = Number(ctx.request.body?.excludeArtistId)
+  ctx.body = { artistId: Library.findArtist(artist, Number.isInteger(excludeArtistId) ? excludeArtistId : undefined) }
+}
+
+router.post('/artist/find', handleFindArtist)
 
 // delete a song's files, queue items, and rows (admin only)
 export async function handleDeleteSong (ctx) {

@@ -14,7 +14,6 @@ export const libraryMessages: Record<string, MessageDescriptor> = {
   tagPitch: { id: 'library.tags.pitch', defaultMessage: 'Saved pitch' },
   filterFolder: { id: 'library.header.filterFolder', defaultMessage: 'Filter songs by folder' },
   folderFilterTitle: { id: 'library.folderFilter.title', defaultMessage: 'Filter by folder' },
-  noMatches: { id: 'library.search.noMatches', defaultMessage: 'No Songs Match the Filters' },
   providerFindMore: { id: 'library.provider.findMore', defaultMessage: 'Find More Songs' },
   providerMore: { id: 'library.provider.more', defaultMessage: '{count} more {count, plural, one {result} other {results}}' },
   providerName: { id: 'library.provider.name', defaultMessage: 'Provider' },

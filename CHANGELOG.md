@@ -7,7 +7,7 @@
 
 ### YouTube search and downloads
 
-- Added a dedicated search tab with direct video-URL support and automatic artist/title identification
+- Added a dedicated search tab with direct video-URL support and automatic artist/title identification; permitted users can open it from the library magnifier while library searches leave provider results and the Find More Songs button unobstructed
 - Downloaded tracks land in a subfolder named after the downloader, and each user only sees their own download notifications (admins see them all)
 - Users with the download-for-others capability can queue downloads for another user in an open room, with presence checks at enqueue and completion time
 - The download target picker also lists the requester's own ghosts (for admins or users with the ghost-users capability), which accept the download without being in the room

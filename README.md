@@ -22,7 +22,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Fully self-hosted
 - No ads or telemetry
 - This fork adds:
-  - YouTube downloads straight from the app, with per-user subfolders
+  - YouTube search from the library magnifier and downloads straight from the app, with per-user subfolders
   - Granular per-user permissions, queue-for-others included
   - Bilingual interface (English / Español)
   - Admin library tools (retag, rename or merge artists, delete) with live updates on every client

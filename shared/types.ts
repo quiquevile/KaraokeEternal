@@ -132,8 +132,11 @@ export interface Provider {
   url: string
   priority: number
   apiKey?: string
+  visibility: ProviderVisibility
   prefs: ProviderPrefs
 }
+
+export type ProviderVisibility = 'public' | 'admin' | 'manager'
 
 export interface ProviderPrefs {
   enabled: boolean
@@ -219,6 +222,7 @@ export type Permission
     | 'playerControls'
     | 'setSongPitch'
     | 'manageTags'
+    | 'manageProviders'
 
 export interface User {
   userId: number

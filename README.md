@@ -23,6 +23,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - No ads or telemetry
 - This fork adds:
   - Provider search results identify their source alongside the artist
+  - Provider visibility controls for public, admin and delegated users
   - Granular per-user permissions, queue-for-others included
   - Bilingual interface (English / Español)
   - Admin library tools (retag, rename or merge artists, delete) with live updates on every client

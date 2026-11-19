@@ -10,7 +10,7 @@ import InputRadio from 'components/InputRadio/InputRadio'
 import HttpApi from 'lib/HttpApi'
 import { receivePrefs, setProviderPrefs } from 'store/modules/prefs'
 import { commonMessages } from 'lib/messages'
-import type { Provider, ProviderStatus, ProviderTypeStatus, SongProviderPrefs } from 'shared/types'
+import type { Provider, ProviderStatus, ProviderTypeStatus, ProviderVisibility, SongProviderPrefs } from 'shared/types'
 import styles from './EditProvider.css'
 import { accountMessages } from '../../../../messages'
 
@@ -49,6 +49,7 @@ const EditProvider = ({ provider, onClose }: EditProviderProps) => {
   const [url, setUrl] = useState(provider?.url ?? '')
   const [apiKey, setApiKey] = useState(provider?.apiKey ?? '')
   const [name, setName] = useState(provider?.name ?? '')
+  const [visibility, setVisibility] = useState<ProviderVisibility>(provider?.visibility ?? 'public')
   const [enabled, setEnabled] = useState(provider?.prefs.enabled ?? true)
   const storedSong = provider?.prefs.types.song
   const [songEnabled, setSongEnabled] = useState(storedSong?.enabled ?? false)
@@ -85,6 +86,7 @@ const EditProvider = ({ provider, onClose }: EditProviderProps) => {
       if (provider) {
         const data: Record<string, unknown> = {}
         if (name.trim() !== provider.name) data.name = name.trim()
+        if (visibility !== provider.visibility) data.visibility = visibility
         if (url.trim() !== provider.url) data.url = url.trim()
         if (apiKey.trim() !== (provider.apiKey ?? '')) data.apiKey = apiKey.trim()
 
@@ -115,6 +117,7 @@ const EditProvider = ({ provider, onClose }: EditProviderProps) => {
             name: result.name,
             url: url.trim(),
             apiKey: apiKey.trim() || undefined,
+            visibility,
             prefs: { types },
           },
         })))
@@ -187,6 +190,17 @@ const EditProvider = ({ provider, onClose }: EditProviderProps) => {
     </>
   )
 
+  const visibilityInput = (
+    <label className={styles.visibilityField}>
+      {intl.formatMessage(accountMessages.providerVisibility)}
+      <select value={visibility} onChange={e => setVisibility(e.currentTarget.value as ProviderVisibility)}>
+        <option value='public'>{intl.formatMessage(accountMessages.providerPublic)}</option>
+        <option value='admin'>{intl.formatMessage(accountMessages.providerAdmin)}</option>
+        <option value='manager'>{intl.formatMessage(accountMessages.providerManager)}</option>
+      </select>
+    </label>
+  )
+
   return (
     <Modal
       className={styles.modal}
@@ -217,6 +231,7 @@ const EditProvider = ({ provider, onClose }: EditProviderProps) => {
           <div className={styles.fieldContainer}>
             {urlInput}
             {apiKeyInput}
+            {visibilityInput}
           </div>
         )}
 
@@ -235,6 +250,7 @@ const EditProvider = ({ provider, onClose }: EditProviderProps) => {
                 onChange={e => setName(e.target.value)}
                 placeholder={intl.formatMessage(accountMessages.providerName)}
               />
+              {visibilityInput}
               <div>
                 <p className={styles.meta}>
                   <span className={styles.metaLabel}>{intl.formatMessage(commonMessages.statusLabel)}</span>

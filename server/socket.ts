@@ -136,7 +136,7 @@ export default function (io, jwtKey, getClientIp) {
         type: PREFS_PUSH,
         payload: sock.user.isAdmin
           ? prefs
-          : { providers: Prefs.getSanitizedProviders(prefs.providers) },
+          : { providers: Prefs.getSanitizedProviders(prefs.providers, sock.user) },
       })
 
       if (sock.user.isAdmin) {

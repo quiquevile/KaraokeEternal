@@ -53,7 +53,7 @@ router.get('/', (ctx) => {
     roles: prefs.roles,
     isReplayGainEnabled: prefs.isReplayGainEnabled,
     playerDisplay: prefs.playerDisplay,
-    providers: Prefs.getSanitizedProviders(prefs.providers),
+    providers: Prefs.getSanitizedProviders(prefs.providers, ctx.user),
   }
 })
 
@@ -221,7 +221,7 @@ router.post('/provider', (ctx) => {
     return
   }
 
-  Prefs.addProvider(name, url, data)
+  Prefs.addProvider(name, url, { visibility: 'public', ...data })
   ProviderFetch.syncProviders()
 
   ctx.body = Prefs.get() as unknown as PrefsType

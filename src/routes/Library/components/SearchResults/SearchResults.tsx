@@ -273,10 +273,19 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
   // Hide already-completed entries: the song is in the local library now, so
   // the local row above takes priority and we avoid re-triggering provider work.
   const filteredProviderResults = useMemo(
-    () => providerResults.filter(
-      r => providerFetches[providerFetchKey(r.providerId, r.id)]?.status !== 'complete',
-    ),
-    [providerResults, providerFetches],
+    () => providerResults.filter(r => (
+      providers.entities[r.providerId]?.prefs.enabled
+      && providers.entities[r.providerId]?.prefs.types.song?.enabled
+      && providerFetches[providerFetchKey(r.providerId, r.id)]?.status !== 'complete'
+    )),
+    [providerResults, providerFetches, providers],
+  )
+  const filteredProviderErrors = useMemo(
+    () => providerErrors.filter(error => (
+      providers.entities[error.providerId]?.prefs.enabled
+      && providers.entities[error.providerId]?.prefs.types.song?.enabled
+    )),
+    [providerErrors, providers],
   )
 
   // enabled song providers offered for this query: those whose maxLibraryResults is null
@@ -334,14 +343,14 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
 
   // hidden (not cleared) while filtering by starred songs, so it returns when toggled off
   const showOnlineSection = !filterStarred && (isProviderSearchActive || isProviderSearchDone
-    || filteredProviderResults.length > 0 || providerErrors.length > 0)
+    || filteredProviderResults.length > 0 || filteredProviderErrors.length > 0)
   // once a search turns up results there's nothing to prompt for; the row only
   // persists to offer a retry when it came back empty
   const showProviderSearchButton = eligibleProviderIds.length > 0 && trimmedFilter.length > 0 && !isProviderSearchActive
     && !(isProviderSearchDone && filteredProviderResults.length > 0)
   const providerHeadingIdx = 1 + tree.length
   const onlineRowCount = showOnlineSection
-    ? 1 + (isProviderSearchActive ? 1 : 0) + filteredProviderResults.length + providerErrors.length
+    ? 1 + (isProviderSearchActive ? 1 : 0) + filteredProviderResults.length + filteredProviderErrors.length
     : 0
   const buttonRowCount = showProviderSearchButton ? 1 : 0
   const numRows = 1 + tree.length + onlineRowCount + buttonRowCount
@@ -370,7 +379,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
 
     const providerResultsStart = providerHeadingIdx + 1
     const providerErrorsStart = providerResultsStart + filteredProviderResults.length
-    const providerErrorsEnd = providerErrorsStart + providerErrors.length
+    const providerErrorsEnd = providerErrorsStart + filteredProviderErrors.length
 
     if (index >= providerResultsStart && index < providerErrorsEnd) return ROW_HEIGHT_SONG_WITH_ARTIST
     if (isProviderSearchActive && index === providerErrorsEnd) return ROW_HEIGHT_PROVIDER_SPINNER
@@ -385,7 +394,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
     showOnlineSection,
     providerHeadingIdx,
     filteredProviderResults.length,
-    providerErrors.length,
+    filteredProviderErrors.length,
     isProviderSearchActive,
   ])
 
@@ -414,7 +423,7 @@ const SearchResults = ({ ui }: SearchResultsProps) => {
         expandedArtistResults,
         collapsedArtistResults,
         providerResults: filteredProviderResults,
-        providerErrors,
+        providerErrors: filteredProviderErrors,
         providerNames,
         providerFetches,
         isProviderSearchActive,

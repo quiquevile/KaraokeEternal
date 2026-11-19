@@ -11,4 +11,5 @@ export const PERMISSIONS: Array<{ value: Permission, message: (typeof accountMes
   { value: 'setSongPitch', message: accountMessages.permsSetSongPitch, parent: 'playerControls' },
   { value: 'ghostUsers', message: accountMessages.permsGhostUsers },
   { value: 'manageTags', message: accountMessages.permsManageTags },
+  { value: 'manageProviders', message: accountMessages.permsManageProviders },
 ]

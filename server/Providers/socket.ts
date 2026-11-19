@@ -4,6 +4,7 @@ import Providers, { isTypeEnabled } from './Providers.js'
 import ProviderFetch from './ProviderFetch.js'
 import ProviderStatus from './ProviderStatus.js'
 import Prefs from '../Prefs/Prefs.js'
+import { canUseProvider } from './access.js'
 import getLogger from '../lib/Log.js'
 import {
   PROVIDER_SEARCH_REQUEST,
@@ -57,7 +58,7 @@ const ACTION_HANDLERS = {
     // request per provider regardless of duplicate or unknown ids.
     const requested = new Set(providerIds)
     const providers = (Object.values(Prefs.get().providers.entities) as Provider[])
-      .filter(p => isTypeEnabled(p, 'song') && requested.has(p.providerId))
+      .filter(p => isTypeEnabled(p, 'song') && canUseProvider(sock.user, p) && requested.has(p.providerId))
 
     if (providers.length === 0) {
       return acknowledge({ type: PROVIDER_SEARCH_REQUEST + _ERROR, error: 'No matching providers' })
@@ -73,11 +74,15 @@ const ACTION_HANDLERS = {
       try {
         // right after startup or a provider change, its check may still be running
         await ProviderStatus.settled(provider.providerId)
+        const current = Prefs.get().providers.entities[provider.providerId] as Provider | undefined
+        if (!current || !isTypeEnabled(current, 'song') || !canUseProvider(sock.user, current)) return
         const version = ProviderStatus.songVersion(provider.providerId)
         if (version === null) throw new Error(ProviderStatus.songUnavailableReason(provider.providerId))
 
         await Providers.search(provider, version, query, (results) => {
           if (signal.aborted) return
+          const visible = Prefs.get().providers.entities[provider.providerId] as Provider | undefined
+          if (!visible || !isTypeEnabled(visible, 'song') || !canUseProvider(sock.user, visible)) return
           // Hide items already completed (ingested) so the UI prioritizes the
           // local entry and we don't risk re-triggering provider work.
           const fresh = results.filter(r => !ProviderFetch.isComplete(provider.providerId, r.id))
@@ -88,6 +93,8 @@ const ACTION_HANDLERS = {
         }, signal)
       } catch (err) {
         if (signal.aborted) return
+        const visible = Prefs.get().providers.entities[provider.providerId] as Provider | undefined
+        if (!visible || !canUseProvider(sock.user, visible)) return
         log.warn('search failed for provider %s: %s', provider.url, (err as Error).message)
         sock.emit('action', {
           type: PROVIDER_SEARCH_PROVIDER_ERROR,
@@ -136,7 +143,7 @@ const ACTION_HANDLERS = {
     if (!provider) {
       return acknowledge({ type: PROVIDER_FETCH_REQUEST + _ERROR, error: 'Unknown provider' })
     }
-    if (!isTypeEnabled(provider, 'song')) {
+    if (!isTypeEnabled(provider, 'song') || !canUseProvider(sock.user, provider)) {
       return acknowledge({ type: PROVIDER_FETCH_REQUEST + _ERROR, error: 'Provider is disabled' })
     }
 
@@ -155,7 +162,11 @@ const ACTION_HANDLERS = {
 
     try {
       await ProviderStatus.settled(providerId)
-      await ProviderFetch.request(provider, itemId, targetUserId, roomId, title, artist, duration, { userId, isAdmin: sock.user.isAdmin === true })
+      const current = Prefs.get().providers.entities[providerId] as Provider | undefined
+      if (!current || !isTypeEnabled(current, 'song') || !canUseProvider(sock.user, current)) {
+        return acknowledge({ type: PROVIDER_FETCH_REQUEST + _ERROR, error: 'Provider is disabled' })
+      }
+      await ProviderFetch.request(current, itemId, targetUserId, roomId, title, artist, duration, { userId, isAdmin: sock.user.isAdmin === true })
       acknowledge({ type: PROVIDER_FETCH_REQUEST + _SUCCESS })
     } catch (err) {
       log.warn('fetch failed for provider %s, item %s: %s', provider.url, itemId, (err as Error).message)

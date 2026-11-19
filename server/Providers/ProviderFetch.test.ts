@@ -282,7 +282,7 @@ describe('ProviderFetch.handleComplete', () => {
 
   it('queues a completed item for a re-requesting room without contacting the provider', async () => {
     const fetchSpy = vi.spyOn(Providers, 'fetch').mockResolvedValue(undefined)
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     try {
       await fireComplete(impl, { providerId: 1, itemId: 'a1', roomId: 7, userId: 3, absPath: '/library/x.mp4' })
       Queue.add.mockClear()
@@ -349,7 +349,7 @@ describe('ProviderFetch.handleComplete', () => {
 
   it('re-fetches a completed item whose song has left the library', async () => {
     const fetchSpy = vi.spyOn(Providers, 'fetch').mockResolvedValue(undefined)
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     try {
       await fireComplete(impl, { providerId: 1, itemId: 'a1', roomId: 7, userId: 3, absPath: '/library/x.mp4' })
       expect(impl.isComplete(1, 'a1')).toBe(true)
@@ -374,7 +374,7 @@ describe('ProviderFetch.handleComplete', () => {
 
   it('queues a singer who requests while ingest is still running exactly once', async () => {
     const fetchSpy = vi.spyOn(Providers, 'fetch').mockResolvedValue(undefined)
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     let finishScan!: () => void
     startFileScanner.mockImplementationOnce(() => new Promise((resolve) => {
       finishScan = () => resolve({ mediaId: 42, songId: 99 })
@@ -429,7 +429,7 @@ describe('ProviderFetch.handleComplete', () => {
 
   it('lets a second singer in the room join an in-flight fetch', async () => {
     const fetchSpy = vi.spyOn(Providers, 'fetch').mockResolvedValue(undefined)
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     const emit = vi.fn()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     impl.init({ to: vi.fn(() => ({ emit })), emit: vi.fn() } as any, { startFileScanner: startFileScanner as any })
@@ -519,7 +519,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('cancel', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     let cancelSpy: ReturnType<typeof vi.spyOn>
 
     beforeEach(() => {
@@ -676,7 +676,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('stale events', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     const event = {
       id: 'a1', status: 'downloading', progress: 0.5, timestamp: 1700000000,
       title: 'T', artist: 'A', source: 'src', iconUrl: 'http://p/icon.svg',
@@ -760,7 +760,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('retry for another singer', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     let fetchSpy: ReturnType<typeof vi.spyOn>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const entry = () => (impl as any).entries.get('1:a1')
@@ -827,7 +827,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('dropUser', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     let cancelSpy: ReturnType<typeof vi.spyOn>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let entries: Map<string, any>
@@ -920,7 +920,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('source icon', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     const event = {
       id: 'a1', status: 'pending', progress: 0, timestamp: 1700000000,
       title: 'T', artist: 'A', source: 'src', iconUrl: 'http://p/icon.svg',
@@ -1000,7 +1000,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('duration', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     let fetchSpy: ReturnType<typeof vi.spyOn>
 
     beforeEach(() => {
@@ -1032,7 +1032,7 @@ describe('ProviderFetch.handleComplete', () => {
   })
 
   describe('fetch meta', () => {
-    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
+    const provider = { providerId: 1, name: 'P', url: 'http://p', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: { song: { enabled: true, maxLibraryResults: null } } } }
     const event = {
       id: 'a1', status: 'pending', progress: 0, timestamp: 1700000000,
       title: 'T', artist: 'A', source: 'src', iconUrl: 'http://p/icon.svg',
@@ -1735,7 +1735,7 @@ describe('ProviderFetch.handleComplete', () => {
       })
 
       it('cancels in-flight fetches directly (provider removal)', () => {
-        impl.cancelInFlight({ providerId: 1, name: 'P1', url: 'http://p1', priority: 1, prefs: { enabled: true, types: {} } })
+        impl.cancelInFlight({ providerId: 1, name: 'P1', url: 'http://p1', priority: 1, visibility: 'public', prefs: { enabled: true, types: {} } })
 
         expect(cancelSpy.mock.calls.map(([, , itemId]) => itemId)).toEqual(['pending', 'downloading'])
         expect(statusOf(1, 'pending')).toBe('canceled')

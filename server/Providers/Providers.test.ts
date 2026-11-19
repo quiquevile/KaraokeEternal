@@ -171,7 +171,7 @@ describe('Providers.probe', () => {
 })
 
 describe('song endpoints', () => {
-  const provider = { providerId: 1, name: 'P', url: 'http://provider', priority: 0, apiKey: 'secret', prefs: { enabled: true, types: {} } }
+  const provider = { providerId: 1, name: 'P', url: 'http://provider', priority: 0, apiKey: 'secret', visibility: 'public' as const, prefs: { enabled: true, types: {} } }
 
   it('build URLs from the negotiated song version', async () => {
     const fetchMock = mockProvider({ '/api/song/v2/items/abc/fetch': { body: '', status: 202 } })
@@ -267,7 +267,7 @@ describe('parseStatusEvent', () => {
 })
 
 describe('Providers.search', () => {
-  const provider = { providerId: 1, name: 'P', url: 'http://provider', priority: 0, prefs: { enabled: true, types: {} } }
+  const provider = { providerId: 1, name: 'P', url: 'http://provider', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: {} } }
   const result = { id: 'a1', title: 'T', artist: 'A', source: 's', iconUrl: 'http://provider/i.svg' }
 
   async function search (ndjson: string) {
@@ -330,7 +330,7 @@ describe('Providers.search', () => {
 })
 
 describe('Providers.subscribeStatus', () => {
-  const provider = { providerId: 1, name: 'P', url: 'http://provider', priority: 0, apiKey: 'secret', prefs: { enabled: true, types: {} } }
+  const provider = { providerId: 1, name: 'P', url: 'http://provider', priority: 0, apiKey: 'secret', visibility: 'public' as const, prefs: { enabled: true, types: {} } }
   const settle = () => new Promise(resolve => setTimeout(resolve, 20))
 
   // fetch stub serving a controllable SSE body; aborting the request's signal

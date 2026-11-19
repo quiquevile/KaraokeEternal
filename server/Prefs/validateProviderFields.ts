@@ -1,5 +1,5 @@
 // provider data is spread into the entity, so only known fields may be stored
-const PROVIDER_FIELDS = ['name', 'url', 'apiKey', 'prefs']
+const PROVIDER_FIELDS = ['name', 'url', 'apiKey', 'visibility', 'prefs']
 const PROVIDER_PREFS = ['enabled', 'types']
 // allowed per-type pref keys, by supported type
 const PROVIDER_TYPE_PREFS: Record<string, string[]> = {
@@ -27,6 +27,7 @@ export default function validateProviderFields (fields: Record<string, unknown>)
   if ('name' in fields && (!fields.name || typeof fields.name !== 'string' || fields.name.length > MAX_NAME_LENGTH)) return 'Invalid name'
   if ('url' in fields && (!fields.url || typeof fields.url !== 'string')) return 'Invalid url'
   if ('apiKey' in fields && typeof fields.apiKey !== 'string') return 'Invalid apiKey'
+  if ('visibility' in fields && !['public', 'admin', 'manager'].includes(fields.visibility as string)) return 'Invalid visibility'
 
   if ('prefs' in fields) {
     const { prefs } = fields

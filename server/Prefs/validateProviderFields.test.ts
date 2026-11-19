@@ -5,6 +5,9 @@ describe('validateProviderFields', () => {
   it.each([
     ['an empty body', {}],
     ['connection fields', { name: 'P', url: 'http://p', apiKey: '' }],
+    ['each visibility', { visibility: 'public' }],
+    ['manager visibility', { visibility: 'manager' }],
+    ['admin visibility', { visibility: 'admin' }],
     ['a name at the limit', { name: 'n'.repeat(1024) }],
     ['master enabled', { prefs: { enabled: false } }],
     ['song prefs', { prefs: { types: { song: { enabled: true, maxLibraryResults: 5 } } } }],
@@ -18,6 +21,8 @@ describe('validateProviderFields', () => {
     ['an empty name', { name: '' }, 'Invalid name'],
     ['an oversized name', { name: 'n'.repeat(1025) }, 'Invalid name'],
     ['a non-string apiKey', { apiKey: 1 }, 'Invalid apiKey'],
+    ['an unknown visibility', { visibility: 'private' }, 'Invalid visibility'],
+    ['a null visibility', { visibility: null }, 'Invalid visibility'],
     ['null prefs', { prefs: null }, 'Invalid prefs'],
     ['an unknown pref', { prefs: { maxLibraryResults: 1 } }, 'Unsupported provider pref: maxLibraryResults'],
     ['a non-boolean enabled', { prefs: { enabled: 'yes' } }, 'Invalid enabled'],

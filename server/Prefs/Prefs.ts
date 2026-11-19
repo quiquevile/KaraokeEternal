@@ -1,9 +1,10 @@
 import path from 'path'
 import sql from 'sqlate'
 import crypto from 'crypto'
-import type { Path, Provider, ProviderPrefs, ProviderTypePrefs, SongProviderPrefs } from '../../shared/types.js'
+import type { Path, Provider, ProviderPrefs, ProviderTypePrefs, ProviderVisibility, SongProviderPrefs } from '../../shared/types.js'
 import { db } from '../lib/Database.js'
 import getLogger from '../lib/Log.js'
+import { canUseProvider, type ProviderUser } from '../Providers/access.js'
 
 const RESERVED_KEYS = ['jwtKey', 'isFirstRun']
 const log = getLogger('Prefs')
@@ -97,11 +98,18 @@ class Prefs {
       const rows = db.all<{ providerId: number, name: string, url: string, priority: number, data: string }>(String(query), query.parameters)
 
       for (const row of rows) {
-        const { prefs: storedPrefs, ...data } = JSON.parse(row.data)
+        const { prefs: storedPrefs, visibility: storedVisibility, ...data } = JSON.parse(row.data)
         delete row.data
 
+        // Older databases predate visibility. Unknown stored values fail closed.
+        const visibility: ProviderVisibility = storedVisibility === undefined
+          ? 'public'
+          : storedVisibility === 'public' || storedVisibility === 'manager' || storedVisibility === 'admin'
+            ? storedVisibility
+            : 'admin'
+
         // columns win so a stray data key can't shadow them (e.g. url)
-        prefs.providers.entities[row.providerId] = { ...data, ...row, prefs: buildProviderPrefs(storedPrefs) }
+        prefs.providers.entities[row.providerId] = { ...data, ...row, visibility, prefs: buildProviderPrefs(storedPrefs) }
         prefs.providers.result.push(row.providerId)
       }
     }
@@ -113,14 +121,14 @@ class Prefs {
    * Enabled providers, whitelisted to fields safe for non-admin users
    * (entities can hold url, apiKey, and other stored provider config)
    */
-  static getSanitizedProviders (providers: { result: number[], entities: Record<number, Provider> }) {
-    const result = providers.result.filter(id => providers.entities[id].prefs.enabled)
+  static getSanitizedProviders (providers: { result: number[], entities: Record<number, Provider> }, user: ProviderUser) {
+    const result = providers.result.filter(id => providers.entities[id].prefs.enabled && canUseProvider(user, providers.entities[id]))
 
     return {
       result,
       entities: Object.fromEntries(result.map((id) => {
-        const { providerId, name, priority, prefs } = providers.entities[id]
-        return [id, { providerId, name, priority, prefs }]
+        const { providerId, name, priority, visibility, prefs } = providers.entities[id]
+        return [id, { providerId, name, priority, visibility, prefs }]
       })),
     }
   }

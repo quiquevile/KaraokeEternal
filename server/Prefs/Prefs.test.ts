@@ -136,6 +136,7 @@ describe('Prefs.get providers', () => {
       url: 'http://real',
       priority: 0,
       apiKey: 'k',
+      visibility: 'public',
       prefs: { enabled: true, types: {} },
     })
   })
@@ -161,6 +162,17 @@ describe('Prefs.get providers', () => {
     }])
     expect(Prefs.get().providers.entities[1].prefs).toEqual({ enabled: false, types: { song: { enabled: true, maxLibraryResults: null } } })
   })
+
+  it('defaults old providers to public and treats invalid visibility as admin-only', () => {
+    mockProviderRows([
+      { providerId: 1, name: 'Old', url: 'http://old', priority: 0, data: '{}' },
+      { providerId: 2, name: 'Invalid', url: 'http://invalid', priority: 1, data: '{"visibility":"invalid"}' },
+    ])
+
+    const providers = Prefs.get().providers.entities
+    expect(providers[1].visibility).toBe('public')
+    expect(providers[2].visibility).toBe('admin')
+  })
 })
 
 describe('Prefs.getSanitizedProviders', () => {
@@ -169,28 +181,31 @@ describe('Prefs.getSanitizedProviders', () => {
     const sanitized = Prefs.getSanitizedProviders({
       result: [1],
       entities: {
-        1: { providerId: 1, name: 'Song', url: 'http://s', priority: 0, apiKey: 'secret', prefs: songPrefs },
+        1: { providerId: 1, name: 'Song', url: 'http://s', priority: 0, apiKey: 'secret', visibility: 'public', prefs: songPrefs },
       },
-    })
+    }, { isAdmin: false })
 
     expect(sanitized).toEqual({
       result: [1],
       entities: {
-        1: { providerId: 1, name: 'Song', priority: 0, prefs: songPrefs },
+        1: { providerId: 1, name: 'Song', priority: 0, visibility: 'public', prefs: songPrefs },
       },
     })
   })
 
-  it('omits disabled providers', () => {
-    const sanitized = Prefs.getSanitizedProviders({
-      result: [1, 2],
+  it('omits disabled providers and filters visibility by user permission', () => {
+    const providers = {
+      result: [1, 2, 3, 4],
       entities: {
-        1: { providerId: 1, name: 'A', url: 'http://a', priority: 0, prefs: { enabled: true, types: {} } },
-        2: { providerId: 2, name: 'B', url: 'http://b', priority: 1, prefs: { enabled: false, types: {} } },
+        1: { providerId: 1, name: 'A', url: 'http://a', priority: 0, visibility: 'public' as const, prefs: { enabled: true, types: {} } },
+        2: { providerId: 2, name: 'B', url: 'http://b', priority: 1, visibility: 'manager' as const, prefs: { enabled: true, types: {} } },
+        3: { providerId: 3, name: 'C', url: 'http://c', priority: 2, visibility: 'admin' as const, prefs: { enabled: true, types: {} } },
+        4: { providerId: 4, name: 'D', url: 'http://d', priority: 3, visibility: 'public' as const, prefs: { enabled: false, types: {} } },
       },
-    })
+    }
 
-    expect(sanitized.result).toEqual([1])
-    expect(Object.keys(sanitized.entities)).toEqual(['1'])
+    expect(Prefs.getSanitizedProviders(providers, { isAdmin: false }).result).toEqual([1])
+    expect(Prefs.getSanitizedProviders(providers, { isAdmin: false, permissions: { manageProviders: true } }).result).toEqual([1, 2])
+    expect(Prefs.getSanitizedProviders(providers, { isAdmin: true }).result).toEqual([1, 2, 3])
   })
 })

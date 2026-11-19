@@ -35,4 +35,26 @@ describe('pushPrefs', () => {
     })
     expect(emit.mock.calls[0][1].payload).not.toHaveProperty('paths')
   })
+
+  it('sends distinct provider lists to managers and other users', () => {
+    const emit = vi.fn()
+    const to = vi.fn(() => ({ emit }))
+    getMock.mockReturnValue({ providers: { result: [], entities: {} } })
+    sanitizeMock.mockImplementation((_providers: unknown, user: { permissions?: Record<string, boolean> }) => ({
+      result: user.permissions?.manageProviders ? [1, 2] : [1],
+      entities: {},
+    }))
+
+    pushPrefs({
+      sockets: { sockets: new Map([
+        ['manager', { id: 'manager', user: { isAdmin: false, permissions: { manageProviders: true } } }],
+        ['standard', { id: 'standard', user: { isAdmin: false, permissions: {} } }],
+      ]) },
+      to,
+    })
+
+    expect(to).toHaveBeenNthCalledWith(1, ['manager'])
+    expect(to).toHaveBeenNthCalledWith(2, ['standard'])
+    expect(emit.mock.calls.map(call => call[1].payload.providers.result)).toEqual([[1, 2], [1]])
+  })
 })

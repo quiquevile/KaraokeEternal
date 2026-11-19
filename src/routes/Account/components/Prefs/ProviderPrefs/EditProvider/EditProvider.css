@@ -16,6 +16,12 @@
   gap: var(--space-s);
 }
 
+.visibilityField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
 .heading {
   flex: 1;
   min-width: 0;

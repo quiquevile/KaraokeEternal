@@ -15,7 +15,7 @@ function setProviders (byId: Record<number, { enabled?: boolean, url?: string, a
       result: ids,
       entities: Object.fromEntries(ids.map((id) => {
         const { enabled = true, url = `http://p${id}`, apiKey } = byId[id]
-        const provider: Provider = { providerId: id, name: `P${id}`, url, apiKey, priority: id, prefs: { enabled, types: {} } }
+        const provider: Provider = { providerId: id, name: `P${id}`, url, apiKey, priority: id, visibility: 'public', prefs: { enabled, types: {} } }
         return [id, provider]
       })),
     },

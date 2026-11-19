@@ -67,6 +67,7 @@ const ProviderResultItem = ({
   const isRequester = fetchView?.requests.some(r => r.userId === userId) ?? false
   const isCancelable = disabled && (isAdmin || isRequester)
   const isErrored = fetchView?.status === 'error'
+  const artistAndSource = [artist, source].map(value => value.trim()).filter(Boolean).join(' - ')
 
   const handleClick = () => {
     if (ignoreMouseup) {
@@ -149,7 +150,7 @@ const ProviderResultItem = ({
         <div className={clsx(styles.title, glow.className)} onAnimationEnd={glow.onAnimationEnd}>
           <Highlight text={title} pattern={highlight} />
           <div className={styles.artist}>
-            <Highlight text={artist} pattern={highlight} />
+            <Highlight text={artistAndSource} pattern={highlight} />
           </div>
         </div>
       </div>

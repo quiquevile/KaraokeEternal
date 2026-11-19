@@ -4,6 +4,7 @@
 
 - The fork is now based on upstream Karaoke Eternal v2.1.0: song providers (Provider API), pitch shifting, ReplayGain first-play analysis, faster incremental scanning, combined artist+title search and its security fixes — full details in the [v2.1.0](#v210-2026-11-04) section below
 - All interface text introduced by the sync is translated, keeping the bilingual (English / Español) UI complete
+- Provider search results show their source next to the artist
 
 ### YouTube search and downloads
 

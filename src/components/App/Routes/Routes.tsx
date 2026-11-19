@@ -6,7 +6,6 @@ import { hasPermission } from 'store/modules/user'
 import AccountView from 'routes/Account/views/AccountView'
 import LibraryView from 'routes/Library/views/LibraryView'
 import QueueView from 'routes/Queue/views/QueueView'
-import YoutubeView from 'routes/Youtube/views/YoutubeView/YoutubeView'
 
 const PlayerView = React.lazy(() => import('routes/Player/views/PlayerView'))
 
@@ -26,14 +25,6 @@ const AppRoutes = () => (
       element={(
         <RequireAuth path='/queue' redirectTo='/account'>
           <QueueView />
-        </RequireAuth>
-      )}
-    />
-    <Route
-      path='/youtube'
-      element={(
-        <RequireAuth path='/youtube' redirectTo='/account'>
-          <YoutubeView />
         </RequireAuth>
       )}
     />
@@ -77,10 +68,6 @@ const RequireAuth = ({
   const location = useLocation()
 
   if (path === '/player' && !hasPermission(user, 'playerAccess')) {
-    return <Navigate to='/' replace />
-  }
-
-  if (path === '/youtube' && !hasPermission(user, 'youtubeDownload')) {
     return <Navigate to='/' replace />
   }
 

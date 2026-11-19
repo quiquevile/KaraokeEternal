@@ -23,7 +23,6 @@ export const libraryMessages: Record<string, MessageDescriptor> = {
   recentSearches: { id: 'library.header.recentSearches', defaultMessage: 'Recent searches' },
   search: { id: 'library.header.search', defaultMessage: 'search' },
   searchLibrary: { id: 'library.header.searchLibrary', defaultMessage: 'Search library' },
-  searchYoutube: { id: 'library.header.searchYoutube', defaultMessage: 'Search YouTube' },
   starredOnly: { id: 'library.header.starredOnly', defaultMessage: 'Show only starred songs' },
   title: { id: 'library.empty.title', defaultMessage: 'Library Empty' },
 }

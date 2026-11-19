@@ -53,7 +53,6 @@ const env = {
   KES_ROTATE_KEY: ['1', 'true'].includes(process.env.KES_ROTATE_KEY?.toLowerCase()),
   KES_SCAN: process.env.KES_SCAN?.trim(),
   KES_HISTORY_LIBRARY_SIZE: parseHistorySize(process.env.KES_HISTORY_LIBRARY_SIZE),
-  KES_HISTORY_YOUTUBE_SIZE: parseHistorySize(process.env.KES_HISTORY_YOUTUBE_SIZE),
   KES_SCANNER_CONSOLE_LEVEL: parseLevel(process.env.KES_SCANNER_CONSOLE_LEVEL),
   KES_SCANNER_LOG_LEVEL: parseLevel(process.env.KES_SCANNER_LOG_LEVEL),
   KES_SERVER_CONSOLE_LEVEL: parseLevel(process.env.KES_SERVER_CONSOLE_LEVEL),

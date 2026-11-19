@@ -5,23 +5,15 @@
 - The fork is now based on upstream Karaoke Eternal v2.1.0: song providers (Provider API), pitch shifting, ReplayGain first-play analysis, faster incremental scanning, combined artist+title search and its security fixes — full details in the [v2.1.0](#v210-2026-11-04) section below
 - All interface text introduced by the sync is translated, keeping the bilingual (English / Español) UI complete
 - Provider search results show their source next to the artist
-
-### YouTube search and downloads
-
-- Added a dedicated search tab with direct video-URL support and automatic artist/title identification; permitted users can open it from the library magnifier while library searches leave provider results and the Find More Songs button unobstructed
-- Downloaded tracks land in a subfolder named after the downloader, and each user only sees their own download notifications (admins see them all)
-- Users with the download-for-others capability can queue downloads for another user in an open room, with presence checks at enqueue and completion time
-- The download target picker also lists the requester's own ghosts (for admins or users with the ghost-users capability), which accept the download without being in the room
-- Downloads are refused when the destination file already exists or another version of the song is already in that folder; a song living elsewhere is fine and the download lands as another version of it
-- yt-dlp is fully self-contained: it downloads and updates itself in the configured folder, picking the right build per environment and healing itself when broken; features stay disabled until a folder is selected
+- Retired the fork's direct video search and downloader, including its tab and settings; external song searches now use providers
 
 ### Library management (admin)
 
 - Songs can be retagged from the library or the queue, with media files renamed automatically to match; retagging onto an artist/title that already exists in another folder merges both songs into that one (media, queue entries, stars and tags move over), while sharing a folder is rejected without changing anything
-- The download and retag dialogs warn when a version of the song already exists in the library (checked as you type, without blocking the action)
+- The retag dialog warns when a version of the song already exists in the library (checked as you type, without blocking the action)
 - Artists can be renamed by admins with a swipe on their row; renaming to an existing artist combines their songs, matching titles become versions, and songs with folder or file conflicts stay with the original artist and are reported
 - Library scans skip unchanged files (mtime-tracked) instead of re-parsing everything, and only vacuum when something was actually removed
-- Whole songs or individual versions can be deleted (with file list, inline preview and confirmation); queue entries disappear everywhere and playback moves on
+- Whole songs or individual versions can be deleted (with file list and confirmation); queue entries disappear everywhere and playback moves on
 - Admins can move a version's file (mp3+g sidecar included) to another media folder from Song Info, with name-clash protection
 - All changes are pushed live to every connected client
 
@@ -39,7 +31,7 @@
 
 ### Permissions
 
-- Granular per-user capabilities (queue delete/move/replay, player access/controls, YouTube downloads) replace the single room-admin role, with a managed account editor
+- Granular per-user capabilities (queue delete/move/replay, player access/controls) replace the single room-admin role, with a managed account editor
 - A new "Can set pitch for songs" capability, nested under "Can control playback", lets non-admins set or clear a song's default pitch from the player options
 - Users with player access can start playback (projection use case) without playback controls
 - Admins can sign in to password-protected rooms without knowing the room password (their own password is still required)
@@ -71,7 +63,7 @@
 
 ### Loudness leveling
 
-- ReplayGain is controlled globally in admin Player preferences. Files without stored values, including YouTube downloads, are measured by the player on first playback; the server-side batch measurement has been removed
+- ReplayGain is controlled globally in admin Player preferences. Files without stored values are measured by the player on first playback; the server-side batch measurement has been removed
 - Per-version gain can be adjusted manually from Song Info (admin); clearing a value allows first-play measurement again
 
 ### Queue and rooms
@@ -81,21 +73,20 @@
 - Room admins with playback and queue controls
 - Users with the new "queue songs for others" capability (or admins) can long-press a library song to queue it for another user in the room
 - Requeueing a played song from the queue: users with the "queue songs for others" capability (or admins) pick the target from a list of the room's users (and their own ghost accounts), everyone else requeues for themselves as before
-- Library and YouTube search boxes remember recent searches per browser and suggest them while typing (sizes via `KES_HISTORY_LIBRARY_SIZE` / `KES_HISTORY_YOUTUBE_SIZE`, default 10, 0 disables)
+- The library search box remembers recent searches per browser and suggests them while typing (size via `KES_HISTORY_LIBRARY_SIZE`, default 10, 0 disables)
 
 ### Library and queue filters
 
-- The library can be filtered by media folder (admin); the YouTube downloads folder is now a regular folder entry and the old "Downloaded" filter is gone
-- New admin header filters narrow the library to songs with multiple versions and cycle by preferred version (any / without / with)
+- The library can be filtered by media folder (admin)
 - The queue header gains quick filters: search by title or artist, starred songs only, and songs queued by a specific user (tapping the active user filter clears it)
 - The queue search gains a magnifier (Enter works too): with text in the box it lights up with a library badge and hands the same text over to the library search
 - A "No Songs Match the Filters" message replaces the queue list when every song is filtered out
-- The same "No Songs Match the Filters" message now appears in the library as well; both views link onward with the typed text — to the library from the queue, or to the YouTube search from the library (when permitted)
+- The same "No Songs Match the Filters" message now appears in the library as well; the queue view links to the library with the typed search text
 - Library searches made only of symbols (e.g. "&" or "!!!") now match literally, so artists like "Simon & Garfunkel" can be found by typing "&"; the fuzzy search used to drop every symbol and find nothing, while regular text searches are unchanged
 
 ### Other
 
-- Ready-to-build container image and compose file, with resource caps suited for small hosts (capped node heap and ffmpeg threads via environment, overridable per deployment)
+- Ready-to-build container image and compose file, with resource caps suited for small hosts
 - More consistent API error statuses (404/422)
 
 ## v2.1.0 (2026-11-04)

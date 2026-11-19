@@ -299,29 +299,14 @@ router.get('/users', async (ctx) => {
   ctx.body = users
 })
 
-// slim user list for download/queue targeting (admins, downloadForOthers,
-// queueForOthers or ghostUsers holders); optionally filtered by live room
-// presence like the user management. ?for=queue|download tells which action
-// feeds the list, so room users require exactly that capability (this
-// endpoint backs both pickers); without it either capability passes.
+// slim user list for queue targeting (admins, queueForOthers or ghostUsers
+// holders); optionally filtered by live room presence.
 // ?ghosts=1 appends the requester's own ghost users (never in a room);
 // ghosts are only ever appended for ghost managers (admin or ghostUsers)
 export async function handleUsersNames (ctx) {
-  const intent = ctx.query.for === undefined ? null : String(ctx.query.for)
+  if (ctx.query.for !== undefined && ctx.query.for !== 'queue') ctx.throw(422)
 
-  if (intent !== null && intent !== 'queue' && intent !== 'download') {
-    ctx.throw(422)
-  }
-
-  let canTargetRoom: boolean
-
-  if (intent === 'queue') {
-    canTargetRoom = can(ctx.user, 'queueForOthers')
-  } else if (intent === 'download') {
-    canTargetRoom = can(ctx.user, 'downloadForOthers')
-  } else {
-    canTargetRoom = can(ctx.user, 'downloadForOthers') || can(ctx.user, 'queueForOthers')
-  }
+  const canTargetRoom = can(ctx.user, 'queueForOthers')
 
   const isRoomTargeter = ctx.user.isAdmin || canTargetRoom
   const isGhostManager = can(ctx.user, 'ghostUsers')

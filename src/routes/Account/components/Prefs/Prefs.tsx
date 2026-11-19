@@ -4,7 +4,6 @@ import Panel from 'components/Panel/Panel'
 import PathPrefs from './PathPrefs/PathPrefs'
 import PlayerPrefs from './PlayerPrefs/PlayerPrefs'
 import ProviderPrefs from './ProviderPrefs/ProviderPrefs'
-import YouTubePrefs from './YouTubePrefs/YouTubePrefs'
 import TagPrefs from './TagPrefs/TagPrefs'
 import { useAppSelector } from 'store/hooks'
 import styles from './Prefs.css'
@@ -22,7 +21,6 @@ const Prefs = () => {
       <>
         {isAdmin && <PathPrefs />}
         {isAdmin && <PlayerPrefs />}
-        {isAdmin && <YouTubePrefs />}
         {isAdmin && <ProviderPrefs />}
         <TagPrefs />
       </>

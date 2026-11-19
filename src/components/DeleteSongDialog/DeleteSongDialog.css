@@ -40,25 +40,6 @@
   color: var(--color-gray-5);
 }
 
-.previewBtn {
-  flex: 0 0 auto;
-  width: auto;
-  padding: 0 var(--space-s);
-  font-size: var(--font-size-s);
-}
-
-.preview {
-  width: 100%;
-  margin-top: var(--space-s);
-  max-height: 240px;
-  background: #000;
-}
-
-.previewAudio {
-  width: 100%;
-  margin-top: var(--space-s);
-}
-
 .error {
   color: var(--btn-danger-bg-color);
   font-size: var(--font-size-s);

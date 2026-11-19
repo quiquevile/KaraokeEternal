@@ -12,7 +12,6 @@ import getDisplayQueue from 'routes/Queue/selectors/getDisplayQueue'
 import getWaits from 'routes/Queue/selectors/getWaits'
 import LibraryHeader from 'routes/Library/components/LibraryHeader/LibraryHeader'
 import QueueHeader from 'routes/Queue/components/QueueHeader/QueueHeader'
-import YouTubeSearchHeader from 'routes/Youtube/components/YouTubeSearchHeader/YouTubeSearchHeader'
 import PlaybackCtrl from './PlaybackCtrl/PlaybackCtrl'
 import ProgressBar from './ProgressBar/ProgressBar'
 import RoomBadge from './PlaybackCtrl/RoomBadge/RoomBadge'
@@ -90,7 +89,6 @@ const Header = ({ ref }: { ref?: React.Ref<HTMLDivElement> }) => {
       <Routes>
         <Route path='/library' element={<LibraryHeader />} />
         <Route path='/queue' element={<QueueHeader />} />
-        <Route path='/youtube' element={<YouTubeSearchHeader />} />
       </Routes>
     </div>
   )

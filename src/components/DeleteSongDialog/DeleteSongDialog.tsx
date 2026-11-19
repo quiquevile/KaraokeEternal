@@ -15,54 +15,15 @@ import styles from './DeleteSongDialog.css'
 import { commonMessages } from '../../lib/messages'
 import { sharedMessages } from '../messages'
 
-const VIDEO_EXTS = ['.mp4', '.webm', '.mov', '.avi', '.flv', '.mkv', '.zip']
-const AUDIO_EXTS = ['.mp3', '.m4a', '.opus', '.ogg', '.wav', '.flac', '.mpc']
-
-const extOf = (relPath: string) => relPath.slice(relPath.lastIndexOf('.')).toLowerCase()
-
-const VersionPreview = ({ mediaId, ext }: { mediaId: number, ext: string }) => {
-  if (VIDEO_EXTS.includes(ext)) {
-    return (
-      <video
-        className={styles.preview}
-        src={`${document.baseURI}api/media/${mediaId}?type=video`}
-        controls
-        preload='metadata'
-      />
-    )
-  }
-
-  if (AUDIO_EXTS.includes(ext)) {
-    return (
-      <audio
-        className={styles.previewAudio}
-        src={`${document.baseURI}api/media/${mediaId}?type=audio`}
-        controls
-        preload='metadata'
-      />
-    )
-  }
-
-  return null
-}
-
 const VersionRow = ({
   media,
   checked,
-  previewOpen,
   onToggle,
-  onPreviewToggle,
 }: {
   media: Media
   checked: boolean
-  previewOpen: boolean
   onToggle: () => void
-  onPreviewToggle: () => void
 }) => {
-  const ext = extOf(media.relPath)
-  const previewable = VIDEO_EXTS.includes(ext) || AUDIO_EXTS.includes(ext)
-  const intl = useIntl()
-
   return (
     <li className={styles.version}>
       <label className={styles.row}>
@@ -75,23 +36,7 @@ const VersionRow = ({
           {/* eslint-enable formatjs/no-literal-string-in-jsx */}
         </span>
         <span className={styles.duration}>{formatDuration(media.duration)}</span>
-        {previewable && (
-          <Button
-            className={styles.previewBtn}
-            onClick={onPreviewToggle}
-            aria-label={previewOpen
-              ? intl.formatMessage(sharedMessages.hidePreview)
-              : intl.formatMessage(sharedMessages.preview)}
-          >
-            {previewOpen
-              ? <FormattedMessage {...sharedMessages.hide} />
-              : <FormattedMessage {...commonMessages.preview} />}
-          </Button>
-        )}
       </label>
-      {previewOpen && previewable && (
-        <VersionPreview mediaId={media.mediaId} ext={ext} />
-      )}
     </li>
   )
 }
@@ -104,7 +49,6 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
   const media = useAppSelector(state => state.songInfo.media)
   const error = useAppSelector(state => state.songInfo.error)
   const [selected, setSelected] = useState<number[]>([])
-  const [previewId, setPreviewId] = useState<number | null>(null)
   const dispatch = useAppDispatch()
   const intl = useIntl()
 
@@ -131,7 +75,6 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
 
     dispatch(deleteMedia(selected))
     setSelected([])
-    setPreviewId(null)
   }
 
   const handleDeleteAll = () => {
@@ -158,9 +101,7 @@ const DeleteSongForm = ({ songId }: { songId: number }) => {
             key={mediaId}
             media={media.entities[mediaId]}
             checked={selected.includes(mediaId)}
-            previewOpen={previewId === mediaId}
             onToggle={() => toggle(mediaId)}
-            onPreviewToggle={() => setPreviewId(previewId === mediaId ? null : mediaId)}
           />
         ))}
       </ul>

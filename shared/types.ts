@@ -218,8 +218,6 @@ export type Permission
     | 'playerAccess'
     | 'playerControls'
     | 'setSongPitch'
-    | 'youtubeDownload'
-    | 'downloadForOthers'
     | 'manageTags'
 
 export interface User {

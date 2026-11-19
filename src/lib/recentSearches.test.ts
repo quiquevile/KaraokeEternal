@@ -9,7 +9,7 @@ import {
 const store: Record<string, string> = {}
 
 const fakeWindow = () => ({
-  __KE_CONFIG__: undefined as { historyLibrarySize?: number, historyYoutubeSize?: number } | undefined,
+  __KE_CONFIG__: undefined as { historyLibrarySize?: number } | undefined,
   localStorage: {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, value: string) => {
@@ -33,80 +33,69 @@ afterEach(() => {
 
 describe('getHistoryLimit', () => {
   it('defaults to 10 without injected config', () => {
-    expect(getHistoryLimit('library')).toBe(10)
-    expect(getHistoryLimit('youtube')).toBe(10)
+    expect(getHistoryLimit()).toBe(10)
   })
 
-  it('reads per-scope injected limits, keeping an explicit 0', () => {
-    win.__KE_CONFIG__ = { historyLibrarySize: 3, historyYoutubeSize: 0 }
+  it('reads the injected limit', () => {
+    win.__KE_CONFIG__ = { historyLibrarySize: 3 }
 
-    expect(getHistoryLimit('library')).toBe(3)
-    expect(getHistoryLimit('youtube')).toBe(0)
+    expect(getHistoryLimit()).toBe(3)
   })
 
   it('falls back to 10 on invalid values', () => {
-    win.__KE_CONFIG__ = { historyLibrarySize: -1, historyYoutubeSize: 2.5 }
+    win.__KE_CONFIG__ = { historyLibrarySize: -1 }
 
-    expect(getHistoryLimit('library')).toBe(10)
-    expect(getHistoryLimit('youtube')).toBe(10)
+    expect(getHistoryLimit()).toBe(10)
   })
 })
 
 describe('pushRecentSearch / getRecentSearches', () => {
   it('stores most-recent-first and dedupes case-insensitively', () => {
-    pushRecentSearch('library', 'queen')
-    pushRecentSearch('library', 'abba')
-    pushRecentSearch('library', 'Queen')
+    pushRecentSearch('queen')
+    pushRecentSearch('abba')
+    pushRecentSearch('Queen')
 
-    expect(getRecentSearches('library')).toEqual(['Queen', 'abba'])
+    expect(getRecentSearches()).toEqual(['Queen', 'abba'])
   })
 
   it('ignores blank terms', () => {
-    pushRecentSearch('library', '   ')
+    pushRecentSearch('   ')
 
-    expect(getRecentSearches('library')).toEqual([])
+    expect(getRecentSearches()).toEqual([])
   })
 
   it('caps the list at the configured limit', () => {
     win.__KE_CONFIG__ = { historyLibrarySize: 2 }
 
-    pushRecentSearch('library', 'one')
-    pushRecentSearch('library', 'two')
-    pushRecentSearch('library', 'three')
+    pushRecentSearch('one')
+    pushRecentSearch('two')
+    pushRecentSearch('three')
 
-    expect(getRecentSearches('library')).toEqual(['three', 'two'])
+    expect(getRecentSearches()).toEqual(['three', 'two'])
   })
 
   it('trims pre-existing longer lists when the limit shrinks', () => {
-    pushRecentSearch('library', 'one')
-    pushRecentSearch('library', 'two')
-    pushRecentSearch('library', 'three')
+    pushRecentSearch('one')
+    pushRecentSearch('two')
+    pushRecentSearch('three')
     win.__KE_CONFIG__ = { historyLibrarySize: 2 }
 
-    expect(getRecentSearches('library')).toEqual(['three', 'two'])
-  })
-
-  it('keeps scopes separate', () => {
-    pushRecentSearch('library', 'queen')
-    pushRecentSearch('youtube', 'abba')
-
-    expect(getRecentSearches('library')).toEqual(['queen'])
-    expect(getRecentSearches('youtube')).toEqual(['abba'])
+    expect(getRecentSearches()).toEqual(['three', 'two'])
   })
 
   it('stores nothing and shows nothing when disabled with 0', () => {
-    win.__KE_CONFIG__ = { historyYoutubeSize: 0 }
+    win.__KE_CONFIG__ = { historyLibrarySize: 0 }
 
-    pushRecentSearch('youtube', 'abba')
+    pushRecentSearch('abba')
 
-    expect(getRecentSearches('youtube')).toEqual([])
-    expect(store['ke-recent-youtube']).toBeUndefined()
+    expect(getRecentSearches()).toEqual([])
+    expect(store['ke-recent-library']).toBeUndefined()
   })
 
   it('survives corrupt storage', () => {
     store['ke-recent-library'] = 'not-json{'
 
-    expect(getRecentSearches('library')).toEqual([])
+    expect(getRecentSearches()).toEqual([])
   })
 })
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { nextCaseStep } from 'routes/Youtube/components/YouTubeMetadataDialog/caseCycle'
+import { nextCaseStep } from './caseCycle'
 
 export interface CaseField {
   value: string

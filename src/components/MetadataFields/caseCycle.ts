@@ -1,4 +1,4 @@
-// Case modes applied to download metadata fields (artist/title).
+// Case modes applied to metadata fields (artist/title).
 // Every step is computed from the base text so cycling back
 // to step 0 always restores the exact original value.
 export const CASE_STEP_COUNT = 6

@@ -3,13 +3,11 @@ import clsx from 'clsx'
 import { NavLink } from 'react-router'
 import { useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
-import { useAppSelector } from 'store/hooks'
 import styles from './Navigation.css'
 import { navMessages } from './messages'
 
 const Navigation = ({ ref }: { ref?: React.Ref<HTMLDivElement> }) => {
   const intl = useIntl()
-  const { isAdmin, permissions } = useAppSelector(state => state.user)
 
   return (
     <div className={clsx(styles.container, 'bg-blur')} ref={ref}>
@@ -43,24 +41,6 @@ const Navigation = ({ ref }: { ref?: React.Ref<HTMLDivElement> }) => {
           />
         )}
       </NavLink>
-      {(isAdmin || permissions?.youtubeDownload)
-        && (
-          <NavLink
-            to='/youtube'
-            replace
-            className={({ isActive }) => clsx(isActive && styles.active)}
-            aria-label={intl.formatMessage(navMessages.youtube)}
-          >
-            {({ isActive }) => (
-              <Button
-                icon='NAV_YOUTUBE'
-                as='span'
-                animateClassName={styles.btnAnimate}
-                cancelAnimation={!isActive}
-              />
-            )}
-          </NavLink>
-        )}
       <NavLink
         to='/account'
         replace

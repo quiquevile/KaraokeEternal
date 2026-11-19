@@ -4,7 +4,7 @@ import Library from './Library.js'
 import pushQueuesAndLibrary from '../lib/pushQueuesAndLibrary.js'
 import { mapDomainError, parseIdParam, requireAdmin } from '../lib/http.js'
 import { ctxLocale } from '../lib/locale.js'
-import { deriveNorms } from '../Youtube/metadata.js'
+import { deriveNorms } from './metadata.js'
 const router = new KoaRouter({ prefix: '/api' })
 
 // lists underlying media for a given song

@@ -15,7 +15,7 @@ import ui from './modules/ui'
 import user from './modules/user'
 import tags from './modules/tags'
 import userStars from './modules/userStars'
-import youtube from './modules/youtube'
+import queueTargets from './modules/queueTargets'
 
 export interface LazyLoadedSlices {} // eslint-disable-line @typescript-eslint/no-empty-object-type
 
@@ -34,7 +34,7 @@ const combinedReducer = combineSlices({
   user,
   tags,
   userStars: optimistic(userStars),
-  youtube,
+  queueTargets,
 }).withLazyLoadedSlices<LazyLoadedSlices>()
 
 export default combinedReducer

@@ -7,7 +7,7 @@ import { useSwipeable } from 'react-swipeable'
 import { useLongPress } from 'use-long-press'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { hasPermission } from 'store/modules/user'
-import { fetchQueueUsers } from 'store/modules/youtube'
+import { fetchQueueUsers } from 'store/modules/queueTargets'
 import Icon from 'components/Icon/Icon'
 import Button from 'components/Button/Button'
 import ButtonStar from 'components/ButtonStar/ButtonStar'
@@ -108,7 +108,7 @@ const QueueItem = ({
   const dispatch = useAppDispatch()
   const intl = useIntl()
   const user = useAppSelector(state => state.user)
-  const queueUsers = useAppSelector(state => state.youtube.queueUsers)
+  const queueUsers = useAppSelector(state => state.queueTargets.queueUsers)
 
   const canQueueForOthers = hasPermission(user, 'queueForOthers')
 

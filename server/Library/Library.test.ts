@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import { open, close, db } from '../lib/Database.js'
 import Library from './Library.js'
-import { deriveNorms } from '../Youtube/metadata.js'
+import { deriveNorms } from './metadata.js'
 import { ConflictError, NotFoundError, ValidationError } from '../lib/Errors.js'
 
 let dir: string

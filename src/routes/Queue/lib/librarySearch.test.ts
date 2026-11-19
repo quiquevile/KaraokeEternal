@@ -20,7 +20,7 @@ describe('prepareLibrarySearch', () => {
 
     prepareLibrarySearch(dispatch, '  Joyride  ')
 
-    expect(vi.mocked(pushRecentSearch)).toHaveBeenCalledWith('library', 'Joyride')
+    expect(vi.mocked(pushRecentSearch)).toHaveBeenCalledWith('Joyride')
     // settle any pending throttled library search first…
     expect(dispatch).toHaveBeenNthCalledWith(1, {
       type: CANCEL,

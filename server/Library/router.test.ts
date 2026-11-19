@@ -21,7 +21,7 @@ vi.mock('../lib/pushQueuesAndLibrary.js', () => ({
   default: vi.fn(),
 }))
 
-vi.mock('../Youtube/metadata.js', () => ({
+vi.mock('./metadata.js', () => ({
   deriveNorms: vi.fn((artist: string, title: string) => ({
     artistNorm: artist,
     titleNorm: title,

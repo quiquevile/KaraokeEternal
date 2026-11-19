@@ -14,7 +14,6 @@ RUN npm run build && find build -name '*.test.js' -delete
 FROM node:24-alpine
 
 RUN apk add --no-cache \
-    ffmpeg \
     tini \
  && apk upgrade --no-cache
 

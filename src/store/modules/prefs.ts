@@ -151,9 +151,6 @@ export interface PrefsState {
   }
   scannerPct: number
   scannerText: string
-  youtubeDownloadPathId?: number
-  youtubeYtdlDir?: string
-  youtubeDlExtraArgs?: string
   eqPresets?: Partial<Record<EqPresetSlot, number[]>>
   // player overlay timings (ms), admin-configured; absent until first set
   playerDisplay?: Partial<PlayerDisplayPrefs>

@@ -25,8 +25,6 @@ import prefsRouter from './Prefs/router.js'
 import providersRouter from './Providers/router.js'
 import roomsRouter from './Rooms/router.js'
 import userRouter from './User/router.js'
-import youtubeRouter from './Youtube/router.js'
-import { downloadManager } from './Youtube/downloadManager.js'
 import pushQueuesAndLibrary from './lib/pushQueuesAndLibrary.js'
 import { Server as SocketIO } from 'socket.io'
 import socketActions from './socket.js'
@@ -157,9 +155,6 @@ async function serverWorker ({ env, startPathScanner, startFileScanner, stopPath
         Array.isArray(override) ? override[0] : override,
       )
     })
-
-    // YouTube download manager (fork feature)
-    downloadManager.bindIo(io)
 
     // check providers and start their song status SSE subscriptions
     ProviderStatus.init(io)
@@ -378,21 +373,19 @@ async function serverWorker ({ env, startPathScanner, startFileScanner, stopPath
   baseRouter.use(providersRouter.routes())
   baseRouter.use(roomsRouter.routes())
   baseRouter.use(userRouter.routes())
-  baseRouter.use(youtubeRouter.routes())
   app.use(baseRouter.routes())
 
   // serve index.html with dynamic base tag at the main SPA routes
   const createIndexMiddleware = (content) => {
     const indexRoutes = [
       urlPath,
-      ...['account', 'library', 'queue', 'player', 'youtube'].map(r => urlPath + r + '/'),
+      ...['account', 'library', 'queue', 'player'].map(r => urlPath + r + '/'),
     ]
 
-    // runtime client config (recent-search history sizes): numbers only,
+    // runtime client config (recent-search history size): numbers only,
     // so no escaping concerns beyond JSON serialization
     const clientConfig = JSON.stringify({
       historyLibrarySize: env.KES_HISTORY_LIBRARY_SIZE,
-      historyYoutubeSize: env.KES_HISTORY_YOUTUBE_SIZE,
     })
 
     content = content

@@ -10,7 +10,7 @@ import { DEFAULT_LOCALE, t, type LocaleCode } from '../lib/locale.js'
 import { performance } from 'perf_hooks'
 import { Song, Artist } from '../../shared/types.js'
 import Media from '../Media/Media.js'
-import { deriveNorms, toFilename } from '../Youtube/metadata.js'
+import { deriveNorms, toFilename } from './metadata.js'
 
 const log = getLogger('Library')
 

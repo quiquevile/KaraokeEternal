@@ -1,16 +1,12 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 import clsx from 'clsx'
 import { useIntl } from 'react-intl'
-import { useNavigate } from 'react-router'
 import { useSwipeable } from 'react-swipeable'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import { setFilterStr, resetFilterStr, setFilterFolder, toggleFilterStarred } from '../../modules/library'
-import { openYoutubeSearch } from '../../lib/youtubeSearch'
-import { hasPermission } from 'store/modules/user'
 import { fetchTags } from 'store/modules/tags'
 import Button from 'components/Button/Button'
 import Buttons from 'components/Buttons/Buttons'
-import Icon from 'components/Icon/Icon'
 import RecentSearches from 'components/RecentSearches/RecentSearches'
 import FolderFilterDialog from '../FolderFilterDialog/FolderFilterDialog'
 import TagFilterDialog from '../TagFilterDialog/TagFilterDialog'
@@ -21,14 +17,12 @@ import { libraryMessages } from '../../messages'
 
 const LibraryHeader = () => {
   const dispatch = useAppDispatch()
-  const navigate = useNavigate()
   const intl = useIntl()
   const { filterStr, filterStarred, filterTags, filterFolder } = useAppSelector(state => state.library)
   const user = useAppSelector(state => state.user)
   const visibleTags = useAppSelector(state => state.tags.tags)
   // Admins can still use the special tag filters when there are no real tags.
   const hasMoreFilters = user.isAdmin || visibleTags.some(tag => tag.visibility !== 'admin')
-  const canDownload = hasPermission(user, 'youtubeDownload')
   useEffect(() => {
     void dispatch(fetchTags())
   }, [dispatch])
@@ -70,7 +64,7 @@ const LibraryHeader = () => {
   const searchInput = useRef<HTMLInputElement>(null)
   const searchWrap = useRef<HTMLDivElement>(null)
   const [value, setValue] = useState(filterStr)
-  const [historyLimit] = useState(() => getHistoryLimit('library'))
+  const [historyLimit] = useState(() => getHistoryLimit())
   const [historyOpen, setHistoryOpen] = useState(false)
 
   // only the star filter shows by default: swipe the filter group left
@@ -105,7 +99,7 @@ const LibraryHeader = () => {
   }, [filterSwipeHandlers])
 
   const openHistory = () => {
-    if (historyLimit > 0 && getRecentSearches('library').length > 0) {
+    if (historyLimit > 0 && getRecentSearches().length > 0) {
       setHistoryOpen(true)
     }
   }
@@ -135,7 +129,7 @@ const LibraryHeader = () => {
 
   const handleBlur = () => {
     // leaving the field settles the search: remember it, then hide
-    if (value.trim() !== '') pushRecentSearch('library', value)
+    if (value.trim() !== '') pushRecentSearch(value)
 
     setHistoryOpen(false)
   }
@@ -153,24 +147,15 @@ const LibraryHeader = () => {
   }
 
   const handleMagnifierClick = () => {
-    const text = value.trim()
-
-    if (!text) {
-      searchInput.current?.focus()
-      return
-    }
-
-    if (!canDownload) {
-      clearSearch()
-      return
-    }
-
-    openYoutubeSearch(dispatch, text)
-    navigate('/youtube')
+    searchInput.current?.focus()
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') handleMagnifierClick()
+    if (event.key === 'Enter') {
+      if (value.trim() !== '') pushRecentSearch(value)
+      setHistoryOpen(false)
+      searchInput.current?.blur()
+    }
     if (event.key === 'Escape') setHistoryOpen(false)
   }
 
@@ -180,12 +165,8 @@ const LibraryHeader = () => {
         className={clsx(styles.btnMagnifier, filterStr && styles.active)}
         icon='MAGNIFIER'
         onClick={handleMagnifierClick}
-        aria-label={filterStr
-          ? intl.formatMessage(libraryMessages.searchYoutube)
-          : intl.formatMessage(libraryMessages.searchLibrary)}
-      >
-        {filterStr && <Icon icon='NAV_YOUTUBE' className={styles.ytBadge} />}
-      </Button>
+        aria-label={intl.formatMessage(libraryMessages.searchLibrary)}
+      />
       <div className={styles.searchWrap} ref={searchWrap}>
         <input
           type='search'
@@ -200,7 +181,7 @@ const LibraryHeader = () => {
         />
         {historyOpen && (
           <RecentSearches
-            items={filterRecentSearches(getRecentSearches('library'), value).map(term => ({ value: term, label: term }))}
+            items={filterRecentSearches(getRecentSearches(), value).map(term => ({ value: term, label: term }))}
             label={intl.formatMessage(libraryMessages.recentSearches)}
             highlight={value.trim()}
             onSelect={handleSelect}

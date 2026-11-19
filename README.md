@@ -1,6 +1,6 @@
 # Karaoke Eternal (quiquevile's fork)
 
-Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser. The player is also fully browser-based with support for MP3+G, MP4 videos and WebGL visualizations. The server is self-hosted and runs on nearly everything. This fork adds library management, YouTube downloads and granular permissions on top of the original [Karaoke Eternal](https://github.com/bhj/KaraokeEternal/blob/master/README.md).
+Host awesome karaoke parties where everyone can easily find and queue songs from their phone's browser. The player is also fully browser-based with support for MP3+G, MP4 videos and WebGL visualizations. The server is self-hosted and runs on nearly everything. This fork adds library management, song tags and granular permissions on top of the original [Karaoke Eternal](https://github.com/bhj/KaraokeEternal/blob/master/README.md).
 
 [![Karaoke Eternal](/docs/assets/images/README.jpg?raw=true)](/docs/assets/images/README.jpg?raw=true)
 
@@ -22,7 +22,6 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - Fully self-hosted
 - No ads or telemetry
 - This fork adds:
-  - YouTube search from the library magnifier and downloads straight from the app, with per-user subfolders
   - Provider search results identify their source alongside the artist
   - Granular per-user permissions, queue-for-others included
   - Bilingual interface (English / Español)
@@ -39,7 +38,7 @@ Karaoke Eternal basically has 3 parts, plus administration in this fork. See [Ge
 - **[Server:](docs/server.md)** Runs on pretty much anything to serve the web app and your media files, including a Windows PC, Mac, or a dedicated server like a Raspberry Pi or Synology NAS. See [installation](docs/server.md#installation) for Docker and from-source options.
 - **[App:](docs/app.md)** Fast, modern mobile web app designed for "karaoke conditions".
 - **[Player:](docs/app.md#player)** Just another part of the app, but meant to run fullscreen on the system handling audio/video for a [room](docs/administration.md#rooms).
-- **[Administration:](docs/administration.md)** Rooms, users and capabilities, library management, YouTube downloads and everything else that needs an admin account.
+- **[Administration:](docs/administration.md)** Rooms, users and capabilities, library management and everything else that needs an admin account.
 
 ## Installation
 

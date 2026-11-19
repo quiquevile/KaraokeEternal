@@ -15,7 +15,7 @@ export function prepareLibrarySearch (dispatch: AppDispatch, text: string): void
 
   if (!trimmed) return
 
-  pushRecentSearch('library', trimmed)
+  pushRecentSearch(trimmed)
 
   dispatch({ type: CANCEL, payload: { type: LIBRARY_FILTER_STRING } })
   dispatch(setFilterStrNow(trimmed))

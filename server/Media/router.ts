@@ -184,7 +184,7 @@ router.delete('/:mediaId', handleDeleteMedia)
 
 // adjust a version's loudness gain in dB (admin only); the peak is
 // rescaled by the same delta so clip-safe playback stays correct.
-// A null gain clears both columns so the next gain scan measures again.
+// A null gain clears both columns so first playback can measure again.
 export async function handleUpdateMedia (ctx) {
   if (!ctx.user.isAdmin) {
     ctx.throw(401)

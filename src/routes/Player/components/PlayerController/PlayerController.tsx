@@ -54,6 +54,7 @@ interface PlayerControllerProps {
 const PlayerController = (props: PlayerControllerProps) => {
   const queue = useAppSelector(getRoundRobinQueue)
   const player = useAppSelector(state => state.player)
+  const isReplayGainEnabled = useAppSelector(state => state.prefs.isReplayGainEnabled)
   const songs = useAppSelector(state => state.songs.entities)
   const artists = useAppSelector(state => state.artists.entities)
   const playerVisualizer = useAppSelector(state => state.playerVisualizer)
@@ -90,7 +91,7 @@ const PlayerController = (props: PlayerControllerProps) => {
     mediaType: queueItem ? queueItem.mediaType : null,
     rgTrackGain: queueItem ? queueItem.rgTrackGain : null,
     rgTrackPeak: queueItem ? queueItem.rgTrackPeak : null,
-    isReplayGainEnabled: player.isReplayGainEnabled,
+    isReplayGainEnabled,
   })
 
   const dispatch = useAppDispatch()
@@ -375,7 +376,6 @@ const PlayerController = (props: PlayerControllerProps) => {
     player.cdgAlpha,
     player.cdgSize,
     player.isPlaying,
-    player.isReplayGainEnabled,
     player.mp4Alpha,
     player.pitch,
     player.volume,
@@ -435,7 +435,7 @@ const PlayerController = (props: PlayerControllerProps) => {
         isFetching={player._isFetching}
         isPlaying={player.isPlaying}
         isVisible={!!queueItem && !player.isErrored && !player.isAtQueueEnd}
-        isReplayGainEnabled={player.isReplayGainEnabled}
+        isReplayGainEnabled={isReplayGainEnabled}
         isVideoKeyingEnabled={!!queueItem?.isVideoKeyingEnabled}
         isWebGLSupported={player.isWebGLSupported}
         mediaId={queueItem ? queueItem.mediaId : null}

@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import { useAppDispatch, useAppSelector } from 'store/hooks'
 import Accordion from 'components/Accordion/Accordion'
-import Button from 'components/Button/Button'
 import Icon from 'components/Icon/Icon'
-import { requestGainScan, setPref, type PlayerDisplayPrefs } from 'store/modules/prefs'
+import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
+import { setPref, type PlayerDisplayPrefs } from 'store/modules/prefs'
 import { getPlayerDisplayPrefs } from 'routes/Player/lib/playerDisplay'
 import styles from './PlayerPrefs.css'
 import { accountMessages } from '../../../messages'
@@ -65,12 +65,13 @@ const MsField = ({ fieldKey, message, value }: {
 
 const PlayerPrefs = () => {
   const isAdmin = useAppSelector(state => state.user.isAdmin)
-  const isScanning = useAppSelector(state => state.prefs.isScanning)
+  const isReplayGainEnabled = useAppSelector(state => state.prefs.isReplayGainEnabled)
   const displayPrefs = getPlayerDisplayPrefs(useAppSelector(state => state.prefs.playerDisplay))
   const dispatch = useAppDispatch()
+  const intl = useIntl()
 
-  const handleGainScan = () => {
-    dispatch(requestGainScan())
+  const handleReplayGainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch(setPref({ key: 'isReplayGainEnabled', data: e.currentTarget.checked }))
   }
 
   return (
@@ -95,9 +96,15 @@ const PlayerPrefs = () => {
               ))}
             </div>
             <div>
-              <Button onClick={handleGainScan} variant='default' disabled={isScanning}>
-                <FormattedMessage {...accountMessages.measureGain} />
-              </Button>
+              <InputCheckbox
+                label={intl.formatMessage(accountMessages.replayGain)}
+                checked={isReplayGainEnabled}
+                onChange={handleReplayGainChange}
+                aria-describedby='isReplayGainEnabled-desc'
+              />
+              <p id='isReplayGainEnabled-desc' className={styles.description}>
+                <FormattedMessage {...accountMessages.replayGainDesc} />
+              </p>
             </div>
           </>
         )}

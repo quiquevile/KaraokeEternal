@@ -116,7 +116,6 @@ export const PROVIDER_STATUS_PUSH = 'prefs/PROVIDER_STATUS_PUSH'
 export const PREFS_PUSH = 'prefs/PREFS_PUSH'
 export const PREFS_REQ_SCANNER_START = 'prefs/REQ_SCANNER_START'
 export const PREFS_REQ_SCANNER_STOP = 'prefs/REQ_SCANNER_STOP'
-export const PREFS_REQ_GAIN_START = 'prefs/REQ_GAIN_START'
 
 // User management
 export const USERS_CLEANUP = 'users/CLEANUP'

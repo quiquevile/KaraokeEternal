@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { FormattedMessage, useIntl } from 'react-intl'
 import Button from 'components/Button/Button'
-import InputCheckbox from 'components/InputCheckbox/InputCheckbox'
 import Slider from 'components/Slider/Slider'
 import useOptimisticValue from 'lib/useOptimisticValue'
 import EqualizerDialog from './EqualizerDialog'
@@ -22,7 +21,6 @@ interface AudioCtrlProps {
   /** the media's saved pitch, which applies to every singer; 0 means none is saved */
   globalPitch: number
   isPitchSupported: boolean
-  isReplayGainEnabled: boolean
   mediaType?: MediaType
   pitch: number
   /** the singer's saved preference for the media, if any */
@@ -41,7 +39,6 @@ const AudioCtrl = ({
   eqPreset,
   globalPitch,
   isPitchSupported,
-  isReplayGainEnabled,
   mediaType = '',
   pitch,
   userPitch,
@@ -58,10 +55,6 @@ const AudioCtrl = ({
   const handleChange = (val: number) => {
     setDisplayPitch(val)
     onRequestOptions({ pitch: val })
-  }
-
-  const handleToggleReplayGain = () => {
-    onRequestOptions({ isReplayGainEnabled: !isReplayGainEnabled })
   }
 
   // the singer's preference follows the slider, saved on the settled value so a
@@ -182,14 +175,6 @@ const AudioCtrl = ({
         >
           <FormattedMessage {...commonMessages.equalizer} />
         </Button>
-      </div>
-
-      <div>
-        <InputCheckbox
-          label={intl.formatMessage(headerMessages.replayGain)}
-          checked={isReplayGainEnabled}
-          onChange={handleToggleReplayGain}
-        />
       </div>
 
       {isEqualizerOpen && (

@@ -39,3 +39,9 @@
   padding: var(--container-padding);
   cursor: pointer;
 }
+
+.description {
+  margin: 0 0 0 var(--container-padding);
+  color: var(--color-gray-5);
+  font-size: var(--font-size-s);
+}

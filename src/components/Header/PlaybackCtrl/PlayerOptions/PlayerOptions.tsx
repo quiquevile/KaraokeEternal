@@ -35,7 +35,6 @@ interface PlayerOptionsProps {
   eqPreset: string
   globalPitch: number
   isPitchSupported: boolean
-  isReplayGainEnabled: boolean
   isVideoKeyingEnabled: boolean
   isVisualizerEnabled: boolean
   isWebGLSupported: boolean
@@ -60,7 +59,6 @@ const PlayerOptions = ({
   eqPreset,
   globalPitch,
   isPitchSupported,
-  isReplayGainEnabled,
   isVideoKeyingEnabled,
   isVisualizerEnabled,
   isWebGLSupported,
@@ -186,7 +184,6 @@ const PlayerOptions = ({
             eqPreset={eqPreset}
             globalPitch={globalPitch}
             isPitchSupported={isPitchSupported}
-            isReplayGainEnabled={isReplayGainEnabled}
             mediaType={mediaType}
             pitch={pitch}
             userPitch={userPitch}

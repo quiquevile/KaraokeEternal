@@ -7,7 +7,7 @@ import { RootState } from 'store/store'
 import HttpApi from 'lib/HttpApi'
 import Persistor from 'store/Persistor'
 import type { Permission } from 'shared/types'
-import { fetchGainStatus, fetchPrefs } from './prefs'
+import { fetchPrefs } from './prefs'
 import { fetchRooms } from './rooms'
 import { roomSwitched } from './status'
 import {
@@ -44,10 +44,6 @@ export const login = createAsyncThunk(
 
     thunkAPI.dispatch(receiveAccount(user))
     thunkAPI.dispatch(fetchPrefs())
-
-    // gain progress is admin-only: asking as anyone else 401s and pops a
-    // spurious global error (the endpoint has no message, hence "Unauthorized")
-    if ((thunkAPI.getState() as RootState).user.isAdmin) thunkAPI.dispatch(fetchGainStatus())
 
     thunkAPI.dispatch(connectSocket())
     socket.open()
@@ -120,9 +116,6 @@ export const createAccount = createAsyncThunk<void, FormData, { state: RootState
 
     thunkAPI.dispatch(receiveAccount(user))
     thunkAPI.dispatch(fetchPrefs())
-
-    // gain progress is admin-only (see login)
-    if (thunkAPI.getState().user.isAdmin) thunkAPI.dispatch(fetchGainStatus())
 
     thunkAPI.dispatch(connectSocket())
     socket.open()

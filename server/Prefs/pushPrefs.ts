@@ -3,7 +3,7 @@ import { PREFS_PUSH } from '../../shared/actionTypes.js'
 import type { Prefs as PrefsType } from '../../shared/types.js'
 
 // push full prefs to admins; everyone else gets the pieces every client
-// needs (roles, player display timings) plus the sanitized provider subset
+// needs (roles, ReplayGain, player display timings) plus the sanitized provider subset
 function pushPrefs (io): void {
   const adminIds = []
   const userIds = []
@@ -27,6 +27,7 @@ function pushPrefs (io): void {
       type: PREFS_PUSH,
       payload: {
         roles: prefs.roles,
+        isReplayGainEnabled: prefs.isReplayGainEnabled,
         playerDisplay: prefs.playerDisplay,
         providers: Prefs.getSanitizedProviders(prefs.providers),
       },

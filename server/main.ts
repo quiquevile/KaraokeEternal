@@ -30,8 +30,6 @@ const refs: {
   watcher?: childProcess.ChildProcess
 } = {}
 const shutdownHandlers: Array<() => Promise<void>> = []
-let pauseGainScan: () => boolean = () => false
-let resumeGainScan: () => void = () => {}
 const WATCHER_PROVIDER_GRACE_MS = 3000
 let IPC
 
@@ -113,11 +111,8 @@ process.on('unhandledRejection', (reason) => {
   })
 
   // start web server
-  const GainScan = await import('./Scanner/GainScan.js')
-  pauseGainScan = GainScan.pauseGainScan
-  resumeGainScan = GainScan.resumeGainScan
   const serverWorker = await import('./serverWorker.js')
-  await serverWorker.default({ env, startPathScanner, startFileScanner, stopPathScanner, isScannerActive, shutdownHandlers })
+  await serverWorker.default({ env, startPathScanner, startFileScanner, stopPathScanner, shutdownHandlers })
 
   // scanning on startup? ("full" with no pathIds means all paths)
   const { pathIds, full } = parsePathIds(env.KES_SCAN)
@@ -169,8 +164,6 @@ function forkScannerWorker (role: 'pathScanner' | 'fileScanner', argv: string[])
 
 function startPathScanner (pathIds: number | number[] | true, full = false): void {
   if (refs.pathScanner === undefined) {
-    // pause gain measurement while the library scan runs (resumed on exit)
-    pauseGainScan()
     log.info('Starting path scanner process')
 
     const csv = pathIds === true ? 'all' : (Array.isArray(pathIds) ? pathIds.join(',') : String(pathIds))
@@ -179,9 +172,6 @@ function startPathScanner (pathIds: number | number[] | true, full = false): voi
     refs.pathScanner.on('exit', (code, signal) => {
       IPC.removeChild(refs.pathScanner)
       delete refs.pathScanner
-
-      // resume gain measurement paused for this scan, if any
-      resumeGainScan()
 
       ;(process as NodeJS.EventEmitter).emit(SCANNER_WORKER_EXITED, { signal, code })
       log.info(`Path scanner process exited (${signal || code})`)
@@ -222,10 +212,6 @@ function stopPathScanner () {
   if (refs.pathScanner) {
     IPC.send({ type: REQUEST_SCAN_STOP }, refs.pathScanner.pid)
   }
-}
-
-function isScannerActive () {
-  return refs.pathScanner !== undefined
 }
 
 async function shutdown (reason, code = 0) {

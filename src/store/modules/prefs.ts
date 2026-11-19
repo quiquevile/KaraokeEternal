@@ -13,7 +13,6 @@ import {
   PROVIDER_STATUS_PUSH,
   PREFS_REQ_SCANNER_START,
   PREFS_REQ_SCANNER_STOP,
-  PREFS_REQ_GAIN_START,
   SCANNER_WORKER_STATUS,
   LOGOUT,
 } from 'shared/actionTypes'
@@ -32,7 +31,7 @@ export const setPathPriority = createAction<number[]>(PREFS_PATH_SET_PRIORITY)
 export const setProviderPriority = createAction<number[]>(PREFS_PROVIDER_SET_PRIORITY)
 const prefsPush = createAction<PrefsState>(PREFS_PUSH)
 const providerStatusPush = createAction<Record<number, ProviderStatus>>(PROVIDER_STATUS_PUSH)
-const scannerWorkerStatus = createAction<{ isScanning: boolean, pct: number, text: string, job?: string }>(SCANNER_WORKER_STATUS)
+const scannerWorkerStatus = createAction<{ isScanning: boolean, pct: number, text: string }>(SCANNER_WORKER_STATUS)
 
 export const setPathPrefs = createAsyncThunk(
   PREFS_PATH_UPDATE,
@@ -97,27 +96,6 @@ export const requestScanStop = createAsyncThunk(
   },
 )
 
-export const requestGainScan = createAsyncThunk(
-  PREFS_REQ_GAIN_START,
-  async () => await api.get('/gain/scan'),
-)
-
-export interface GainStatus {
-  active: boolean
-  paused: boolean
-  measured: number
-  tagged: number
-  skipped: number
-  total: number
-  pct: number
-  text: string | null
-}
-
-export const fetchGainStatus = createAsyncThunk(
-  'prefs/fetchGainStatus',
-  async () => await api.get('/gain/status') as GainStatus,
-)
-
 export type EqPresetSlot = 'P1' | 'P2' | 'P3'
 
 // the caller's own EQ preset slots (per-user storage, never shared)
@@ -173,7 +151,6 @@ export interface PrefsState {
   }
   scannerPct: number
   scannerText: string
-  scannerJob: string | null
   youtubeDownloadPathId?: number
   youtubeYtdlDir?: string
   youtubeDlExtraArgs?: string
@@ -207,7 +184,6 @@ const initialState: PrefsState = {
   },
   scannerPct: 0,
   scannerText: '',
-  scannerJob: null,
 }
 
 const prefsReducer = createReducer(initialState, (builder) => {
@@ -233,25 +209,11 @@ const prefsReducer = createReducer(initialState, (builder) => {
       isScanning: payload.isScanning,
       scannerPct: payload.pct,
       scannerText: payload.text,
-      scannerJob: payload.job ?? null,
     }))
-    .addCase(fetchGainStatus.fulfilled, (state, { payload }) => {
-      // a reconnecting client re-discovers a running gain job; idle means
-      // nothing to show (a finished job reports itself through the socket)
-      if (!payload?.active) return
-
-      state.isScanning = true
-      state.scannerPct = payload.pct
-      state.scannerText = payload.text ?? ''
-      state.scannerJob = 'gain'
-    })
     .addCase(logout, (state) => {
-      // drop scan progress with the session: a re-login re-discovers any
-      // still-running job instead of showing a dead one
       state.isScanning = false
       state.scannerPct = 0
       state.scannerText = ''
-      state.scannerJob = null
     })
 })
 

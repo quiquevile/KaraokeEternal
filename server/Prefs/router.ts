@@ -11,7 +11,6 @@ import { normalizeProviderUrl } from '../Providers/Providers.js'
 import validateProviderFields from './validateProviderFields.js'
 import Media from '../Media/Media.js'
 import pushQueuesAndLibrary, { pushQueues } from '../lib/pushQueuesAndLibrary.js'
-import { getGainStatus, isGainActive, startGainScan, stopGainScan } from '../Scanner/GainScan.js'
 import { mapDomainError, parseIdParam, requireAdmin, requireSameOrigin } from '../lib/http.js'
 import { ctxLocale, t } from '../lib/locale.js'
 import { can } from '../lib/permissions.js'
@@ -30,7 +29,6 @@ export interface RouterContext {
   io: { emit: (...args: unknown[]) => void }
   startScanner: (pathIds: unknown, full?: boolean) => void
   stopScanner: () => void
-  isScannerActive: () => boolean
 }
 
 interface RequestWithBody {
@@ -50,10 +48,11 @@ router.get('/', (ctx) => {
     return
   }
 
-  // non-admins get roles, the player display settings (overlay timings
+  // non-admins get roles, ReplayGain, the player display settings (overlay timings
   // the player screen needs) and the sanitized provider subset
   ctx.body = {
     roles: prefs.roles,
+    isReplayGainEnabled: prefs.isReplayGainEnabled,
     playerDisplay: prefs.playerDisplay,
     providers: Prefs.getSanitizedProviders(prefs.providers),
   }
@@ -166,8 +165,6 @@ export async function handleScanPath (ctx: RouterContext): Promise<void> {
   requireSameOrigin(ctx)
   requireAdmin(ctx)
 
-  if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainInProgress', 'Gain measurement in progress'))
-
   const pathId = parseIdParam(ctx, 'pathId')
 
   ctx.status = 200
@@ -181,50 +178,22 @@ export async function handleScanAll (ctx: RouterContext): Promise<void> {
   requireSameOrigin(ctx)
   requireAdmin(ctx)
 
-  if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainInProgress', 'Gain measurement in progress'))
-
   ctx.status = 200
   ctx.startScanner(true, ctx.query.full === 'true')
 }
 
 router.post('/paths/scan', ctx => handleScanAll(ctx as unknown as RouterContext))
 
-// stop scanning (also cancels a running gain measurement)
+// stop scanning
 export async function handleScanStop (ctx: RouterContext): Promise<void> {
   requireSameOrigin(ctx)
   requireAdmin(ctx)
 
   ctx.status = 200
   ctx.stopScanner()
-  stopGainScan()
 }
 
 router.post('/paths/scan/stop', ctx => handleScanStop(ctx as unknown as RouterContext))
-
-// measure loudness of songs without a stored level (admin only);
-// paused automatically while a library scan runs, resumed afterwards
-export async function handleGainScan (ctx: RouterContext): Promise<void> {
-  requireSameOrigin(ctx)
-  requireAdmin(ctx)
-
-  if (ctx.isScannerActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.scanInProgress', 'Library scan in progress'))
-  if (isGainActive()) ctx.throw(409, t(ctxLocale(ctx), 'server.prefs.gainAlreadyRunning', 'Gain measurement already running'))
-
-  ctx.status = 200
-  startGainScan(ctx.io)
-}
-
-router.get('/gain/scan', ctx => handleGainScan(ctx as unknown as RouterContext))
-
-// last known gain job status (admin only); lets (re)connecting clients
-// show progress and offer cancel without waiting for file completion
-export async function handleGainStatus (ctx: RouterContext): Promise<void> {
-  requireAdmin(ctx)
-
-  ctx.body = getGainStatus()
-}
-
-router.get('/gain/status', ctx => handleGainStatus(ctx as unknown as RouterContext))
 
 // add a provider
 router.post('/provider', (ctx) => {

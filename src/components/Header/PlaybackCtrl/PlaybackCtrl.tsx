@@ -142,7 +142,6 @@ const PlaybackCtrl = () => {
               eqPreset={status.eqPreset}
               globalPitch={curMedia?.pitch ?? 0}
               isPitchSupported={status.isPitchSupported}
-              isReplayGainEnabled={status.isReplayGainEnabled}
               isVideoKeyingEnabled={status.isVideoKeyingEnabled}
               isVisualizerEnabled={status.visualizer.isEnabled}
               isWebGLSupported={status.isWebGLSupported}

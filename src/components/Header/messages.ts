@@ -35,7 +35,6 @@ export const headerMessages: Record<string, MessageDescriptor> = {
   raiseBand: { id: 'equalizer.raiseBand', defaultMessage: 'Raise {freq} Hz by {step} dB' },
   randomPreset: { id: 'playerOptions.randomPreset', defaultMessage: 'Random preset' },
   replay: { id: 'player.replay', defaultMessage: 'Replay' },
-  replayGain: { id: 'playerOptions.replayGain', defaultMessage: 'ReplayGain' },
   reset: { id: 'playerOptions.reset', defaultMessage: 'Reset' },
   resetHint: { id: 'equalizer.resetHint', defaultMessage: 'Double-tap to reset to 0 dB' },
   saveSlot: { id: 'equalizer.saveSlot', defaultMessage: 'Save current equalizer as {name}' },

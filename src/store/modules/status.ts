@@ -109,7 +109,6 @@ export interface StatusState {
   isPitchSupported: boolean
   isPlayerPresent: boolean
   isPlaying: boolean
-  isReplayGainEnabled: boolean
   isVideoKeyingEnabled: boolean
   isWebGLSupported: boolean
   mediaType: MediaType | null
@@ -135,7 +134,6 @@ const initialState: StatusState = {
   isPitchSupported: false,
   isPlayerPresent: false,
   isPlaying: false,
-  isReplayGainEnabled: true,
   isVideoKeyingEnabled: false,
   isWebGLSupported: false,
   mediaType: null,

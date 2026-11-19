@@ -65,17 +65,14 @@
 - Playback now fully stops when the queue is exhausted: transport controls read Play, the progress readout hides, and songs queued afterwards wait for a manual start instead of auto-playing
 - Full offline mode in the player window: play/pause, next, replay, volume, pitch and the progress/QR display toggles (A/B/Q) apply locally while the connection is down and re-sync every controller on reconnect
 - A song interrupted by a network loss no longer errors out: playback moves on to the next fully cached song (uncached ones are skipped, still replayable later), silent freezes are treated as a song end after ten seconds, and playback stops at queue end when nothing cached is left to play
-- ReplayGain leveling moved from a global setting to a per-room toggle in the player options (Audio tab, below the equalizer), enabled by default
 - Pitch setup retries instead of locking as unsupported, with a clearer message over plain HTTP
 - Restart with the new current version when the playing file is deleted
 - On touch devices, an interrupted slider drag can no longer make the handle jump to an unrelated value (and save it as the song's default) on the next tap; the singer's own pitch is saved reliably again so Reset lands where expected
 
 ### Loudness leveling
 
-- Files without loudness tags are measured with ffmpeg on download (only when nothing is stored yet); library scans never measure, they only pick up tags when the database has no values yet
-- A "Measure ReplayGain" button (admin, Player preferences) measures every song still missing a level: existing tags are used first and only tagless files go through ffmpeg, with live progress, pause/resume around library scans, and cancel support
-- Stored values (measured, tagged or manually adjusted) are never overwritten by any scan; canceling counts pending files as skipped
-- Per-version gain can be adjusted manually from Song Info (admin); clearing a value re-arms tag pickup or measurement
+- ReplayGain is controlled globally in admin Player preferences. Files without stored values, including YouTube downloads, are measured by the player on first playback; the server-side batch measurement has been removed
+- Per-version gain can be adjusted manually from Song Info (admin); clearing a value allows first-play measurement again
 
 ### Queue and rooms
 

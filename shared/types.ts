@@ -247,7 +247,6 @@ export interface PlaybackOptions {
   cdgSize?: number
   mp4Alpha?: number
   pitch?: number
-  isReplayGainEnabled?: boolean
   eqEnabled?: boolean
   eqGains?: number[]
   eqPreset?: string
@@ -276,6 +275,7 @@ export interface Media {
 export interface Prefs {
   isFirstRun?: boolean
   isScanning: boolean
+  isReplayGainEnabled: boolean
   paths: {
     result: number[]
     entities: Record<number, Path>

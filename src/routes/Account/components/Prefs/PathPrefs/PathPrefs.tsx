@@ -19,8 +19,6 @@ const api = new HttpApi('prefs/path')
 
 const PathPrefs = () => {
   const paths = useAppSelector(state => state.prefs.paths)
-  const isMeasuringGain = useAppSelector(state =>
-    state.prefs.isScanning && state.prefs.scannerJob === 'gain')
   const [choosing, setChoosing] = useState(false)
   const [editingPath, setEditingPath] = useState<Path | null>(null)
   const [priority, setPriority] = useState(paths.result)
@@ -113,7 +111,6 @@ const PathPrefs = () => {
                   <PathItem
                     index={i}
                     key={pathId}
-                    isScanDisabled={isMeasuringGain}
                     path={paths.entities[pathId]}
                     onInfo={handleInfo}
                     onRefresh={handleRefresh}
@@ -128,7 +125,7 @@ const PathPrefs = () => {
 
         <div className={styles.btnContainer}>
           {paths.result.length > 0 && (
-            <Button onClick={handleRefreshAll} variant='default' disabled={isMeasuringGain}>
+            <Button onClick={handleRefreshAll} variant='default'>
               <FormattedMessage {...accountMessages.scanFolders} />
             </Button>
           )}

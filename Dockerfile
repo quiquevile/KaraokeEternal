@@ -40,12 +40,7 @@ ENV NODE_ENV=production \
     # container logs are collected from stdout anyway (local runs without
     # docker keep file logging as before)
     KES_SERVER_LOG_LEVEL=0 \
-    KES_SCANNER_LOG_LEVEL=0 \
-    # cap the node heap so it cannot starve ffmpeg/OS inside the container
-    NODE_OPTIONS=--max-old-space-size=512 \
-    # cap ffmpeg decode threads likewise; override per deployment without
-    # rebuilding (local runs without docker are unaffected by both)
-    KES_FFMPEG_THREADS=2
+    KES_SCANNER_LOG_LEVEL=0
 
 EXPOSE 8080
 

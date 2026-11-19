@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
-import { LOGOUT, PREFS_PUSH } from 'shared/actionTypes.js'
-import reducer, { fetchEqPresets, fetchGainStatus, saveEqPreset } from './prefs'
+import { PREFS_PUSH } from 'shared/actionTypes.js'
+import reducer, { fetchEqPresets, saveEqPreset } from './prefs'
 
 const socketState = vi.hoisted(() => ({ connected: true }))
 vi.mock('lib/socket', () => ({ default: socketState }))
@@ -18,50 +18,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
-})
-
-const activeStatus = {
-  active: true,
-  paused: false,
-  measured: 3,
-  tagged: 0,
-  skipped: 0,
-  total: 10,
-  pct: 30,
-  text: 'Measuring loudness (3/10)',
-}
-
-describe('prefs gain status', () => {
-  it('populates scan progress from an active job', () => {
-    const state = reducer(undefined, fetchGainStatus.fulfilled(activeStatus, ''))
-
-    expect(state).toMatchObject({
-      isScanning: true,
-      scannerPct: 30,
-      scannerText: 'Measuring loudness (3/10)',
-      scannerJob: 'gain',
-    })
-  })
-
-  it('ignores idle status', () => {
-    const state = reducer(undefined, fetchGainStatus.fulfilled({ ...activeStatus, active: false }, ''))
-
-    expect(state.isScanning).toBe(false)
-  })
-
-  it('clears scan progress on logout', () => {
-    const running = reducer(undefined, fetchGainStatus.fulfilled(activeStatus, ''))
-    expect(running.isScanning).toBe(true)
-
-    const state = reducer(running, { type: LOGOUT })
-
-    expect(state).toMatchObject({
-      isScanning: false,
-      scannerPct: 0,
-      scannerText: '',
-      scannerJob: null,
-    })
-  })
 })
 
 describe('prefs eq presets', () => {

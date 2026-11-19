@@ -1,9 +1,8 @@
 /**
  * Whether the player should download and measure a queued song on the spot.
  *
- * Lives apart from the hook so the decision -- gated only by the room's own
- * ReplayGain toggle, never by a per-account preference -- stays covered by
- * plain unit tests.
+ * Lives apart from the hook so the decision, gated by the global ReplayGain
+ * preference, stays covered by plain unit tests.
  */
 
 export interface NeedsGainAnalysisInput {

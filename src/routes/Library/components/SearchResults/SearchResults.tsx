@@ -198,6 +198,7 @@ const RowComponent = ({
           isAdmin={isAdmin}
           userId={userId}
           fetchView={fetchView}
+          detailUrl={result.detailUrl}
           onFetch={onFetch}
         />
       </div>

@@ -175,6 +175,7 @@ export interface ProviderSearchResult {
   artist: string
   source: string
   iconUrl: string
+  detailUrl?: string // source page, when the provider offers one
   duration?: number // seconds, when the provider knows it before download
 }
 

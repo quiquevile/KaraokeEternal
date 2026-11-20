@@ -282,8 +282,8 @@ describe('Providers.search', () => {
   })
 
   it('returns only the contract fields', async () => {
-    const line = JSON.stringify([{ ...result, duration: 225, extra: 'x' }]) + '\n'
-    await expect(search(line)).resolves.toEqual([[{ providerId: 1, ...result, duration: 225 }]])
+    const line = JSON.stringify([{ ...result, detailUrl: 'https://example.com/songs/a1', duration: 225, extra: 'x' }]) + '\n'
+    await expect(search(line)).resolves.toEqual([[{ providerId: 1, ...result, detailUrl: 'https://example.com/songs/a1', duration: 225 }]])
   })
 
   it('rejects a line that is not an array', async () => {
@@ -316,6 +316,9 @@ describe('Providers.search', () => {
 
   it.each([
     ['a non-http iconUrl', { iconUrl: 'ftp://provider/i.svg' }],
+    ['a non-http detailUrl', { detailUrl: 'javascript:alert(1)' }],
+    ['a relative detailUrl', { detailUrl: '/song/a1' }],
+    ['a non-string detailUrl', { detailUrl: 123 }],
     ['an over-long title', { title: 'x'.repeat(1025) }],
     ['a missing source', { source: undefined }],
     ['a dot id', { id: '.' }],

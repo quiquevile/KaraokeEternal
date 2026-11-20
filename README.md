@@ -23,6 +23,7 @@ Host awesome karaoke parties where everyone can easily find and queue songs from
 - No ads or telemetry
 - This fork adds:
   - Provider search results identify their source alongside the artist
+  - Provider results with a source page open it from the icon and duration; tapping the title queues the song
   - Provider visibility controls for public, admin and delegated users
   - Granular per-user permissions, queue-for-others included
   - Bilingual interface (English / Español)
@@ -52,6 +53,8 @@ Join the [Karaoke Eternal Discord Server](https://discord.gg/PgqVtFq) for genera
 ## Provider Development
 
 Providers are an official way to extend Karaoke Eternal. Check the [currently available providers](https://github.com/bhj/KaraokeEternal-Providers), including reference implementations, and join the `#dev` channel of the [Discord Server](https://discord.gg/PgqVtFq).
+
+Song provider `song/v0` search results may include an optional absolute HTTP(S) `detailUrl` for the result's source page. The library opens it from the icon and duration; without a `detailUrl`, that area has no action.
 
 ## Contributing
 

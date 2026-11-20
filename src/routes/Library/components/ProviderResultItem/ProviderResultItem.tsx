@@ -15,6 +15,7 @@ import { commonMessages } from 'lib/messages'
 import Highlight from '../Highlight/Highlight'
 import { providerFetchCancel, type ProviderFetchView } from '../../modules/library'
 import styles from './ProviderResultItem.css'
+import { libraryMessages } from '../../messages'
 
 let ignoreMouseup = false
 
@@ -40,6 +41,7 @@ interface ProviderResultItemProps {
   isAdmin: boolean
   userId: number | null
   fetchView?: ProviderFetchView
+  detailUrl?: string
   onFetch: (item: ProviderFetchItem) => void
 }
 
@@ -55,6 +57,7 @@ const ProviderResultItem = ({
   isAdmin,
   userId,
   fetchView,
+  detailUrl,
   onFetch,
 }: ProviderResultItemProps) => {
   const intl = useIntl()
@@ -76,6 +79,13 @@ const ProviderResultItem = ({
     }
     if (disabled) return
     onFetch({ providerId, itemId, title, artist, source, iconUrl, duration })
+  }
+
+  const handleDetailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (ignoreMouseup) {
+      ignoreMouseup = false
+      e.preventDefault()
+    }
   }
 
   // arrow keys are the keyboard equivalent of swiping, and stay live while
@@ -120,35 +130,60 @@ const ProviderResultItem = ({
     trackMouse: true,
   })
 
+  const status = (
+    <div className={styles.status}>
+      <ProviderFetchStatusIndicator
+        source={source}
+        iconUrl={iconUrl}
+        status={fetchView?.status}
+        progress={fetchView?.progress}
+        error={fetchView?.error}
+      />
+      {duration !== undefined && (
+        <div className={styles.duration}>
+          {formatDuration(duration)}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div
       {...swipeHandlers}
       className={clsx(styles.container, styles.withArtist, disabled && styles.containerDisabled, disabled && styles.queued)}
     >
-      <div
-        className={styles.primary}
-        role='button'
-        tabIndex={0}
-        aria-disabled={disabled}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-      >
-        <div className={styles.status}>
-          <ProviderFetchStatusIndicator
-            source={source}
-            iconUrl={iconUrl}
-            status={fetchView?.status}
-            progress={fetchView?.progress}
-            error={fetchView?.error}
-          />
-          {duration !== undefined && (
-            <div className={styles.duration}>
-              {formatDuration(duration)}
-            </div>
-          )}
-        </div>
-        <div className={clsx(styles.title, glow.className)} onAnimationEnd={glow.onAnimationEnd}>
-          <Highlight text={title} pattern={highlight} />
+      <div className={styles.primary}>
+        {detailUrl
+          ? (
+              <a
+                className={clsx(styles.statusArea, styles.statusAction)}
+                href={detailUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                aria-label={intl.formatMessage(libraryMessages.providerOpenDetails)}
+                onClick={handleDetailClick}
+              >
+                {status}
+              </a>
+            )
+          : (
+              <div className={styles.statusArea}>
+                {status}
+              </div>
+            )}
+        <div
+          className={clsx(styles.title, glow.className)}
+          role='button'
+          tabIndex={0}
+          aria-label={intl.formatMessage(libraryMessages.providerQueue, { title })}
+          aria-disabled={disabled}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          onAnimationEnd={glow.onAnimationEnd}
+        >
+          <div className={styles.songTitle}>
+            <Highlight text={title} pattern={highlight} />
+          </div>
           <div className={styles.artist}>
             <Highlight text={artistAndSource} pattern={highlight} />
           </div>

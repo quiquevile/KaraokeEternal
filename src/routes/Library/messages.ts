@@ -18,6 +18,8 @@ export const libraryMessages: Record<string, MessageDescriptor> = {
   providerMore: { id: 'library.provider.more', defaultMessage: '{count} more {count, plural, one {result} other {results}}' },
   providerName: { id: 'library.provider.name', defaultMessage: 'Provider' },
   providerNoMore: { id: 'library.provider.noMore', defaultMessage: 'No more results' },
+  providerOpenDetails: { id: 'library.provider.openDetails', defaultMessage: 'Open source page' },
+  providerQueue: { id: 'library.provider.queue', defaultMessage: 'Queue {title}' },
   providerSearchAgain: { id: 'library.provider.searchAgain', defaultMessage: 'Search Again' },
   queueForUser: { id: 'library.queue.queueForUser', defaultMessage: 'Queue for user' },
   recentSearches: { id: 'library.header.recentSearches', defaultMessage: 'Recent searches' },

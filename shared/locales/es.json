@@ -343,6 +343,8 @@
   "library.provider.more": "{count} más {count, plural, one {resultado} other {resultados}}",
   "library.provider.name": "Proveedor",
   "library.provider.noMore": "Sin más resultados",
+  "library.provider.openDetails": "Abrir página de origen",
+  "library.provider.queue": "Encolar {title}",
   "library.provider.searchAgain": "Buscar de nuevo",
   "common.dragToReorder": "Arrastra para reordenar",
   "common.errorInfo": "Información del error",

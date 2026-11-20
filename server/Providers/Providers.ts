@@ -147,6 +147,10 @@ function parseSearchResult (raw: unknown): RawSearchResult | null {
   if (!isHttpUrl(raw.iconUrl)) return null
 
   const result: RawSearchResult = { id: raw.id, title: raw.title, artist: raw.artist, source: raw.source, iconUrl: raw.iconUrl }
+  if (raw.detailUrl !== undefined) {
+    if (!isHttpUrl(raw.detailUrl)) return null
+    result.detailUrl = raw.detailUrl
+  }
   if (raw.duration !== undefined) {
     if (typeof raw.duration !== 'number' || !Number.isFinite(raw.duration) || raw.duration <= 0) return null
     result.duration = raw.duration

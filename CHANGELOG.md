@@ -5,6 +5,7 @@
 - The fork is now based on upstream Karaoke Eternal v2.1.0: song providers (Provider API), pitch shifting, ReplayGain first-play analysis, faster incremental scanning, combined artist+title search and its security fixes — full details in the [v2.1.0](#v210-2026-11-04) section below
 - All interface text introduced by the sync is translated, keeping the bilingual (English / Español) UI complete
 - Provider search results show their source next to the artist
+- Song providers can include a `detailUrl` in search results; the icon and duration open that source page in a new tab while the title still queues the song
 - Admins can set each provider's visibility to public, admin or manager; the new Manage providers permission grants use of manager providers without access to provider settings
 - Retired the fork's direct video search and downloader, including its tab and settings; external song searches now use providers
 
